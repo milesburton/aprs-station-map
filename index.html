@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>APRS Station Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    #map { width: 100%; height: 100%; }
+    .leaflet-popup-content { font-family: monospace; white-space: pre; }
+    .custom-emoji-marker {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .custom-emoji-marker div {
+      background: none !important;
+      border: none !important;
+    }
+    .emoji-container {
+      position: relative;
+    }
+    .emoji-container:hover {
+      transform: scale(1.3) !important;
+      z-index: 1000 !important;
+    }
+    .timestamp-marker {
+      position: absolute;
+      bottom: -6px;
+      right: -6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid white;
+      font-size: 8px;
+      line-height: 8px;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      text-shadow: 0 0 2px rgba(0,0,0,0.8);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .timestamp-fresh { background-color: #00ff00; }
+    .timestamp-recent { background-color: #ffff00; }
+    .timestamp-old { background-color: #ff8800; }
+    .timestamp-stale { background-color: #ff0000; }
+    .custom-popup .leaflet-popup-content {
+      margin: 0;
+      padding: 8px;
+      line-height: 1.3;
+      width: auto;
+      min-width: 200px;
+      max-width: 280px;
+    }
+    .custom-popup .leaflet-popup-content-wrapper {
+      border-radius: 8px;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+      width: auto;
+      min-width: 216px;
+      max-width: 296px;
+      padding: 0;
+    }
+    .popup-content {
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      margin: 0;
+      padding: 0;
+      white-space: normal;
+      word-wrap: break-word;
+    }
+    .station-name {
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 6px;
+      margin-top: 0;
+      line-height: 1.3;
+    }
+    .station-description {
+      margin-bottom: 6px;
+      margin-top: 0;
+      white-space: pre-line;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      line-height: 1.4;
+    }
+    .station-distance {
+      font-size: 12px;
+      color: #333;
+      font-weight: bold;
+      margin-bottom: 0;
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+    .signal-strength {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 6px;
+      margin-top: 4px;
+      padding: 2px 6px;
+      background-color: #f0f0f0;
+      border-radius: 3px;
+      display: inline-block;
+      text-align: left;
+      line-height: 1.2;
+    }
+    .timestamp-info {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 6px;
+      margin-top: 4px;
+      padding: 2px 6px;
+      background-color: #f0f8ff;
+      border-radius: 3px;
+      display: inline-block;
+      text-align: left;
+      line-height: 1.2;
+    }
+    .home-marker {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .home-marker div {
+      background: none !important;
+      border: none !important;
+      transform-origin: center center !important;
+    }
+    .overlay-controls {
+      position: relative;
+    }
+    .overlay-button {
+      display: block;
+      width: 100%;
+      margin-bottom: 5px;
+      padding: 5px 8px;
+      border: 1px solid rgba(0,0,0,0.2);
+      border-radius: 3px;
+      background: white;
+      cursor: pointer;
+      font-size: 12px;
+      text-align: left;
+    }
+    .overlay-button:last-child {
+      margin-bottom: 0;
+    }
+    .overlay-button:hover {
+      background-color: #f0f8ff !important;
+      border-color: #007acc !important;
+    }
+    .overlay-button.active {
+      background-color: #007acc !important;
+      color: white !important;
+      border-color: #005588 !important;
+    }
+    .overlay-button.active:hover {
+      background-color: #005588 !important;
+      border-color: #003366 !important;
+    }
+    .clickable-callsign {
+      color: #007acc;
+      cursor: pointer;
+      text-decoration: underline;
+      font-weight: bold;
+    }
+    .clickable-callsign:hover {
+      color: #005588;
+      background-color: #f0f8ff;
+      padding: 1px 2px;
+      border-radius: 2px;
+    }
+    #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: Arial, sans-serif;
+      font-size: 18px;
+    }
+    .time-filter-control {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #ddd;
+    }
+    .time-filter-slider {
+      width: 100%;
+      margin: 5px 0;
+    }
+    .time-filter-label {
+      font-size: 11px;
+      color: #333;
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+    .time-filter-value {
+      font-size: 10px;
+      color: #666;
+      text-align: center;
+      margin-top: 2px;
+    }
+    .filter-toggle {
+      margin-top: 5px;
+    }
+    .filter-toggle input[type="checkbox"] {
+      margin-right: 5px;
+    }
+    .filter-toggle label {
+      font-size: 10px;
+      color: #666;
+      cursor: pointer;
+    }
+    .mobile-tracks {
+      stroke: #ff6600;
+      stroke-width: 2;
+      stroke-opacity: 0.7;
+      fill: none;
+    }
+    .section-divider {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #ddd;
+    }
+    .url-share-section {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #ddd;
+    }
+    .share-button {
+      display: block;
+      width: 100%;
+      padding: 5px 8px;
+      border: 1px solid #007acc;
+      border-radius: 3px;
+      background: #007acc;
+      color: white;
+      cursor: pointer;
+      font-size: 11px;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .share-button:hover {
+      background-color: #005588;
+      border-color: #005588;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin=""/>
+</head>
+<body>
+  <div id="loading">Loading libraries...</div>
+  <div id="map"></div>
+  
+  <script>
+    let leafletLoaded = false;
+    let togeojsonLoaded = false;
+    
+    function checkAndInitialise() {
+      console.log('Checking libraries…', { 
+        leaflet: leafletLoaded, 
+        togeojson: togeojsonLoaded 
+      });
+      if (leafletLoaded && togeojsonLoaded) {
+        document.getElementById('loading').style.display = 'none';
+        initialiseMap();
+      }
+    }
+    
+    function initialiseMap() {
+      console.log('Initialising map…');
+      
+      // Bexley coordinates (London) - M0LHA home station
+      const bexleyLat = 51.4416;
+      const bexleyLng = 0.1500;
+      
+      // URL State Management
+      let urlUpdateTimeout = null;
+      let currentSelectedStation = null;
+      let isRestoringState = false;
+      
+      function encodeState() {
+        if (isRestoringState) return; // Don't update URL while restoring state
+        
+        const state = {
+          lat: map.getCenter().lat.toFixed(6),
+          lng: map.getCenter().lng.toFixed(6),
+          zoom: map.getZoom(),
+          timeFilter: timeFilterEnabled,
+          timeHours: maxAgeHours,
+          plausibility: plausibilityFilterEnabled,
+          directOnly: directOnlyFilterEnabled,
+          digipeatedOnly: digipeatedOnlyFilterEnabled,
+          rings: distanceRingsVisible,
+          heatmap: heatmapVisible,
+          tracks: mobilityTracksVisible,
+          station: currentSelectedStation || null
+        };
+        
+        const params = new URLSearchParams();
+        Object.entries(state).forEach(([key, value]) => {
+          // Skip default values to keep URL clean
+          if (value === null || 
+              (key === 'lat' && Math.abs(value - 51.8) < 0.01) ||
+              (key === 'lng' && Math.abs(value - 0.5) < 0.01) ||
+              (key === 'zoom' && value === 8) ||
+              (key === 'timeHours' && value === 24) ||
+              (key === 'plausibility' && value === true) ||
+              value === false) {
+            return;
+          }
+          params.set(key, value);
+        });
+        
+        const newHash = params.toString();
+        if (window.location.hash.slice(1) !== newHash) {
+          window.location.hash = newHash;
+        }
+      }
+      
+      function decodeState() {
+        const hash = window.location.hash.slice(1);
+        if (!hash) return null;
+        
+        try {
+          const params = new URLSearchParams(hash);
+          return {
+            lat: parseFloat(params.get('lat')) || 51.8,
+            lng: parseFloat(params.get('lng')) || 0.5,
+            zoom: parseInt(params.get('zoom')) || 8,
+            timeFilter: params.get('timeFilter') === 'true',
+            timeHours: parseFloat(params.get('timeHours')) || 24,
+            plausibility: params.get('plausibility') !== 'false', // Default true
+            directOnly: params.get('directOnly') === 'true',
+            digipeatedOnly: params.get('digipeatedOnly') === 'true',
+            rings: params.get('rings') === 'true',
+            heatmap: params.get('heatmap') === 'true',
+            tracks: params.get('tracks') === 'true',
+            station: params.get('station') || null
+          };
+        } catch (e) {
+          console.error('Error parsing URL state:', e);
+          return null;
+        }
+      }
+      
+      function updateUrlDebounced() {
+        if (urlUpdateTimeout) {
+          clearTimeout(urlUpdateTimeout);
+        }
+        urlUpdateTimeout = setTimeout(() => {
+          encodeState();
+        }, 500);
+      }
+      
+      function updateUrlImmediate() {
+        if (urlUpdateTimeout) {
+          clearTimeout(urlUpdateTimeout);
+        }
+        encodeState();
+      }
+      
+      function copyShareUrl() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+          showFlashMessage('📋 Share URL copied to clipboard!', 'info');
+        }).catch(() => {
+          showFlashMessage('❌ Failed to copy URL', 'error');
+        });
+      }
+
+      // Calculate distance between two points (km)
+      function calculateDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 +
+                  Math.cos(lat1 * Math.PI/180)*Math.cos(lat2 * Math.PI/180)*
+                  Math.sin(dLng/2)**2;
+        return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      }
+
+      // Parse timestamp and calculate age
+      function parseTimestamp(timestampStr) {
+        if (!timestampStr) return null;
+        try {
+          let timestamp;
+          if (timestampStr.includes('T')) {
+            timestamp = new Date(timestampStr);
+          } else if (timestampStr.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
+            timestamp = new Date(timestampStr);
+          } else {
+            timestamp = new Date(timestampStr);
+          }
+          
+          if (isNaN(timestamp.getTime())) return null;
+          return timestamp;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // Check if coordinates are plausible for 2m band reception from Bexley
+      function isPlausibleLocation(lat, lng) {
+        // If plausibility filter is disabled, allow all locations except exact 0,0
+        if (!plausibilityFilterEnabled) {
+          return !(lat === 0 && lng === 0);
+        }
+        
+        // Full plausibility check when enabled
+        if (lat === 0 && lng === 0) return false;
+        const distance = calculateDistance(bexleyLat, bexleyLng, lat, lng);
+        const maxPlausibleDistance = 600;
+        return distance <= maxPlausibleDistance;
+      }
+
+      function getAgeCategory(timestamp) {
+        if (!timestamp) return 'unknown';
+        const now = new Date();
+        const ageMinutes = (now - timestamp) / (1000 * 60);
+        if (ageMinutes <= 30) return 'fresh';
+        if (ageMinutes <= 120) return 'recent';
+        if (ageMinutes <= 720) return 'old';
+        return 'stale';
+      }
+
+      function getOpacityForAge(ageCategory) {
+        switch (ageCategory) {
+          case 'fresh': return 1.0;
+          case 'recent': return 0.8;
+          case 'old': return 0.6;
+          case 'stale': return 0.4;
+          default: return 0.7;
+        }
+      }
+
+      function formatTimestamp(timestamp) {
+        if (!timestamp) return 'Unknown time';
+        const now = new Date();
+        const diff = now - timestamp;
+        const minutes = Math.floor(diff / (1000 * 60));
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        
+        let ageText;
+        if (minutes < 1) ageText = 'Just now';
+        else if (minutes < 60) ageText = `${minutes}m ago`;
+        else if (hours < 24) ageText = `${hours}h ago`;
+        else ageText = `${days}d ago`;
+        
+        return `${timestamp.toLocaleString()} (${ageText})`;
+      }
+
+      // State management
+      let distanceRingsVisible = false;
+      let heatmapVisible = false;
+      let mobilityTracksVisible = false;
+      let timeFilterEnabled = false;
+      let plausibilityFilterEnabled = true; // Enable by default
+      let directOnlyFilterEnabled = false; // Updated: Disable by default since KML categorizes this
+      let digipeatedOnlyFilterEnabled = false; // New filter for digipeated-only stations
+      let maxAgeHours = 24;
+      
+      let distanceRingsLayer = null;
+      let heatmapLayer = null;
+      let mobilityTracksLayer = null;
+      
+      let allStations = [];
+      let allStationData = [];
+      let allTrackData = [];
+      let stationMarkers = {};
+
+      // Check if station should be shown based on time filter
+      function shouldShowStation(timestamp) {
+        if (!timeFilterEnabled || !timestamp) return true;
+        const now = new Date();
+        const ageHours = (now - timestamp) / (1000 * 60 * 60);
+        return ageHours <= maxAgeHours;
+      }
+
+      // Check if station should be shown based on reception type filters
+      function shouldShowStationByReceptionType(isDirectReception) {
+        if (directOnlyFilterEnabled && !isDirectReception) return false;
+        if (digipeatedOnlyFilterEnabled && isDirectReception) return false;
+        return true;
+      }
+
+      // Flash message function
+      function showFlashMessage(message, type = 'info') {
+        const flash = document.createElement('div');
+        flash.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: ${type === 'error' ? '#ff4444' : '#007acc'};
+          color: white;
+          padding: 10px 15px;
+          border-radius: 5px;
+          font-size: 14px;
+          font-weight: bold;
+          z-index: 10000;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+          transition: opacity 0.3s ease;
+        `;
+        flash.textContent = message;
+        document.body.appendChild(flash);
+        
+        setTimeout(() => {
+          flash.style.opacity = '0';
+          setTimeout(() => {
+            document.body.removeChild(flash);
+          }, 300);
+        }, 2000);
+      }
+
+      // Make callsigns in descriptions clickable
+      function makeCallsignsClickable(text, currentStationName) {
+        // Pattern to match callsigns in the format: letters/numbers followed by optional -number
+        const callsignPattern = /\b([A-Z0-9]{1,3}[0-9][A-Z0-9]*(?:-[0-9]+)?)\b/g;
+        
+        return text.replace(callsignPattern, (match, callsign) => {
+          // Don't make the current station's callsign clickable
+          if (currentStationName.includes(callsign)) {
+            return match;
+          }
+          
+          return `<span class="clickable-callsign" onclick="goToCallsign('${callsign}')">${match}</span>`;
+        });
+      }
+
+      // Navigate to callsign (enhanced version)
+      window.goToCallsign = (callsign) => {
+        console.log('Looking for callsign:', callsign);
+        
+        // Look for exact match first
+        let found = null;
+        for (const [stationName, marker] of Object.entries(stationMarkers)) {
+          if (stationName.includes(callsign)) {
+            found = { name: stationName, marker };
+            break;
+          }
+        }
+        
+        if (found) {
+          map.setView(found.marker.getLatLng(), 12);
+          setTimeout(() => {
+            found.marker.openPopup();
+            currentSelectedStation = found.name;
+            updateUrlImmediate();
+            showFlashMessage(`📍 Found ${callsign}`, 'info');
+          }, 500);
+        } else {
+          showFlashMessage(`⚠️ ${callsign} not in current view or filtered out`, 'error');
+        }
+      };
+
+      // Update time filter display
+      function updateTimeFilterDisplay() {
+        const valueElement = document.getElementById('time-filter-value');
+        if (maxAgeHours < 1) {
+          const minutes = Math.round(maxAgeHours * 60);
+          valueElement.textContent = `${minutes} minutes`;
+        } else if (maxAgeHours === 24) {
+          valueElement.textContent = '24 hours (full day)';
+        } else {
+          valueElement.textContent = `${maxAgeHours.toFixed(1)} hours`;
+        }
+      }
+
+      // Global navigation
+      window.goToHome = () => {
+        map.setView([bexleyLat, bexleyLng], 12);
+        map.closePopup();
+        currentSelectedStation = null;
+        updateUrlImmediate();
+      };
+      window.goToStation = (name) => {
+        const m = stationMarkers[name];
+        if (m) {
+          map.setView(m.getLatLng(), 12);
+          setTimeout(() => {
+            m.openPopup();
+            currentSelectedStation = name;
+            updateUrlImmediate();
+          }, 500);
+        } else {
+          console.error('Station not found:', name);
+        }
+      };
+
+      // Initialize map with default or restored state
+      const initialState = decodeState();
+      const initialLat = initialState ? initialState.lat : 51.8;
+      const initialLng = initialState ? initialState.lng : 0.5;
+      const initialZoom = initialState ? initialState.zoom : 8;
+
+      const map = L.map('map').setView([initialLat, initialLng], initialZoom);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Add map event listeners for URL updates
+      map.on('moveend', updateUrlDebounced);
+      map.on('zoomend', updateUrlDebounced);
+      map.on('popupopen', (e) => {
+        // Find which station was opened
+        for (const [name, marker] of Object.entries(stationMarkers)) {
+          if (marker === e.popup._source) {
+            currentSelectedStation = name;
+            updateUrlImmediate();
+            break;
+          }
+        }
+      });
+      map.on('popupclose', () => {
+        currentSelectedStation = null;
+        updateUrlImmediate();
+      });
+
+      // Home station marker (M0LHA)
+      const homeStationIcon = L.divIcon({
+        className: 'home-marker',
+        html: `<div style="
+          font-size:28px;
+          text-align:center;
+          line-height:36px;
+          width:36px;height:36px;
+          text-shadow:
+            -2px -2px 0 #000,
+             2px -2px 0 #000,
+            -2px  2px 0 #000,
+             2px  2px 0 #000,
+            -1px -1px 0 #fff,
+             1px -1px 0 #fff,
+            -1px  1px 0 #fff,
+             1px  1px 0 #fff;
+          filter:drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+          cursor:pointer;
+        ">☠️</div>`,
+        iconSize: [36,36],
+        iconAnchor: [18,18],
+        popupAnchor: [0,-18]
+      });
+      L.marker([bexleyLat, bexleyLng], { icon: homeStationIcon })
+        .bindPopup(`<div class="popup-content"><div class="station-name">☠️ M0LHA – Home Station</div><div class="station-description">Bexley, London<br>QTH (Home Station)<br><br>Raspberry Pi + Direwolf + SDR<br>Monitoring 144.800 MHz APRS<br><br>All stations shown were heard by M0LHA<br>either directly via RF or via digipeater network.<br><br>Monitoring APRS traffic with hacker spirit!</div></div>`)
+        .addTo(map);
+
+      // Overlay controls
+      const overlayControl = L.control({ position: 'topleft' });
+      overlayControl.onAdd = () => {
+        const div = L.DomUtil.create('div', 'overlay-controls');
+        div.style.cssText = `
+          background:white;
+          padding:8px;
+          border:2px solid rgba(0,0,0,0.2);
+          border-radius:5px;
+          font:12px Arial, sans-serif;
+          min-width: 140px;
+        `;
+        div.innerHTML = `
+          <div style="margin-bottom:8px;"><strong>📡 Overlays</strong></div>
+          <button id="toggle-rings" class="overlay-button">🎯 Distance Rings</button>
+          <button id="toggle-heatmap" class="overlay-button">🔥 Station Density</button>
+          
+          <div class="section-divider">
+            <div style="margin-bottom:8px;"><strong>🚗 Mobile Stations</strong></div>
+            <button id="toggle-tracks" class="overlay-button">🛤️ Movement History</button>
+            <div style="font-size:10px; color:#666; margin-top:4px; line-height:1.3;">
+              <div><strong>Current Position:</strong> Station markers show last known location</div>
+              <div><strong>Movement History:</strong> Orange lines trace station paths over time</div>
+              <div><strong>Note:</strong> History shows all recorded movement, independent of time filter</div>
+            </div>
+          </div>
+
+          <div class="time-filter-control">
+            <div class="time-filter-label">⏰ Time Filter</div>
+            <input type="range" id="time-filter-slider" class="time-filter-slider" 
+                   min="0.5" max="24" step="0.5" value="24">
+            <div id="time-filter-value" class="time-filter-value">24 hours (full day)</div>
+            <div class="filter-toggle">
+              <input type="checkbox" id="time-filter-enabled">
+              <label for="time-filter-enabled">Enable time filter</label>
+            </div>
+          </div>
+
+          <div class="section-divider">
+            <div style="margin-bottom:8px;"><strong>📡 Reception Type</strong></div>
+            <div class="filter-toggle">
+              <input type="checkbox" id="direct-only-filter-enabled">
+              <label for="direct-only-filter-enabled">Show only direct reception</label>
+            </div>
+            <div style="font-size:9px; color:#888; margin-top:2px; line-height:1.2;">
+              Direct RF reception by M0LHA (no digipeaters)
+            </div>
+            <div class="filter-toggle" style="margin-top:8px;">
+              <input type="checkbox" id="digipeated-only-filter-enabled">
+              <label for="digipeated-only-filter-enabled">Show only digipeated stations</label>
+            </div>
+            <div style="font-size:9px; color:#888; margin-top:2px; line-height:1.2;">
+              Stations heard via MB7USE digipeater network
+            </div>
+          </div>
+
+          <div class="section-divider">
+            <div style="margin-bottom:8px;"><strong>🛡️ Data Filtering</strong></div>
+            <div class="filter-toggle">
+              <input type="checkbox" id="plausibility-filter-enabled" checked>
+              <label for="plausibility-filter-enabled">Filter impossible locations</label>
+            </div>
+            <div style="font-size:9px; color:#888; margin-top:2px; line-height:1.2;">
+              Removes stations beyond 600km range or at coordinates 0,0
+            </div>
+          </div>
+
+          <div class="url-share-section">
+            <div style="margin-bottom:6px;"><strong>🔗 Share</strong></div>
+            <button id="copy-share-url" class="share-button">📋 Copy Share URL</button>
+            <div style="font-size:9px; color:#888; margin-top:2px; line-height:1.2;">
+              URL includes current view, filters, and selected station
+            </div>
+          </div>
+          
+          <div class="section-divider">
+            <div style="margin-bottom:6px;"><strong>ℹ️ Information</strong></div>
+            <div style="font-size:10px; color:#666; line-height:1.3;">
+              <div><strong>Packet Age:</strong> Time since M0LHA last heard each station's APRS transmission</div>
+              <div style="margin-top:4px;"><strong>Age Colors:</strong></div>
+              <div style="margin-left:8px;">🟢 Fresh (0-30m) - Recently active</div>
+              <div style="margin-left:8px;">🟡 Recent (30m-2h) - Active today</div>
+              <div style="margin-left:8px;">🟠 Old (2-12h) - Older activity</div>
+              <div style="margin-left:8px;">🔴 Stale (>12h) - Not recently heard</div>
+              
+              <div style="margin-top:6px;"><strong>Reception Types:</strong></div>
+              <div style="margin-left:8px;">📡 Direct: M0LHA heard station directly via RF</div>
+              <div style="margin-left:8px;">🔄 Digipeated: Heard via MB7USE digipeater network</div>
+              <div style="margin-left:8px;">📶 Signal strength independent of reception path</div>
+              
+              <div style="margin-top:6px;"><strong>Technical:</strong></div>
+              <div style="margin-left:8px;">📻 Frequency: 144.800 MHz (2m APRS)</div>
+              <div style="margin-left:8px;">🖥️ M0LHA: Raspberry Pi + Direwolf + SDR</div>
+              <div style="margin-left:8px;">📡 Max range: ~600km (2m VHF typical limit)</div>
+            </div>
+          </div>
+        `;
+        L.DomEvent.disableClickPropagation(div);
+        return div;
+      };
+      overlayControl.addTo(map);
+
+      function createDistanceRings() {
+        const group = L.layerGroup();
+        const dists = [25,50,75,100,125,150];
+        const cols = ['#ff4444','#ff8800','#ffcc00','#88ff00','#00ff88','#0088ff'];
+        dists.forEach((d,i) => {
+          const c = L.circle([bexleyLat,bexleyLng], {
+            radius: d*1000,
+            fillColor: cols[i], fillOpacity:0.1,
+            color: cols[i], weight:2, opacity:0.6
+          });
+          c.bindPopup(L.popup({
+            closeButton:false, autoClose:false, closeOnClick:false, className:'distance-label'
+          }).setContent(`${d} km from M0LHA (Bexley)`));
+          group.addLayer(c);
+        });
+        return group;
+      }
+
+      function createCoverageHeatmap() {
+        const visibleStations = allStationData.filter(s => 
+          shouldShowStation(s.timestamp) && 
+          isPlausibleLocation(s.lat, s.lng) && 
+          shouldShowStationByReceptionType(s.isDirectReception)
+        );
+        if (!visibleStations.length) return null;
+        const layer = L.layerGroup();
+        visibleStations.forEach(s => {
+          const isDirect = s.isDirectReception;
+          layer.addLayer(L.circle([s.lat,s.lng], {
+            radius:15000,
+            fillColor: isDirect ? '#00ff00' : '#ff8800',
+            fillOpacity: isDirect ? 0.16 : 0.12,
+            color: isDirect ? '#00ff00' : '#ff8800',
+            weight:1,
+            opacity: isDirect ? 0.32 : 0.24
+          }));
+        });
+        return layer;
+      }
+
+      function createMobilityTracks() {
+        console.log('Creating mobility tracks, found', allTrackData.length, 'tracks');
+        console.log('mobilityTracksVisible:', mobilityTracksVisible);
+        console.log('plausibilityFilterEnabled:', plausibilityFilterEnabled);
+        if (!allTrackData.length) {
+          console.log('No track data available');
+          return null;
+        }
+        
+        const layer = L.layerGroup();
+        let trackCount = 0;
+        
+        // Process all track data regardless of time filter
+        allTrackData.forEach((track, index) => {
+          console.log(`Processing track ${index}:`, track.name, 'coords:', track.coordinates.length);
+          // Skip signal path tracks - only show actual movement tracks
+          if (track.name.includes('📶') || track.name.includes('➡')) {
+            console.log(`Skipping signal path track: ${track.name}`);
+            return;
+          }
+
+          const isDigipeated = track.name.includes('[Digipeated]');
+          const isDirectReception = !isDigipeated;
+
+          if (!shouldShowStationByReceptionType(isDirectReception)) {
+            console.log(`Skipping track due to reception filter: ${track.name}`);
+            return;
+          }
+
+          // Filter coordinates by time if time filter is enabled
+          let validCoords = [];
+          let validWaypoints = [];
+
+          for (let i = 0; i < track.coordinates.length; i++) {
+            const coord = track.coordinates[i];
+            
+            // Skip invalid coordinates
+            if (coord[0] === 0 && coord[1] === 0) continue;
+            if (plausibilityFilterEnabled && !isPlausibleLocation(coord[0], coord[1])) continue;
+            
+            // Check time filter if enabled and waypoint timestamp exists
+            if (timeFilterEnabled && track.waypoints && track.waypoints[i]) {
+              if (!shouldShowStation(track.waypoints[i])) continue;
+            }
+            
+            validCoords.push(coord);
+            validWaypoints.push(track.waypoints ? track.waypoints[i] : null);
+          }
+
+          // Update track waypoints to match filtered coordinates
+          track.filteredWaypoints = validWaypoints;
+
+          if (validCoords.length < 3) {
+            console.log(`Skipping track with too few points: ${track.name}`);
+            return;
+          }
+
+          if (validCoords.length > 1) {
+              // Determine track color based on reception type
+            const isDigipeated = track.name.includes('[Digipeated]');
+            const trackColor = isDigipeated ? '#ff3300' : '#0066ff'; // More vibrant colors
+              
+            const polyline = L.polyline(validCoords, {
+              color: trackColor,
+              weight: isDigipeated ? 3 : 4,
+              opacity: 0.9,
+              dashArray: isDigipeated ? '5, 5' : null // Dashed lines for digipeated
+            });
+            polyline.bringToFront();
+              
+              // Extract station callsign from track name
+              const callsign = track.name.replace(/🛤️\s*/, '').replace(/\s*Track.*/, '');
+              const receptionType = isDigipeated ? 'Digipeated' : 'Direct';
+              
+            // Build popup content with timestamp info
+            let popupContent = `<div class="popup-content">
+              <div class="station-name">${callsign} - Movement History</div>
+              <div class="station-description">Track shows ${validCoords.length} recorded positions<br>Reception: ${receptionType}`;
+
+            // Add timestamp information if available
+            if (track.startTime || track.endTime) {
+              popupContent += `<br><br>Track Duration:`;
+              if (track.startTime && track.endTime) {
+                const duration = (track.endTime - track.startTime) / (1000 * 60); // minutes
+                popupContent += `<br>From: ${track.startTime.toLocaleString()}<br>To: ${track.endTime.toLocaleString()}<br>Duration: ${Math.round(duration)} minutes`;
+              } else if (track.startTime) {
+                popupContent += `<br>Started: ${track.startTime.toLocaleString()}`;
+              } else if (track.endTime) {
+                popupContent += `<br>Ended: ${track.endTime.toLocaleString()}`;
+              }
+            }
+
+            popupContent += `</div>
+              <div style="margin-top:8px; font-size:11px; color:#666; line-height:1.4;">
+                <div>🛤️ Line shows complete movement path</div>
+                <div>📍 Current position shown as station marker</div>
+                <div>🎨 ${isDigipeated ? 'Red' : 'Blue'} = ${receptionType} reception</div>
+              </div>
+            </div>`;
+
+            polyline.bindPopup(popupContent, { 
+              className:'custom-popup', 
+              maxWidth: 300, 
+              minWidth: 220
+            });
+
+              // Add markers for each check-in point
+              validCoords.forEach((coord, pointIndex) => {
+                const pointMarker = L.circleMarker(coord, {
+                  radius: 4,
+                  fillColor: trackColor,
+                  color: '#ffffff',
+                  weight: 1,
+                  opacity: 1,
+                  fillOpacity: 0.8
+                });
+                
+                // Get timestamp for this coordinate if available
+                const coordTimestamp = track.filteredWaypoints && track.filteredWaypoints[pointIndex] ? track.filteredWaypoints[pointIndex] : null;
+
+                let popupContent = `<div class="popup-content">
+                  <div class="station-name">${callsign} - Check-in Point ${pointIndex + 1}</div>
+                  <div class="station-description">Position ${pointIndex + 1} of ${validCoords.length} on movement track<br>Reception: ${receptionType}`;
+
+                if (coordTimestamp) {
+                  popupContent += `<br><br>🕒 ${formatTimestamp(coordTimestamp)}`;
+                }
+
+                popupContent += `</div>
+                  <div style="margin-top:6px; font-size:11px; color:#666;">
+                    <div>📍 Lat: ${coord[0].toFixed(6)}, Lng: ${coord[1].toFixed(6)}</div>
+                  </div>
+                </div>`;
+
+                pointMarker.bindPopup(popupContent, { 
+                  className:'custom-popup', 
+                  maxWidth: 300, 
+                  minWidth: 220
+                });
+                
+                layer.addLayer(pointMarker);
+              });
+                            
+              layer.addLayer(polyline);
+              trackCount++;
+              console.log(`Added polyline for ${callsign} (${receptionType})`);
+            }
+          }
+        );
+        
+        console.log(`Created ${trackCount} track polylines out of ${allTrackData.length} tracks`);
+        return trackCount > 0 ? layer : null;
+      }
+
+      function createStationMarker(stationData) {
+        const { latlng, name, desc, timestamp, dist, isDirectReception, iconEmoji, signalText, ageCategory, opacity, emoji, stationType } = stationData;
+
+        let timestampMarker = '';
+        if (timestamp) {
+          timestampMarker = `<div class="timestamp-marker timestamp-${ageCategory}">•</div>`;
+        }
+
+        const icon = L.divIcon({
+          className: 'custom-emoji-marker',
+          html: `<div class="emoji-container" style="
+            font-size:20px;
+            text-align:center;
+            line-height:24px;
+            width:24px;height:24px;
+            opacity:${opacity};
+            text-shadow:
+              -2px -2px 0 #000,
+               2px -2px 0 #000,
+              -2px  2px 0 #000,
+               2px  2px 0 #000,
+              -1px -1px 0 #fff,
+               1px -1px 0 #fff,
+              -1px  1px 0 #fff,
+               1px  1px 0 #fff;
+            filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+            transition:all .2s ease;
+            cursor:pointer;
+          ">${emoji}${timestampMarker}</div>`,
+          iconSize: [24,24],
+          iconAnchor: [12,12],
+          popupAnchor: [0,-12]
+        });
+
+        const receptionType = isDirectReception ? 'Direct RF reception' : 'Digipeated reception';
+        const receptionIcon = isDirectReception ? '📡' : '🔄';
+        const typeIcon = stationType === 'Mobile station' ? '🚗' : '🏠';
+
+        let popupContent = `<div class="popup-content">
+          <div class="station-name">${name}</div>`;
+        
+        if (desc && desc.trim()) {
+          popupContent += `<div class="station-description">${makeCallsignsClickable(desc, name)}</div>`;
+        }
+        
+        popupContent += `<div class="signal-strength">${receptionIcon} ${receptionType}</div>
+          <div class="signal-strength">${typeIcon} ${stationType}</div>
+          <div class="signal-strength">${iconEmoji} ${signalText}</div>`;
+        
+        if (timestamp) {
+          popupContent += `<div class="timestamp-info">🕒 ${formatTimestamp(timestamp)}</div>`;
+        }
+        
+        popupContent += `<div class="station-distance">Distance from M0LHA: ${dist.toFixed(1)} km</div></div>`;
+
+        const marker = L.marker(latlng, { icon })
+          .bindPopup(popupContent, { 
+            className:'custom-popup', 
+            maxWidth: 300, 
+            minWidth: 220,
+            autoPan: true,
+            keepInView: false
+          })
+          .on('mouseover', e => {
+            const el = e.target._icon.querySelector('.emoji-container');
+            if (el) {
+              el.style.transform = 'scale(1.3)';
+              el.style.opacity = '1.0';
+            }
+          })
+          .on('mouseout', e => {
+            const el = e.target._icon.querySelector('.emoji-container');
+            if (el) {
+              el.style.transform = 'scale(1)';
+              el.style.opacity = opacity;
+            }
+          });
+
+        return marker;
+      }
+
+      function applyLocationFilter() {
+        // Re-process all stations with new filter settings
+        // Clear existing markers
+        Object.values(stationMarkers).forEach(marker => {
+          map.removeLayer(marker);
+        });
+        stationMarkers = {};
+
+        // Re-add stations that pass all filters
+        allStationData.forEach(stationData => {
+          // Check all filters
+          const passesTimeFilter = shouldShowStation(stationData.timestamp);
+          const passesLocationFilter = isPlausibleLocation(stationData.lat, stationData.lng);
+          const passesReceptionFilter = shouldShowStationByReceptionType(stationData.isDirectReception);
+          
+          if (passesTimeFilter && passesLocationFilter && passesReceptionFilter) {
+            const marker = createStationMarker(stationData);
+            if (marker) {
+              marker.addTo(map);
+              stationMarkers[stationData.name] = marker;
+            }
+          }
+        });
+
+        updateStatistics();
+        
+        // Update heatmap if visible
+        if (heatmapVisible) {
+          map.removeLayer(heatmapLayer);
+          heatmapLayer = createCoverageHeatmap();
+          if (heatmapLayer) {
+            map.addLayer(heatmapLayer);
+          } else {
+            const heatmapButton = document.getElementById('toggle-heatmap');
+            heatmapButton.classList.remove('active');
+            heatmapVisible = false;
+          }
+        }
+
+      // Update mobility tracks if visible
+      if (mobilityTracksVisible) {
+        if (mobilityTracksLayer) {
+          map.removeLayer(mobilityTracksLayer);
+        }
+        mobilityTracksLayer = createMobilityTracks();
+        if (mobilityTracksLayer) {
+          map.addLayer(mobilityTracksLayer);
+        }
+      }
+
+        // Update URL to reflect filter changes
+        updateUrlImmediate();
+      }
+
+      function updateStatistics() {
+        // Filter stations by all active filters
+        const visibleStations = allStationData.filter(s => 
+          shouldShowStation(s.timestamp) && 
+          isPlausibleLocation(s.lat, s.lng) && 
+          shouldShowStationByReceptionType(s.isDirectReception)
+        );
+        
+        if (visibleStations.length === 0) {
+          document.querySelector('.furthest-beacon').innerHTML = `
+            <div><strong>📊 Network Statistics:</strong></div>
+            <div style="margin-top:4px;">☠️ QTH: <span class="clickable-callsign" onclick="goToHome()">M0LHA</span> – Bexley</div>
+            <div style="color:#999;">No stations match current filters</div>
+          `;
+          return;
+        }
+
+        let maxD = 0, minD = Infinity;
+        let furthest='', closest='';
+        let directCount = 0, digipeatedCount = 0;
+
+        visibleStations.forEach(s => {
+          if (s.dist > maxD) { maxD=s.dist; furthest=s.name; }
+          if (s.dist < minD) { minD=s.dist; closest=s.name; }
+          if (s.isDirectReception) directCount++;
+          else digipeatedCount++;
+        });
+
+        function extractCall(name){ return name.replace(/^[^\w]*/,'').split(' ')[0]; }
+        document.querySelector('.furthest-beacon').innerHTML = `
+          <div><strong>📊 Network Statistics:</strong></div>
+          <div style="margin-top:4px;">☠️ QTH: <span class="clickable-callsign" onclick="goToHome()">M0LHA</span> – Bexley</div>
+          <div>🏠 Closest: <span class="clickable-callsign" onclick="goToStation('${closest}')">${extractCall(closest)}</span> (${minD.toFixed(1)} km)</div>
+          <div>📡 Furthest: <span class="clickable-callsign" onclick="goToStation('${furthest}')">${extractCall(furthest)}</span> (${maxD.toFixed(1)} km)</div>
+          <div style="margin-top:4px;">📡 Direct: ${directCount} stations</div>
+          <div>🔄 Digipeated: ${digipeatedCount} stations</div>
+          <div style="margin-top:4px; font-size:10px; color:#666;">Showing ${visibleStations.length} of ${allStationData.length} stations</div>
+        `;
+      }
+
+      // Restore state from URL if present
+      function restoreStateFromUrl() {
+        const state = decodeState();
+        if (!state) return;
+
+        isRestoringState = true;
+        
+        // Restore filter states
+        timeFilterEnabled = state.timeFilter;
+        maxAgeHours = state.timeHours;
+        plausibilityFilterEnabled = state.plausibility;
+        directOnlyFilterEnabled = state.directOnly;
+        digipeatedOnlyFilterEnabled = state.digipeatedOnly;
+        
+        // Restore overlay states
+        distanceRingsVisible = state.rings;
+        heatmapVisible = state.heatmap;
+        mobilityTracksVisible = state.tracks;
+        
+        // Store selected station for later restoration
+        currentSelectedStation = state.station;
+        
+        console.log('Restored state from URL:', state);
+        isRestoringState = false;
+      }
+
+      // Apply restored state to UI controls
+      function applyRestoredStateToControls() {
+        setTimeout(() => {
+          // Update filter controls
+          const timeToggle = document.getElementById('time-filter-enabled');
+          const timeSlider = document.getElementById('time-filter-slider');
+          const plausibilityToggle = document.getElementById('plausibility-filter-enabled');
+          const directOnlyToggle = document.getElementById('direct-only-filter-enabled');
+          const digipeatedOnlyToggle = document.getElementById('digipeated-only-filter-enabled');
+          
+          if (timeToggle) timeToggle.checked = timeFilterEnabled;
+          if (timeSlider) timeSlider.value = maxAgeHours;
+          if (plausibilityToggle) plausibilityToggle.checked = plausibilityFilterEnabled;
+          if (directOnlyToggle) directOnlyToggle.checked = directOnlyFilterEnabled;
+          if (digipeatedOnlyToggle) digipeatedOnlyToggle.checked = digipeatedOnlyFilterEnabled;
+          
+          updateTimeFilterDisplay();
+          
+          // Update overlay controls
+          const ringsButton = document.getElementById('toggle-rings');
+          const heatmapButton = document.getElementById('toggle-heatmap');
+          const tracksButton = document.getElementById('toggle-tracks');
+          
+          if (distanceRingsVisible && ringsButton) {
+            ringsButton.classList.add('active');
+            distanceRingsLayer = createDistanceRings();
+            map.addLayer(distanceRingsLayer);
+          }
+          
+          if (heatmapVisible && heatmapButton) {
+            heatmapButton.classList.add('active');
+            // Heatmap will be created after stations are loaded
+          }
+          
+          if (mobilityTracksVisible && tracksButton) {
+            tracksButton.classList.add('active');
+            // Tracks will be created after track data is loaded
+          }
+        }, 100);
+      }
+
+      // Add overlay button functionality
+      setTimeout(() => {
+        const ringsButton = document.getElementById('toggle-rings');
+        const heatmapButton = document.getElementById('toggle-heatmap');
+        const tracksButton = document.getElementById('toggle-tracks');
+        const copyButton = document.getElementById('copy-share-url');
+
+        ringsButton.addEventListener('click', () => {
+          if (distanceRingsVisible) {
+            map.removeLayer(distanceRingsLayer);
+            distanceRingsVisible = false;
+            ringsButton.classList.remove('active');
+          } else {
+            distanceRingsLayer = createDistanceRings();
+            map.addLayer(distanceRingsLayer);
+            distanceRingsVisible = true;
+            ringsButton.classList.add('active');
+          }
+          updateUrlImmediate();
+        });
+
+        heatmapButton.addEventListener('click', () => {
+          if (heatmapVisible) {
+            map.removeLayer(heatmapLayer);
+            heatmapVisible = false;
+            heatmapButton.classList.remove('active');
+          } else {
+            heatmapLayer = createCoverageHeatmap();
+            if (heatmapLayer) {
+              map.addLayer(heatmapLayer);
+              heatmapVisible = true;
+              heatmapButton.classList.add('active');
+            }
+          }
+          updateUrlImmediate();
+        });
+
+        tracksButton.addEventListener('click', () => {
+          console.log('Track button clicked, current state:', mobilityTracksVisible);
+          if (mobilityTracksVisible) {
+            if (mobilityTracksLayer) {
+              map.removeLayer(mobilityTracksLayer);
+            }
+            mobilityTracksVisible = false;
+            tracksButton.classList.remove('active');
+            console.log('Tracks hidden');
+          } else {
+            mobilityTracksLayer = createMobilityTracks();
+            if (mobilityTracksLayer) {
+              map.addLayer(mobilityTracksLayer);
+              mobilityTracksVisible = true;
+              tracksButton.classList.add('active');
+              console.log('Tracks shown');
+            } else {
+              console.log('No tracks to show');
+            }
+          }
+          updateUrlImmediate();
+        });
+
+        copyButton.addEventListener('click', copyShareUrl);
+
+        const timeSlider = document.getElementById('time-filter-slider');
+        const timeToggle = document.getElementById('time-filter-enabled');
+        const plausibilityToggle = document.getElementById('plausibility-filter-enabled');
+        const directOnlyToggle = document.getElementById('direct-only-filter-enabled');
+        const digipeatedOnlyToggle = document.getElementById('digipeated-only-filter-enabled');
+
+        timeSlider.addEventListener('input', (e) => {
+          maxAgeHours = parseFloat(e.target.value);
+          updateTimeFilterDisplay();
+          if (timeFilterEnabled) {
+            applyLocationFilter();
+          }
+        });
+
+        timeToggle.addEventListener('change', (e) => {
+          timeFilterEnabled = e.target.checked;
+          applyLocationFilter();
+        });
+
+        plausibilityToggle.addEventListener('change', (e) => {
+          plausibilityFilterEnabled = e.target.checked;
+          applyLocationFilter();
+        });
+
+        directOnlyToggle.addEventListener('change', (e) => {
+          directOnlyFilterEnabled = e.target.checked;
+          // Mutual exclusion: uncheck digipeated filter if direct is checked
+          if (e.target.checked) {
+            digipeatedOnlyToggle.checked = false;
+            digipeatedOnlyFilterEnabled = false;
+          }
+          applyLocationFilter();
+        });
+
+        digipeatedOnlyToggle.addEventListener('change', (e) => {
+          digipeatedOnlyFilterEnabled = e.target.checked;
+          // Mutual exclusion: uncheck direct filter if digipeated is checked
+          if (e.target.checked) {
+            directOnlyToggle.checked = false;
+            directOnlyFilterEnabled = false;
+          }
+          applyLocationFilter();
+        });
+
+        updateTimeFilterDisplay();
+        
+        // Restore state after controls are ready
+        applyRestoredStateToControls();
+      }, 100);
+
+      // Info panel
+      const infoControl = L.control({ position: 'topright' });
+      infoControl.onAdd = () => {
+        const div = L.DomUtil.create('div', 'info-panel');
+        div.style.cssText = `
+          background:white;
+          padding:8px;
+          border:2px solid rgba(0,0,0,0.2);
+          border-radius:5px;
+          font:12px Arial, sans-serif;
+          min-width:200px;
+        `;
+        div.innerHTML = `
+          <div class="last-updated">Last Updated: Loading…</div>
+          <div class="furthest-beacon" style="margin-top:8px;">Network Statistics: Loading…</div>
+        `;
+        return div;
+      };
+      infoControl.addTo(map);
+
+      const kmlUrl = 'https://download.milesburton.com/aprs/direwolf-stations.kml';
+
+      async function loadKML() {
+        try {
+          const res = await fetch(kmlUrl + '?_=' + Date.now());
+          const text = await res.text();
+          
+          let lastModified = 'Unknown';
+          const lastModifiedHeader = res.headers.get('last-modified');
+          if (lastModifiedHeader) {
+            const modDate = new Date(lastModifiedHeader);
+            lastModified = modDate.toLocaleString();
+          } else {
+            const dateHeader = res.headers.get('date');
+            if (dateHeader) {
+              const serverDate = new Date(dateHeader);
+              lastModified = `Server: ${serverDate.toLocaleString()}`;
+            }
+          }
+          
+          const parser = new DOMParser();
+          const kml = parser.parseFromString(text, 'text/xml');
+          const geojson = toGeoJSON.kml(kml);
+
+          // Deduplicate point features by station name, keeping only the latest timestamp
+          const pointFeatures = geojson.features.filter(f => f.geometry.type === 'Point');
+          const lineFeatures = geojson.features.filter(f => f.geometry.type === 'LineString');
+
+          // Group points by station name
+          const stationGroups = {};
+          pointFeatures.forEach(feature => {
+            const name = feature.properties.name || '';
+            if (!stationGroups[name]) {
+              stationGroups[name] = [];
+            }
+            stationGroups[name].push(feature);
+          });
+
+          // For each station, keep only the feature with the latest timestamp
+          const deduplicatedPoints = [];
+          Object.values(stationGroups).forEach(group => {
+            if (group.length === 1) {
+              deduplicatedPoints.push(group[0]);
+            } else {
+              // Find the feature with the latest timestamp
+              let latest = group[0];
+              let latestTime = null;
+              
+              group.forEach(feature => {
+                const desc = feature.properties.description || '';
+                const timestampMatch = desc.match(/🕒 Last heard: ([^\n]+)/);
+                if (timestampMatch) {
+                  const timestamp = parseTimestamp(timestampMatch[1].trim());
+                  if (timestamp && (!latestTime || timestamp > latestTime)) {
+                    latestTime = timestamp;
+                    latest = feature;
+                  }
+                }
+              });
+              
+              deduplicatedPoints.push(latest);
+            }
+          });
+
+          // Rebuild the geojson with deduplicated points
+          geojson.features = [...deduplicatedPoints, ...lineFeatures];
+
+          document.querySelector('.last-updated').textContent =
+            'KML File Updated: ' + lastModified;
+
+          // Reset data arrays
+          stationMarkers = {};
+          allStations = [];
+          allStationData = [];
+          allTrackData = [];
+
+          L.geoJSON(geojson, {
+            pointToLayer: (feature, latlng) => {
+              const name = feature.properties.name || '';
+              
+              if (!isPlausibleLocation(latlng.lat, latlng.lng)) {
+                console.log(`Filtering out implausible location for ${name}: ${latlng.lat}, ${latlng.lng}`);
+                return null;
+              }
+
+              let rawDesc = (feature.properties.description||'')
+                           .replace(/&lt;/g,'<')
+                           .replace(/&gt;/g,'>')
+                           .replace(/&amp;/g,'&')
+                           .replace(/<!\[CDATA\[/g,'')
+                           .replace(/\]\]>/g,'')
+                           .trim();
+
+              // Parse structured information from KML description
+              let timestamp = null;
+              const timestampMatch = rawDesc.match(/🕒 Last heard: ([^\n]+)/);
+              if (timestampMatch) {
+                timestamp = parseTimestamp(timestampMatch[1].trim());
+              }
+
+              const dist = calculateDistance(bexleyLat,bexleyLng,latlng.lat,latlng.lng);
+              
+              // Determine reception type from description content
+              const isDirectReception = rawDesc.includes('**Direct reception**');
+              const isDigipeated = rawDesc.includes('**Digipeated**');
+              
+              // Extract comment/description text
+              let stationComment = '';
+              const commentMatch = rawDesc.match(/💬\s*([^\n📊📡🕒🏠🚗📍📶]+)/);
+              if (commentMatch) {
+                stationComment = commentMatch[1].trim();
+              }
+              
+              // Extract station status
+              let stationStatus = '';
+              const statusMatch = rawDesc.match(/📊\s*([^\n]+)/);
+              if (statusMatch) {
+                stationStatus = statusMatch[1].trim();
+              }
+              
+              // Extract station type
+              let stationType = 'Unknown';
+              if (rawDesc.includes('🏠 Fixed station')) {
+                stationType = 'Fixed station';
+              } else if (rawDesc.includes('🚗 Mobile station')) {
+                stationType = 'Mobile station';
+              }
+              
+              // Extract position report count
+              let positionReports = '';
+              const reportsMatch = rawDesc.match(/📍 Position reports: (\d+)/);
+              if (reportsMatch) {
+                positionReports = reportsMatch[1];
+              }
+              
+              // Determine signal strength from description
+              let signalStrength = 2; // default strong
+              let iconEmoji = '📶';
+              let signalText = 'Signal strength unknown';
+              
+              // Extract signal info from description
+              const signalMatch = rawDesc.match(/📶 Signal: (\d+)\((\d+)\/(\d+)\)/);
+              if (signalMatch) {
+                const signalValue = parseInt(signalMatch[1]);
+                const quality1 = parseInt(signalMatch[2]);
+                const quality2 = parseInt(signalMatch[3]);
+                
+                // Use signal quality to determine strength
+                const avgQuality = (quality1 + quality2) / 2;
+                if (avgQuality < 4) {
+                  signalStrength = 1;
+                  iconEmoji = '📵';
+                  signalText = `Weak Signal (${signalValue}, ${quality1}/${quality2})`;
+                } else {
+                  signalStrength = 2;
+                  iconEmoji = '📶';
+                  signalText = `Strong Signal (${signalValue}, ${quality1}/${quality2})`;
+                }
+              }
+
+              // Extract speed and heading for mobile stations
+              let mobilityInfo = '';
+              const speedMatch = rawDesc.match(/🚀\s*([^\n]+)/);
+              if (speedMatch) {
+                mobilityInfo = speedMatch[1].trim();
+              }
+
+              const ageCategory = getAgeCategory(timestamp);
+              const opacity = getOpacityForAge(ageCategory);
+
+              // Determine emoji based on station type instead of first character
+              let emoji;
+              if (stationType === 'Mobile station') {
+                emoji = '🚗';
+              } else if (stationType === 'Fixed station') {
+                emoji = '🏠';
+              } else {
+                // Fallback to first character if it's an emoji, otherwise question mark
+                const first = name.split(' ')[0];
+                const isEmoji = /[\u{1F000}-\u{1F9FF}]/u.test(first);
+                emoji = isEmoji ? first : '❓';
+                if (emoji === '📍') emoji = '❓';
+              }
+
+              // Build clean description for display
+              let cleanDesc = '';
+              if (stationComment) cleanDesc += stationComment + '\n';
+              if (stationStatus && stationStatus !== 'In Service') cleanDesc += `Status: ${stationStatus}\n`;
+              if (mobilityInfo) cleanDesc += `Movement: ${mobilityInfo}\n`;
+              if (positionReports) cleanDesc += `Position reports: ${positionReports}`;
+              
+              cleanDesc = cleanDesc.trim();
+
+              // Store station data for filtering
+              const stationData = {
+                latlng, name, desc: cleanDesc, timestamp, dist, isDirectReception, 
+                iconEmoji, signalText, ageCategory, opacity, emoji,
+                lat: latlng.lat, lng: latlng.lng, signalStrength, stationType
+              };
+
+              // Check if we already have data for this station name
+              const existingDataIndex = allStationData.findIndex(existing => existing.name === name);
+              if (existingDataIndex !== -1) {
+                const existingData = allStationData[existingDataIndex];
+                
+                // Compare timestamps - only keep the newer one
+                if (timestamp && existingData.timestamp) {
+                  if (timestamp <= existingData.timestamp) {
+                    return null; // Skip this older report
+                  }
+                  // This is newer, remove the old data
+                  allStationData.splice(existingDataIndex, 1);
+                  // Also remove from allStations
+                  const existingStationIndex = allStations.findIndex(s => s.name === name);
+                  if (existingStationIndex !== -1) {
+                    allStations.splice(existingStationIndex, 1);
+                  }
+                } else if (existingData.timestamp && !timestamp) {
+                  return null; // Keep existing timestamped data
+                } else if (!existingData.timestamp && timestamp) {
+                  // Replace non-timestamped with timestamped
+                  allStationData.splice(existingDataIndex, 1);
+                  const existingStationIndex = allStations.findIndex(s => s.name === name);
+                  if (existingStationIndex !== -1) {
+                    allStations.splice(existingStationIndex, 1);
+                  }
+                } else {
+                  // Neither has timestamp, keep the first one
+                  return null;
+                }
+              }
+
+              allStationData.push(stationData);
+              allStations.push({ lat:latlng.lat, lng:latlng.lng, isDirectReception, name, timestamp, ageCategory });
+
+              // Only create marker if it passes all filters
+              const passesTimeFilter = shouldShowStation(timestamp);
+              const passesLocationFilter = isPlausibleLocation(latlng.lat, latlng.lng);
+              const passesReceptionFilter = shouldShowStationByReceptionType(isDirectReception);
+              
+              if (!(passesTimeFilter && passesLocationFilter && passesReceptionFilter)) {
+                return null;
+              }
+
+
+              const marker = createStationMarker(stationData);
+              if (marker) {
+                marker._stationTimestamp = timestamp; // Store timestamp for comparison
+                stationMarkers[name] = marker;
+              }
+              return marker;
+            },
+            filter: (feature) => {
+              // Handle all features but process tracks separately
+              if (feature.geometry.type === 'LineString') {
+                console.log('Processing track feature:', feature.properties.name);
+                const coords = feature.geometry.coordinates.map(coord => [coord[1], coord[0]]); // Convert [lng,lat] to [lat,lng]
+                
+                // Parse timestamps from description with error handling
+                const description = feature.properties.description || '';
+                let startTime = null, endTime = null, waypoints = [];
+
+                try {
+                  // Parse overall duration
+                  const durationMatch = description.match(/Track Duration: (\S+?) to (\S+?)(?:<|$|\s)/);
+                  if (durationMatch) {
+                    startTime = new Date(durationMatch[1]);
+                    endTime = new Date(durationMatch[2]);
+                    
+                    // Parse waypoint timestamps
+                    const waypointMatches = description.matchAll(/• Point \d+: (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)/g);
+                    const waypointTimes = [];
+                    for (const match of waypointMatches) {
+                      const timestamp = new Date(match[1]);
+                      if (!isNaN(timestamp.getTime())) {
+                        waypointTimes.push(timestamp);
+                      }
+                    }
+                    
+                    // Distribute timestamps evenly across coordinates based on available waypoints
+                    waypoints = [];
+                    if (waypointTimes.length >= 2) {
+                      for (let i = 0; i < coords.length; i++) {
+                        const ratio = i / (coords.length - 1);
+                        const timeIndex = ratio * (waypointTimes.length - 1);
+                        const floorIndex = Math.floor(timeIndex);
+                        const ceilIndex = Math.min(Math.ceil(timeIndex), waypointTimes.length - 1);
+                        
+                        if (floorIndex === ceilIndex) {
+                          waypoints[i] = waypointTimes[floorIndex];
+                        } else {
+                          // Interpolate between timestamps
+                          const t1 = waypointTimes[floorIndex].getTime();
+                          const t2 = waypointTimes[ceilIndex].getTime();
+                          const interpolatedTime = t1 + (t2 - t1) * (timeIndex - floorIndex);
+                          waypoints[i] = new Date(interpolatedTime);
+                        }
+                      }
+                    }
+                    
+                    console.log('Parsed waypoints:', waypoints.length, 'interpolated timestamps for', coords.length, 'coordinates');
+                  }
+                } catch (e) {
+                  console.error('Error parsing track timestamps:', e);
+                }
+
+                const trackData = {
+                  name: feature.properties.name || 'Unknown Track',
+                  description: description,
+                  coordinates: coords,
+                  startTime: startTime,
+                  endTime: endTime,
+                  waypoints: waypoints // Add waypoint timestamps
+                };
+                allTrackData.push(trackData);
+                console.log('Added track:', trackData.name, 'with', coords.length, 'points', 
+                            startTime ? `from ${startTime.toISOString()}` : '(no start time)', 
+                            endTime ? `to ${endTime.toISOString()}` : '(no end time)');
+                return false; // Don't add LineString to the map automatically
+              }
+              
+              if (feature.geometry.type === 'Point') {
+                const coords = feature.geometry.coordinates;
+                return isPlausibleLocation(coords[1], coords[0]);
+              }
+              
+              return true;
+            }
+          }).addTo(map);
+
+          console.log('Loaded', allStationData.length, 'stations and', allTrackData.length, 'tracks');
+          // Debug track data
+          console.log('Track data details:');
+          allTrackData.forEach((track, i) => {
+            console.log(`Track ${i}:`, {
+              name: track.name,
+              coordCount: track.coordinates ? track.coordinates.length : 0,
+              firstCoord: track.coordinates ? track.coordinates[0] : null,
+              lastCoord: track.coordinates ? track.coordinates[track.coordinates.length - 1] : null
+            });
+          });
+          updateStatistics();
+          
+          // After loading data, restore overlays and selected station
+          setTimeout(() => {
+            // Restore heatmap if it was visible
+            if (heatmapVisible) {
+              heatmapLayer = createCoverageHeatmap();
+              if (heatmapLayer) {
+                map.addLayer(heatmapLayer);
+              }
+            }
+            
+            // Restore tracks if they were visible
+            if (mobilityTracksVisible) {
+              mobilityTracksLayer = createMobilityTracks();
+              if (mobilityTracksLayer) {
+                map.addLayer(mobilityTracksLayer);
+              }
+            }
+            
+            // Restore selected station popup
+            if (currentSelectedStation && stationMarkers[currentSelectedStation]) {
+              setTimeout(() => {
+                stationMarkers[currentSelectedStation].openPopup();
+              }, 500);
+            }
+          }, 100);
+          
+        } catch (err) {
+          console.error('Error loading KML:', err);
+        }
+      }
+
+      // Restore initial state from URL
+      restoreStateFromUrl();
+
+      // Initial load and periodic refresh
+      loadKML();
+      setInterval(() => {
+        // Store current state before refresh
+        const wasSelectedStation = currentSelectedStation;
+        
+        map.eachLayer(l => l instanceof L.GeoJSON && map.removeLayer(l));
+        stationMarkers = {};
+        allStations = [];
+        allStationData = [];
+        allTrackData = [];
+        
+        // Restore selected station after reload
+        currentSelectedStation = wasSelectedStation;
+        
+        loadKML();
+      }, 60000);
+    }
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"
+          crossorigin=""
+          onload="leafletLoaded = true; checkAndInitialise();"
+          onerror="console.error('Failed to load Leaflet'); document.getElementById('loading').textContent = 'Error loading Leaflet';">
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@tmcw/togeojson@5/dist/togeojson.umd.js"
+          onload="togeojsonLoaded = true; checkAndInitialise();"
+          onerror="console.error('Failed to load toGeoJSON'); document.getElementById('loading').textContent = 'Error loading toGeoJSON';">
+  </script>
+</body>
+</html>
