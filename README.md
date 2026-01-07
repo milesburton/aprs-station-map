@@ -130,23 +130,26 @@ src/
 
 ## Data Source
 
-The application reads KML data from the `./data` directory, which is mounted into the container. Configure your Direwolf instance to write `stations.kml` to this location.
+KML data is stored in a Docker named volume (`aprs-data`) at `/usr/share/nginx/html/data/stations.kml`. The image includes a sample KML file that displays on first run.
 
-### Direwolf KML Configuration
+### Updating KML Data
 
-Add these lines to your `direwolf.conf`:
-
-```
-GPSNMEA /dev/ttyUSB0
-WAYPOINT /path/to/aprs-station-map/data/stations.kml
-```
-
-Replace `/path/to/aprs-station-map` with the actual path where you cloned this repository.
-
-If running Direwolf in a container or different location, you can also symlink the output file:
+Copy your Direwolf KML output to the container volume:
 
 ```bash
-ln -s /var/log/direwolf/stations.kml ./data/stations.kml
+docker cp /path/to/direwolf/stations.kml aprs-station-map:/usr/share/nginx/html/data/stations.kml
+```
+
+Or configure Direwolf to write directly to the volume. Find the volume path:
+
+```bash
+docker volume inspect aprs-station-map_aprs-data --format '{{.Mountpoint}}'
+```
+
+Then in your `direwolf.conf`:
+
+```
+WAYPOINT /var/lib/docker/volumes/aprs-station-map_aprs-data/_data/stations.kml
 ```
 
 The map refreshes every 60 seconds and displays stations received by the Direwolf TNC.

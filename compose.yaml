@@ -5,7 +5,7 @@ services:
     ports:
       - "3000:80"
     volumes:
-      - ./data:/usr/share/nginx/html/data:ro
+      - aprs-data:/usr/share/nginx/html/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "nginx -t && kill -0 $(cat /var/run/nginx.pid)"]
@@ -13,3 +13,6 @@ services:
       timeout: 10s
       start_period: 10s
       retries: 3
+
+volumes:
+  aprs-data:

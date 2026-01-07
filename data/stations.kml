@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>APRS Stations</name>
+    <description>Stations received by Direwolf TNC. Replace this file with your Direwolf WAYPOINT output.</description>
+    <Placemark>
+      <name>M0LHA-10</name>
+      <description>Bexley Digipeater (example station)</description>
+      <Point><coordinates>0.15,51.4416,0</coordinates></Point>
+    </Placemark>
+  </Document>
+</kml>
