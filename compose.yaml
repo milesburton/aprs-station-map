@@ -6,7 +6,7 @@ services:
       - "3000:80"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      test: ["CMD-SHELL", "nginx -t && kill -0 $(cat /var/run/nginx.pid)"]
       interval: 30s
       timeout: 10s
       start_period: 10s
