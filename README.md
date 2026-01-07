@@ -130,10 +130,26 @@ src/
 
 ## Data Source
 
-KML data fetched from:
-- `https://download.milesburton.com/aprs/direwolf-stations.kml`
+The application reads KML data from the `./data` directory, which is mounted into the container. Configure your Direwolf instance to write `stations.kml` to this location.
 
-Refreshes every 60 seconds. The KML is exported from Direwolf running on a Raspberry Pi with an RTL-SDR dongle.
+### Direwolf KML Configuration
+
+Add these lines to your `direwolf.conf`:
+
+```
+GPSNMEA /dev/ttyUSB0
+WAYPOINT /path/to/aprs-station-map/data/stations.kml
+```
+
+Replace `/path/to/aprs-station-map` with the actual path where you cloned this repository.
+
+If running Direwolf in a container or different location, you can also symlink the output file:
+
+```bash
+ln -s /var/log/direwolf/stations.kml ./data/stations.kml
+```
+
+The map refreshes every 60 seconds and displays stations received by the Direwolf TNC.
 
 ## APRS Symbol Reference
 
