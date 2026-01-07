@@ -1,4 +1,6 @@
-import type { ServerWebSocket } from 'bun'
+import { randomUUID } from 'node:crypto'
+import { type IncomingMessage, type ServerResponse, createServer } from 'node:http'
+import { WebSocket, WebSocketServer } from 'ws'
 import { bytesToHex, parseAprsPacket } from './aprs-parser'
 import { config } from './config'
 import {
@@ -16,12 +18,12 @@ import { calculateBearing, calculateDistance } from './geo'
 import { closeKissClient, getKissClient } from './kiss-client'
 import { type StateEvent, stateManager } from './state-manager'
 
-interface WebSocketData {
+interface WebSocketWithId extends WebSocket {
   id: string
 }
 
 // Track connected WebSocket clients
-const clients = new Set<ServerWebSocket<WebSocketData>>()
+const clients = new Set<WebSocketWithId>()
 
 // Convert DB station to API station format
 const toApiStation = (dbStation: DbStation) => {
@@ -52,7 +54,9 @@ const broadcast = (event: StateEvent): void => {
   const message = JSON.stringify(event)
   for (const client of clients) {
     try {
-      client.send(message)
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message)
+      }
     } catch (error) {
       console.error('[WS] Failed to send to client:', error)
       clients.delete(client)
@@ -72,25 +76,34 @@ stateManager.on('state', (event: StateEvent) => {
   }
 })
 
+const corsHeaders: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+const sendJson = (res: ServerResponse, data: unknown, status = 200): void => {
+  res.writeHead(status, { 'Content-Type': 'application/json', ...corsHeaders })
+  res.end(JSON.stringify(data))
+}
+
 // API route handlers
-const handleApiRequest = async (req: Request, url: URL): Promise<Response> => {
-  const path = url.pathname.replace('/api', '')
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  }
+const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: string): void => {
+  const path = pathname.replace('/api', '')
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    res.writeHead(204, corsHeaders)
+    res.end()
+    return
   }
 
   try {
     // GET /api/stations
     if (path === '/stations' && req.method === 'GET') {
       const stations = getAllStations().map(toApiStation)
-      return Response.json({ stations }, { headers: corsHeaders })
+      sendJson(res, { stations })
+      return
     }
 
     // GET /api/stations/:callsign
@@ -99,52 +112,47 @@ const handleApiRequest = async (req: Request, url: URL): Promise<Response> => {
       const callsign = decodeURIComponent(stationMatch[1] ?? '')
       const station = getStationByCallsign(callsign)
       if (!station) {
-        return Response.json({ error: 'Station not found' }, { status: 404, headers: corsHeaders })
+        sendJson(res, { error: 'Station not found' }, 404)
+        return
       }
       const history = getStationHistory(station.id)
-      return Response.json(
-        {
-          station: toApiStation(station),
-          history: history.map((h) => ({
-            raw: h.raw_packet,
-            latitude: h.latitude,
-            longitude: h.longitude,
-            path: h.path,
-            receivedAt: new Date(h.received_at).toISOString(),
-          })),
-        },
-        { headers: corsHeaders }
-      )
+      sendJson(res, {
+        station: toApiStation(station),
+        history: history.map((h) => ({
+          raw: h.raw_packet,
+          latitude: h.latitude,
+          longitude: h.longitude,
+          path: h.path,
+          receivedAt: new Date(h.received_at).toISOString(),
+        })),
+      })
+      return
     }
 
     // GET /api/stats
     if (path === '/stats' && req.method === 'GET') {
       const stats = getStats()
-      return Response.json(
-        {
-          ...stats,
-          kissConnected: stateManager.isKissConnected(),
-        },
-        { headers: corsHeaders }
-      )
+      sendJson(res, {
+        ...stats,
+        kissConnected: stateManager.isKissConnected(),
+      })
+      return
     }
 
     // GET /api/health
     if (path === '/health' && req.method === 'GET') {
-      return Response.json(
-        {
-          status: 'ok',
-          kissConnected: stateManager.isKissConnected(),
-          connectedClients: clients.size,
-        },
-        { headers: corsHeaders }
-      )
+      sendJson(res, {
+        status: 'ok',
+        kissConnected: stateManager.isKissConnected(),
+        connectedClients: clients.size,
+      })
+      return
     }
 
-    return Response.json({ error: 'Not found' }, { status: 404, headers: corsHeaders })
+    sendJson(res, { error: 'Not found' }, 404)
   } catch (error) {
     console.error('[API] Error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500, headers: corsHeaders })
+    sendJson(res, { error: 'Internal server error' }, 500)
   }
 }
 
@@ -206,87 +214,82 @@ export const startServer = async (): Promise<void> => {
     stateManager.emitStatsUpdate(getStats())
   }, 30000)
 
-  // Start HTTP + WebSocket server
-  const server = Bun.serve<WebSocketData>({
-    hostname: config.web.host,
-    port: config.web.port,
+  // Create HTTP server
+  const server = createServer((req, res) => {
+    const url = new URL(req.url || '/', `http://${req.headers.host}`)
 
-    async fetch(req, server) {
-      const url = new URL(req.url)
+    // API routes
+    if (url.pathname.startsWith('/api')) {
+      handleApiRequest(req, res, url.pathname)
+      return
+    }
 
-      // WebSocket upgrade
-      if (url.pathname === '/ws') {
-        const upgraded = server.upgrade(req, {
-          data: { id: crypto.randomUUID() },
-        })
-        if (upgraded) return undefined
-        return new Response('WebSocket upgrade failed', { status: 400 })
-      }
-
-      // API routes
-      if (url.pathname.startsWith('/api')) {
-        return handleApiRequest(req, url)
-      }
-
-      return new Response('Not found', { status: 404 })
-    },
-
-    websocket: {
-      open(ws) {
-        clients.add(ws)
-        console.log(`[WS] Client connected (${clients.size} total)`)
-
-        // Send initial state
-        const stations = getAllStations().map(toApiStation)
-        const stats = getStats()
-        ws.send(
-          JSON.stringify({
-            type: 'init',
-            stations,
-            stats: {
-              ...stats,
-              kissConnected: stateManager.isKissConnected(),
-            },
-          })
-        )
-      },
-
-      message(_ws, message) {
-        // Handle client messages if needed
-        try {
-          const data = JSON.parse(message.toString())
-          console.log('[WS] Received:', data)
-        } catch {
-          // Ignore invalid messages
-        }
-      },
-
-      close(ws) {
-        clients.delete(ws)
-        console.log(`[WS] Client disconnected (${clients.size} remaining)`)
-      },
-    },
+    res.writeHead(404)
+    res.end('Not found')
   })
 
-  console.log(`[Server] Listening on ${server.hostname}:${server.port}`)
+  // Create WebSocket server
+  const wss = new WebSocketServer({ server, path: '/ws' })
+
+  wss.on('connection', (ws: WebSocket) => {
+    const wsWithId = ws as WebSocketWithId
+    wsWithId.id = randomUUID()
+    clients.add(wsWithId)
+    console.log(`[WS] Client connected (${clients.size} total)`)
+
+    // Send initial state
+    const stations = getAllStations().map(toApiStation)
+    const stats = getStats()
+    ws.send(
+      JSON.stringify({
+        type: 'init',
+        stations,
+        stats: {
+          ...stats,
+          kissConnected: stateManager.isKissConnected(),
+        },
+      })
+    )
+
+    ws.on('message', (message: Buffer) => {
+      try {
+        const data = JSON.parse(message.toString())
+        console.log('[WS] Received:', data)
+      } catch {
+        // Ignore invalid messages
+      }
+    })
+
+    ws.on('close', () => {
+      clients.delete(wsWithId)
+      console.log(`[WS] Client disconnected (${clients.size} remaining)`)
+    })
+
+    ws.on('error', (error) => {
+      console.error('[WS] Client error:', error)
+      clients.delete(wsWithId)
+    })
+  })
+
+  server.listen(config.web.port, config.web.host, () => {
+    console.log(`[Server] Listening on ${config.web.host}:${config.web.port}`)
+  })
 
   // Graceful shutdown
-  process.on('SIGINT', () => {
+  const shutdown = () => {
     console.log('\n[Server] Shutting down...')
     closeKissClient()
     closeDatabase()
+    server.close()
     process.exit(0)
-  })
+  }
 
-  process.on('SIGTERM', () => {
-    console.log('\n[Server] Shutting down...')
-    closeKissClient()
-    closeDatabase()
-    process.exit(0)
-  })
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
 }
 
 // Run if executed directly
-if (import.meta.main) {
+const isMain = process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js')
+if (isMain) {
   startServer()
 }

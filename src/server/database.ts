@@ -1,4 +1,6 @@
-import { Database } from 'bun:sqlite'
+import { mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
+import Database from 'better-sqlite3'
 import type { AprsPacket } from './aprs-parser'
 import { config } from './config'
 
@@ -26,7 +28,7 @@ export interface DbPacketHistory {
   received_at: number
 }
 
-let db: Database | null = null
+let db: Database.Database | null = null
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS stations (
@@ -59,29 +61,29 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_history_received ON packet_history(received_at DESC);
 `
 
-export const initializeDatabase = (path: string = config.database.path): Database => {
+export const initializeDatabase = (path: string = config.database.path): Database.Database => {
   if (db) return db
 
   // Ensure directory exists
-  const dir = path.substring(0, path.lastIndexOf('/'))
-  if (dir) {
+  const dir = dirname(path)
+  if (dir && dir !== '.') {
     try {
-      Bun.spawnSync(['mkdir', '-p', dir])
+      mkdirSync(dir, { recursive: true })
     } catch {
       // Directory might already exist
     }
   }
 
   db = new Database(path)
-  db.exec('PRAGMA journal_mode = WAL')
-  db.exec('PRAGMA foreign_keys = ON')
+  db.pragma('journal_mode = WAL')
+  db.pragma('foreign_keys = ON')
   db.exec(SCHEMA)
 
   console.log(`[DB] Database initialized at ${path}`)
   return db
 }
 
-export const getDatabase = (): Database => {
+export const getDatabase = (): Database.Database => {
   if (!db) {
     throw new Error('Database not initialized. Call initializeDatabase() first.')
   }
@@ -101,10 +103,8 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
   const database = getDatabase()
   const now = Date.now()
 
-  const existingStmt = database.prepare<DbStation, [string]>(
-    'SELECT * FROM stations WHERE callsign = ?'
-  )
-  const existing = existingStmt.get(packet.source)
+  const existingStmt = database.prepare('SELECT * FROM stations WHERE callsign = ?')
+  const existing = existingStmt.get(packet.source) as DbStation | undefined
 
   if (existing) {
     // Update existing station
@@ -166,7 +166,7 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
     now
   )
 
-  const newStation = existingStmt.get(packet.source)
+  const newStation = existingStmt.get(packet.source) as DbStation | undefined
   if (newStation) {
     addPacketHistory(newStation.id, packet, now)
     return newStation
@@ -195,22 +195,22 @@ const addPacketHistory = (stationId: number, packet: AprsPacket, receivedAt: num
 
 export const getAllStations = (): DbStation[] => {
   const database = getDatabase()
-  const stmt = database.prepare<DbStation, []>('SELECT * FROM stations ORDER BY last_heard DESC')
-  return stmt.all()
+  const stmt = database.prepare('SELECT * FROM stations ORDER BY last_heard DESC')
+  return stmt.all() as DbStation[]
 }
 
 export const getStationByCallsign = (callsign: string): DbStation | null => {
   const database = getDatabase()
-  const stmt = database.prepare<DbStation, [string]>('SELECT * FROM stations WHERE callsign = ?')
-  return stmt.get(callsign) ?? null
+  const stmt = database.prepare('SELECT * FROM stations WHERE callsign = ?')
+  return (stmt.get(callsign) as DbStation | undefined) ?? null
 }
 
 export const getStationHistory = (stationId: number, limit = 100): DbPacketHistory[] => {
   const database = getDatabase()
-  const stmt = database.prepare<DbPacketHistory, [number, number]>(
+  const stmt = database.prepare(
     'SELECT * FROM packet_history WHERE station_id = ? ORDER BY received_at DESC LIMIT ?'
   )
-  return stmt.all(stationId, limit)
+  return stmt.all(stationId, limit) as DbPacketHistory[]
 }
 
 export const getStats = (): {
@@ -221,18 +221,20 @@ export const getStats = (): {
   const database = getDatabase()
 
   const totalStations =
-    database.prepare<{ count: number }, []>('SELECT COUNT(*) as count FROM stations').get()
+    (database.prepare('SELECT COUNT(*) as count FROM stations').get() as { count: number })
       ?.count ?? 0
 
   const stationsWithPosition =
-    database
-      .prepare<{ count: number }, []>(
-        'SELECT COUNT(*) as count FROM stations WHERE latitude IS NOT NULL AND longitude IS NOT NULL'
-      )
-      .get()?.count ?? 0
+    (
+      database
+        .prepare(
+          'SELECT COUNT(*) as count FROM stations WHERE latitude IS NOT NULL AND longitude IS NOT NULL'
+        )
+        .get() as { count: number }
+    )?.count ?? 0
 
   const totalPackets =
-    database.prepare<{ count: number }, []>('SELECT COUNT(*) as count FROM packet_history').get()
+    (database.prepare('SELECT COUNT(*) as count FROM packet_history').get() as { count: number })
       ?.count ?? 0
 
   return { totalStations, stationsWithPosition, totalPackets }

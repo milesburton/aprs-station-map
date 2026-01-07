@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import type { Socket } from 'bun'
+import { Socket } from 'node:net'
 import { config } from './config'
 
 // KISS frame constants
@@ -17,7 +17,7 @@ export interface KissClientEvents {
 }
 
 export class KissClient extends EventEmitter {
-  private socket: Socket<unknown> | null = null
+  private socket: Socket | null = null
   private buffer: number[] = []
   private inFrame = false
   private escape = false
@@ -38,33 +38,40 @@ export class KissClient extends EventEmitter {
   }
 
   private async doConnect(): Promise<void> {
-    try {
-      this.socket = await Bun.connect({
-        hostname: this._host,
-        port: this._port,
-        socket: {
-          data: (_socket, data) => this.handleData(data),
-          open: () => {
-            console.log(`[KISS] Connected to ${this._host}:${this._port}`)
-            this.emit('connected')
-          },
-          close: () => {
-            console.log('[KISS] Connection closed')
-            this.socket = null
-            this.emit('disconnected')
-            this.scheduleReconnect()
-          },
-          error: (_socket, error) => {
-            console.error('[KISS] Socket error:', error)
-            this.emit('error', error)
-          },
-        },
-      })
-    } catch (error) {
-      console.error(`[KISS] Failed to connect to ${this._host}:${this._port}:`, error)
-      this.emit('error', error instanceof Error ? error : new Error(String(error)))
-      this.scheduleReconnect()
-    }
+    return new Promise((resolve) => {
+      try {
+        this.socket = new Socket()
+
+        this.socket.on('connect', () => {
+          console.log(`[KISS] Connected to ${this._host}:${this._port}`)
+          this.emit('connected')
+          resolve()
+        })
+
+        this.socket.on('data', (data: Buffer) => {
+          this.handleData(new Uint8Array(data))
+        })
+
+        this.socket.on('close', () => {
+          console.log('[KISS] Connection closed')
+          this.socket = null
+          this.emit('disconnected')
+          this.scheduleReconnect()
+        })
+
+        this.socket.on('error', (error: Error) => {
+          console.error('[KISS] Socket error:', error.message)
+          this.emit('error', error)
+        })
+
+        this.socket.connect(this._port, this._host)
+      } catch (error) {
+        console.error(`[KISS] Failed to connect to ${this._host}:${this._port}:`, error)
+        this.emit('error', error instanceof Error ? error : new Error(String(error)))
+        this.scheduleReconnect()
+        resolve()
+      }
+    })
   }
 
   private scheduleReconnect(): void {
@@ -151,7 +158,7 @@ export class KissClient extends EventEmitter {
   }
 
   get isConnected(): boolean {
-    return this.socket !== null
+    return this.socket !== null && !this.socket.destroyed
   }
 }
 
