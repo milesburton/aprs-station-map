@@ -1,0 +1,40 @@
+{
+  "name": "aprs-station-map",
+  "version": "1.0.0",
+  "description": "Real-time APRS station mapping with KML data visualisation",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tmcw/togeojson": "^6.0.0",
+    "leaflet": "^1.9.4",
+    "pino": "^9.6.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@testing-library/react": "^16.1.0",
+    "@types/bun": "^1.1.14",
+    "@types/leaflet": "^1.9.15",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "happy-dom": "^16.6.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  },
+  "author": "Miles Burton",
+  "license": "MIT"
+}

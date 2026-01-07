@@ -1,0 +1,351 @@
+@import "leaflet/dist/leaflet.css";
+
+:root {
+  --colour-primary: #2563eb;
+  --colour-primary-dark: #1d4ed8;
+  --colour-background: #0f172a;
+  --colour-surface: #1e293b;
+  --colour-surface-hover: #334155;
+  --colour-text: #f1f5f9;
+  --colour-text-muted: #94a3b8;
+  --colour-border: #334155;
+  --colour-error: #ef4444;
+  --colour-success: #22c55e;
+  --radius: 6px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--colour-background);
+  color: var(--colour-text);
+  line-height: 1.5;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app-header {
+  padding: var(--spacing-md);
+  background: var(--colour-surface);
+  border-bottom: 1px solid var(--colour-border);
+}
+
+.app-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.app-header p {
+  color: var(--colour-text-muted);
+  font-size: 0.875rem;
+}
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--colour-surface);
+  border-bottom: 1px solid var(--colour-border);
+  font-size: 0.875rem;
+}
+
+.status-info {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.status-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.status-bar .error {
+  color: var(--colour-error);
+}
+
+.last-updated {
+  color: var(--colour-text-muted);
+}
+
+.app-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 320px;
+  background: var(--colour-surface);
+  border-right: 1px solid var(--colour-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.map-container {
+  flex: 1;
+}
+
+.station-map {
+  width: 100%;
+  height: 100%;
+}
+
+.filter-panel {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--colour-border);
+}
+
+.filter-row {
+  margin-bottom: var(--spacing-sm);
+}
+
+.filter-row label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--colour-text-muted);
+  margin-bottom: var(--spacing-xs);
+}
+
+.search-input,
+.symbol-select {
+  width: 100%;
+  padding: var(--spacing-sm);
+  background: var(--colour-background);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius);
+  color: var(--colour-text);
+  font-size: 0.875rem;
+}
+
+.search-input:focus,
+.symbol-select:focus {
+  outline: none;
+  border-color: var(--colour-primary);
+}
+
+.distance-slider {
+  width: 100%;
+  accent-color: var(--colour-primary);
+}
+
+.sort-buttons {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.sort-buttons button {
+  flex: 1;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--colour-background);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius);
+  color: var(--colour-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sort-buttons button:hover {
+  background: var(--colour-surface-hover);
+}
+
+.sort-buttons button.active {
+  background: var(--colour-primary);
+  border-color: var(--colour-primary);
+  color: white;
+}
+
+.reset-button,
+.refresh-button {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--colour-primary);
+  border: none;
+  border-radius: var(--radius);
+  color: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.reset-button {
+  width: 100%;
+  margin-top: var(--spacing-sm);
+}
+
+.reset-button:hover,
+.refresh-button:hover {
+  background: var(--colour-primary-dark);
+}
+
+.refresh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.station-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.station-count {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.75rem;
+  color: var(--colour-text-muted);
+  border-bottom: 1px solid var(--colour-border);
+}
+
+.station-list ul {
+  list-style: none;
+}
+
+.station-item {
+  border-bottom: 1px solid var(--colour-border);
+}
+
+.station-button {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: var(--colour-text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.station-button:hover {
+  background: var(--colour-surface-hover);
+}
+
+.station-item.selected .station-button {
+  background: var(--colour-primary);
+}
+
+.station-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.callsign {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.symbol {
+  font-family: monospace;
+  font-size: 1rem;
+}
+
+.station-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--colour-text-muted);
+  margin-top: var(--spacing-xs);
+}
+
+.station-item.selected .station-details {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.station-comment {
+  font-size: 0.75rem;
+  color: var(--colour-text-muted);
+  margin-top: var(--spacing-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.station-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.marker-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--colour-surface);
+  border: 2px solid var(--colour-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-size: 14px;
+  color: var(--colour-text);
+}
+
+.station-marker.selected .marker-icon {
+  background: var(--colour-primary);
+  border-color: white;
+  transform: scale(1.2);
+}
+
+.station-popup {
+  min-width: 200px;
+}
+
+.station-popup h3 {
+  font-size: 1rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.station-popup .symbol {
+  font-size: 0.875rem;
+  color: var(--colour-text-muted);
+}
+
+.station-popup .comment {
+  margin: var(--spacing-sm) 0;
+  font-size: 0.875rem;
+}
+
+.station-popup .details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--colour-text-muted);
+}
+
+.station-popup .via {
+  margin-top: var(--spacing-sm);
+  font-size: 0.75rem;
+  color: var(--colour-text-muted);
+  font-family: monospace;
+}
+
+@media (max-width: 768px) {
+  .app-main {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid var(--colour-border);
+  }
+
+  .map-container {
+    height: 60vh;
+  }
+}

@@ -1,78 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>APRS Station Map</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin=""/>
-</head>
-<body>
-  <div id="loading">Loading libraries...</div>
-  <div id="map"></div>
-  
-  <script>
-    let leafletLoaded = false;
-    let togeojsonLoaded = false;
-    
-    function checkAndInitialise() {
-      console.log('Checking libraries…', { 
-        leaflet: leafletLoaded, 
-        togeojson: togeojsonLoaded 
-      });
-      if (leafletLoaded && togeojsonLoaded) {
-        document.getElementById('loading').style.display = 'none';
-        initialiseMap();
-      }
-    }
-    
-    function initialiseMap() {
-      console.log('Initialising map…');
-      
-      // Bexley coordinates (London) - M0LHA home station
-      const bexleyLat = 51.4416;
-      const bexleyLng = 0.1500;
-      
-      // URL State Management
-      let urlUpdateTimeout = null;
-      let currentSelectedStation = null;
-      let isRestoringState = false;
-      
-      function encodeState() {
-        if (isRestoringState) return; // Don't update URL while restoring state
-        
-        const state = {
-          lat: map.getCenter().lat.toFixed(6),
-          lng: map.getCenter().lng.toFixed(6),
-          zoom: map.getZoom(),
-          timeFilter: timeFilterEnabled,
-          timeHours: maxAgeHours,
-          plausibility: plausibilityFilterEnabled,
-          directOnly: directOnlyFilterEnabled,
-          digipeatedOnly: digipeatedOnlyFilterEnabled,
-          rings: distanceRingsVisible,
-          heatmap: heatmapVisible,
-          tracks: mobilityTracksVisible,
-          station: currentSelectedStation || null
-        };
-        
-        const params = new URLSearchParams();
-        Object.entries(state).forEach(([key, value]) => {
-          // Skip default values to keep URL clean
-          if (value === null || 
-              (key === 'lat' && Math.abs(value - 51.8) < 0.01) ||
-              (key === 'lng' && Math.abs(value - 0.5) < 0.01) ||
-              (key === 'zoom' && value === 8) ||
-              (key === 'timeHours' && value === 24) ||
-              (key === 'plausibility' && value === true) ||
-              value === false) {
-            return;
-          }
-          params.set(key, value);
-        });
-        
-        const newHash = params.toString();
-        if (window.location.hash.slice(1) !== newHash) {
-          window.location.hash = newHash;
-        <script src="js/main.js"></script>
-  
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Real-time APRS station map showing stations heard by M0LHA in Bexley, London" />
+    <title>M0LHA APRS Station Map</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
