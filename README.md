@@ -1,43 +1,160 @@
 # APRS Station Map
 
-A lightweight web app that displays APRS stations heard by M0LHA (Bexley, London) using Leaflet and KML data exported from Direwolf.
-
-## Overview
-- Visualizes latest known positions of stations, distinguishing direct vs digipeated reception.
-- Optional overlays: distance rings, coverage “heatmap,” and movement tracks for mobile stations.
-- URL state sharing: current map view, filter settings, and selected station are encoded in the URL hash.
-
-## Project Structure
-- index.html — Main HTML shell
-- css/style.css — Styles extracted from the original single-file page
-- js/main.js — Application logic (map init, controls, KML loading, filters)
-- direwolf-stations.kml — Example KML (local copy if needed; app fetches remote by default)
-
-## Running Locally
-You can open `index.html` directly in a modern browser. If your browser blocks local cross-origin requests, serve the folder:
-
-```bash
-# Python 3
-python -m http.server 8080
-# or Node.js (if installed)
-npx serve .
 ```
-Then visit http://localhost:8080
+   📡 M0LHA APRS Receiver - Bexley, London
+   ═══════════════════════════════════════
 
-## Data Source
-By default, the app fetches KML data from:
-- https://download.milesburton.com/aprs/direwolf-stations.kml
+        *           .    *       .
+     .      🛰️    .        *
+           .     *    .        *
+      *        .           .
+         🏠 ← You are here (probably having a cuppa)
+        /|\
+       / | \    ← Coverage rings (50-500km)
+      /  |  \
+   ──┴──┴──┴──
+```
 
-If you prefer a local file, update `kmlUrl` inside `js/main.js` to point at `direwolf-stations.kml` in the repo.
+Real-time APRS station mapping application. Visualises amateur radio stations received by the M0LHA digipeater in Bexley, London, with KML data from Direwolf.
 
 ## Features
-- Direct vs Digipeated filters (mutually exclusive)
-- Time window filter with slider (minutes to 24 hours)
-- Plausibility filter (drops 0,0 and >600 km from Bexley)
-- Clickable callsigns in popups (quick navigation)
-- Share URL button (copies current view + filters)
 
-## Notes
-- Leaflet and togeojson UMD builds are loaded via CDN in `index.html`.
-- Tracks are derived from LineString features and are independent of the time filter except for per-point timestamps when available.
-- The map auto-refreshes KML every 60 seconds while preserving view and selection.
+| Feature | Description |
+|---------|-------------|
+| 📍 Live Map | Interactive Leaflet map with station markers |
+| 🔍 Filtering | Search by callsign, filter by symbol, distance |
+| 📊 Statistics | Station count, average distance, furthest contact |
+| 🔗 URL State | Shareable links preserve filters and map position |
+| 🌙 Dark Theme | Easy on the eyes during those late-night DX sessions |
+| 📱 Responsive | Works on desktop and mobile |
+
+## Prerequisites
+
+- Docker and Docker Compose v2 installed
+
+That's it. No faffing about with Node versions or npm dependencies.
+
+## Quick Start
+
+```bash
+git clone https://github.com/milesburton/aprs-station-map.git
+cd aprs-station-map
+docker compose up -d
+```
+
+Open `http://localhost:3000` and watch the stations roll in.
+
+## Running Continuously
+
+The container runs as a daemon and restarts automatically unless you tell it to stop:
+
+```bash
+docker compose up -d      # Start in background
+docker compose logs -f    # View live logs
+docker compose stop       # Stop the container
+docker compose down       # Stop and remove container
+```
+
+## Development
+
+### Using Dev Container (Recommended)
+
+1. Install [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
+2. Open project in VS Code
+3. Click "Reopen in Container"
+4. Run `bun dev`
+
+### Local Development
+
+If you must do things the hard way:
+
+```bash
+bun install
+bun dev           # Start dev server on :3000
+bun test          # Run tests
+bun run lint      # Check code style
+bun run typecheck # TypeScript validation
+bun run build     # Production build
+```
+
+## Architecture
+
+```
+src/
+├── components/     # React components
+│   ├── FilterPanel.tsx
+│   ├── StationList.tsx
+│   ├── StationMap.tsx
+│   └── StationMarker.tsx
+├── hooks/          # Custom React hooks
+│   ├── useFilters.ts
+│   ├── useMapState.ts
+│   └── useStations.ts
+├── services/       # Business logic
+│   ├── kml-loader.ts
+│   ├── station-filter.ts
+│   └── url-state.ts
+├── types/          # TypeScript definitions
+├── utils/          # Utility functions
+│   ├── geo.ts      # Distance, bearing calculations
+│   ├── logger.ts   # Pino structured logging
+│   └── time.ts     # Time formatting
+└── constants.ts    # Configuration values
+```
+
+## Data Source
+
+KML data fetched from:
+- `https://download.milesburton.com/aprs/direwolf-stations.kml`
+
+Refreshes every 60 seconds. The KML is exported from Direwolf running on a Raspberry Pi with an RTL-SDR dongle.
+
+## APRS Symbol Reference
+
+| Symbol | Meaning |
+|--------|---------|
+| `-` | House/QTH |
+| `>` | Car |
+| `k` | Truck |
+| `b` | Bicycle |
+| `'` | Aircraft |
+| `_` | Weather station |
+| `#` | Digipeater |
+| `&` | Gateway |
+
+## Tests
+
+```bash
+bun test              # Run all tests
+bun test --watch      # Watch mode
+bun test --coverage   # Coverage report
+```
+
+## Tech Stack
+
+- **Runtime**: Bun
+- **Framework**: React 19
+- **Build**: Vite
+- **Map**: Leaflet + react-leaflet
+- **Logging**: Pino
+- **Linting**: Biome
+- **Testing**: Bun test + happy-dom
+- **Container**: Docker + nginx
+
+## Contributing
+
+1. Fork it
+2. Create your feature branch (`git checkout -b feat/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feat/amazing-feature`)
+5. Open a Pull Request
+
+Uses conventional commits. Biome handles formatting.
+
+## Licence
+
+MIT
+
+---
+
+*73 de M0LHA* 📻

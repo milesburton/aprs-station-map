@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { parseKml } from '../../src/services/kml-loader'
 import { BEXLEY_LOCATION } from '../../src/constants'
+import { parseKml } from '../../src/services/kml-loader'
 
 const sampleKml = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">

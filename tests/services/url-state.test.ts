@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { decodeUrlState, encodeUrlState } from '../../src/services/url-state'
 import { DEFAULT_CONFIG, DEFAULT_FILTER_STATE } from '../../src/constants'
+import { decodeUrlState, encodeUrlState } from '../../src/services/url-state'
 import type { FilterState, MapState } from '../../src/types'
 
 describe('URL state management', () => {

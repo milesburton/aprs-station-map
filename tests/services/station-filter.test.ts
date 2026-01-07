@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test'
-import { filterStations, getStationStats, getUniqueSymbols } from '../../src/services/station-filter'
+import {
+  filterStations,
+  getStationStats,
+  getUniqueSymbols,
+} from '../../src/services/station-filter'
 import type { FilterState, Station } from '../../src/types'
 
 const createStation = (overrides: Partial<Station> = {}): Station => ({
@@ -63,14 +67,22 @@ describe('station filtering', () => {
     })
 
     test('sorts by callsign ascending', () => {
-      const filter = { ...defaultFilter, sortBy: 'callsign' as const, sortDirection: 'asc' as const }
+      const filter = {
+        ...defaultFilter,
+        sortBy: 'callsign' as const,
+        sortDirection: 'asc' as const,
+      }
       const result = filterStations(stations, filter)
       expect(result[0]?.callsign).toBe('2E0TEST')
       expect(result[3]?.callsign).toBe('M0LHA')
     })
 
     test('sorts by distance descending', () => {
-      const filter = { ...defaultFilter, sortBy: 'distance' as const, sortDirection: 'desc' as const }
+      const filter = {
+        ...defaultFilter,
+        sortBy: 'distance' as const,
+        sortDirection: 'desc' as const,
+      }
       const result = filterStations(stations, filter)
       expect(result[0]?.distance).toBe(200)
       expect(result[3]?.distance).toBe(5)

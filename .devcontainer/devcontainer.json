@@ -11,11 +11,7 @@
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "biomejs.biome"
       },
-      "extensions": [
-        "biomejs.biome",
-        "eamodio.gitlens",
-        "dbaeumer.vscode-eslint"
-      ]
+      "extensions": ["biomejs.biome", "eamodio.gitlens", "dbaeumer.vscode-eslint"]
     }
   },
   "forwardPorts": [3000],
