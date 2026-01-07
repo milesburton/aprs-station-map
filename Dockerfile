@@ -17,7 +17,21 @@ RUN echo "1" > /var/lib/dpkg/info/format \
     && apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
+RUN set -ex \
+    && ARCH=$(dpkg --print-architecture) \
+    && echo "Detected architecture: $ARCH" \
+    && if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then \
+         BUN_ARCH="aarch64"; \
+       else \
+         BUN_ARCH="x64"; \
+       fi \
+    && echo "Using Bun architecture: $BUN_ARCH" \
+    && curl -fsSL "https://github.com/oven-sh/bun/releases/latest/download/bun-linux-${BUN_ARCH}.zip" -o /tmp/bun.zip \
+    && unzip -o /tmp/bun.zip -d /tmp \
+    && mv /tmp/bun-linux-${BUN_ARCH}/bun /usr/local/bin/bun \
+    && chmod +x /usr/local/bin/bun \
+    && rm -rf /tmp/bun.zip /tmp/bun-linux-${BUN_ARCH} \
+    && /usr/local/bin/bun --version
 
 COPY package.json bun.lock* ./
 RUN /usr/local/bin/bun install --ignore-scripts
