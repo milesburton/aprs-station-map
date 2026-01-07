@@ -75,6 +75,12 @@ docker compose stop       # Stop the container
 docker compose down       # Stop and remove container
 ```
 
+Check container health:
+
+```bash
+docker inspect --format='{{json .State.Health.Status}}' aprs-station-map
+```
+
 ## Development
 
 ### Using Dev Container (Recommended)
