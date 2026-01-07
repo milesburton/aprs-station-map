@@ -6,7 +6,7 @@ export const BEXLEY_LOCATION: Coordinates = {
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
-  kmlUrl: 'https://download.milesburton.com/aprs/direwolf-stations.kml',
+  kmlUrl: '/api/kml',
   refreshIntervalMs: 60_000,
   stationLocation: BEXLEY_LOCATION,
   maxDistanceKm: 600,
