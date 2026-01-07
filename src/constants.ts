@@ -6,7 +6,7 @@ export const BEXLEY_LOCATION: Coordinates = {
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
-  kmlUrl: '/api/kml',
+  kmlUrl: '/data/stations.kml',
   refreshIntervalMs: 60_000,
   stationLocation: BEXLEY_LOCATION,
   maxDistanceKm: 600,
