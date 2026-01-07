@@ -18,13 +18,15 @@ RUN echo "1" > /var/lib/dpkg/info/format \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:${PATH}"
+
+ENV BUN_INSTALL="/root/.bun"
+ENV PATH="$BUN_INSTALL/bin:$PATH"
 
 COPY package.json bun.lock* ./
-RUN bun install --ignore-scripts
+RUN /root/.bun/bin/bun install --ignore-scripts
 
 COPY . .
-RUN bun run build
+RUN /root/.bun/bin/bun run build
 
 FROM nginx:alpine
 
