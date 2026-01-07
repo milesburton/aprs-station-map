@@ -5,13 +5,22 @@ services:
     ports:
       - "3000:80"
     volumes:
-      - aprs-data:/usr/share/nginx/html/data
+      - aprs-data:/app/data
+    environment:
+      - KISS_HOST=${KISS_HOST:-host.docker.internal}
+      - KISS_PORT=${KISS_PORT:-8001}
+      - STATION_LATITUDE=${STATION_LATITUDE:-51.4416}
+      - STATION_LONGITUDE=${STATION_LONGITUDE:-0.15}
+      - STATION_CALLSIGN=${STATION_CALLSIGN:-M0LHA}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "nginx -t && kill -0 $(cat /var/run/nginx.pid)"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost/api/health || exit 1"]
       interval: 30s
       timeout: 10s
-      start_period: 10s
+      start_period: 30s
       retries: 3
 
 volumes:

@@ -6,8 +6,8 @@ export const BEXLEY_LOCATION: Coordinates = {
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
-  kmlUrl: '/data/stations.kml',
-  refreshIntervalMs: 60_000,
+  apiUrl: '/api',
+  wsUrl: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`,
   stationLocation: BEXLEY_LOCATION,
   maxDistanceKm: 600,
   defaultZoom: 9,

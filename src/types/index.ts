@@ -5,17 +5,18 @@ export interface Coordinates {
 
 export interface Station {
   callsign: string
-  coordinates: Coordinates
+  coordinates: Coordinates | null
   symbol: string
   comment: string
-  lastHeard: Date
-  distance: number
-  bearing: number
+  lastHeard: Date | string
+  distance: number | null
+  bearing: number | null
   frequency?: number
   altitude?: number
   course?: number
   speed?: number
   via?: string[]
+  packetCount?: number
 }
 
 export interface StationFeature {
@@ -49,15 +50,24 @@ export interface MapState {
 }
 
 export interface AppConfig {
-  kmlUrl: string
-  refreshIntervalMs: number
+  apiUrl: string
+  wsUrl: string
   stationLocation: Coordinates
   maxDistanceKm: number
   defaultZoom: number
 }
 
-export interface KmlLoadResult {
-  stations: Station[]
-  loadedAt: Date
-  error?: string
+export interface Stats {
+  totalStations: number
+  stationsWithPosition: number
+  totalPackets: number
+  kissConnected: boolean
+}
+
+export interface WebSocketMessage {
+  type: 'init' | 'station_update' | 'stats_update' | 'kiss_connected' | 'kiss_disconnected'
+  stations?: Station[]
+  station?: Station
+  stats?: Stats
+  isNew?: boolean
 }

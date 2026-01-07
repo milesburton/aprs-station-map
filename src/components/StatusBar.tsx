@@ -31,7 +31,7 @@ export const StatusBar: FC<StatusBarProps> = ({
             <span className="stat">
               Avg: <strong>{formatDistance(avgDistance)}</strong>
             </span>
-            {furthest && (
+            {furthest && furthest.distance != null && (
               <span className="stat">
                 Furthest: <strong>{furthest.callsign}</strong> ({formatDistance(furthest.distance)})
               </span>

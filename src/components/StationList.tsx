@@ -26,7 +26,9 @@ const StationItem: FC<StationItemProps> = ({ station, isSelected, onSelect }) =>
       </div>
       <div className="station-details">
         <span className="distance">
-          {formatDistance(station.distance)} {formatBearing(station.bearing)}
+          {station.distance != null && station.bearing != null
+            ? `${formatDistance(station.distance)} ${formatBearing(station.bearing)}`
+            : 'No position'}
         </span>
         <span className="last-heard">{formatRelativeTime(station.lastHeard)}</span>
       </div>

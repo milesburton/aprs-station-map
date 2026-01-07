@@ -36,7 +36,7 @@ export const App: FC = () => {
     (callsign: string | null) => {
       selectStation(callsign)
       const station = callsign ? stations.find((s) => s.callsign === callsign) : null
-      station && flyTo(station.coordinates, 12)
+      if (station?.coordinates) flyTo(station.coordinates, 12)
     },
     [selectStation, stations, flyTo]
   )

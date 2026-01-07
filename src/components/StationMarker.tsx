@@ -20,6 +20,9 @@ const createIcon = (symbol: string, isSelected: boolean): L.DivIcon =>
   })
 
 export const StationMarker: FC<StationMarkerProps> = ({ station, isSelected, onSelect }) => {
+  // Skip rendering if no coordinates
+  if (!station.coordinates) return null
+
   const icon = createIcon(station.symbol, isSelected)
   const symbolName = APRS_SYMBOLS[station.symbol] ?? 'Unknown'
 
@@ -38,7 +41,9 @@ export const StationMarker: FC<StationMarkerProps> = ({ station, isSelected, onS
           <p className="comment">{station.comment}</p>
           <div className="details">
             <span>
-              {formatDistance(station.distance)} {formatBearing(station.bearing)}
+              {station.distance != null && station.bearing != null
+                ? `${formatDistance(station.distance)} ${formatBearing(station.bearing)}`
+                : 'No position data'}
             </span>
             <span>{formatRelativeTime(station.lastHeard)}</span>
           </div>

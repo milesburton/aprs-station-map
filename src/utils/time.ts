@@ -1,6 +1,7 @@
-export const formatRelativeTime = (date: Date): string => {
+export const formatRelativeTime = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date
   const now = Date.now()
-  const diffMs = now - date.getTime()
+  const diffMs = now - d.getTime()
   const diffSeconds = Math.floor(diffMs / 1000)
   const diffMinutes = Math.floor(diffSeconds / 60)
   const diffHours = Math.floor(diffMinutes / 60)
