@@ -1,0 +1,24 @@
+{
+  "name": "APRS Station Map",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "biomejs.biome"
+      },
+      "extensions": [
+        "biomejs.biome",
+        "eamodio.gitlens",
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  },
+  "forwardPorts": [3000],
+  "postCreateCommand": "bun install && echo 'APRS Station Map Dev Container Ready! Run: bun dev'",
+  "postStartCommand": "bun install"
+}

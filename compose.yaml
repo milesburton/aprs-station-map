@@ -1,0 +1,12 @@
+services:
+  aprs-map:
+    build: .
+    container_name: aprs-station-map
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
