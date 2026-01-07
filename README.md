@@ -34,6 +34,19 @@ Real-time APRS station mapping application. Visualises amateur radio stations re
 
 That's it. No faffing about with Node versions or npm dependencies.
 
+### Installing Docker (Raspberry Pi / Debian / Ubuntu)
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+```
+
+Log out and back in (or reboot) for group changes to take effect. Verify with:
+
+```bash
+docker compose version
+```
+
 ## Quick Start
 
 ```bash
