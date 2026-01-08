@@ -477,6 +477,37 @@ body {
   color: var(--colour-primary);
 }
 
+.diagnostics-info {
+  background: var(--colour-surface);
+  border-left: 3px solid var(--colour-primary);
+  border-radius: var(--radius);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  font-size: 0.75rem;
+}
+
+.diagnostics-info h4 {
+  margin-bottom: var(--spacing-sm);
+  color: var(--colour-text);
+  font-size: 0.875rem;
+}
+
+.diagnostics-info p {
+  margin-bottom: var(--spacing-sm);
+  color: var(--colour-text-muted);
+  line-height: 1.6;
+}
+
+.diagnostics-info ul {
+  margin: var(--spacing-sm) 0;
+  padding-left: var(--spacing-lg);
+  color: var(--colour-text-muted);
+}
+
+.diagnostics-info li {
+  margin-bottom: var(--spacing-xs);
+}
+
 .diagnostics-empty {
   display: flex;
   flex-direction: column;

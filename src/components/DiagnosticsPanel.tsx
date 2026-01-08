@@ -39,15 +39,14 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
   const getStatusIndicator = () => {
     if (!connected) return '🔴'
     if (!stats?.kissConnected) return '🟡'
-    if (packets.length === 0) return '🟡'
     return '🟢'
   }
 
   const getStatusText = () => {
     if (!connected) return 'WebSocket Disconnected'
     if (!stats?.kissConnected) return 'KISS TNC Disconnected'
-    if (packets.length === 0) return 'No Packets Received'
-    return 'Receiving Packets'
+    if (packets.length === 0) return 'Ready - Awaiting Packets'
+    return `Receiving Packets (${packets.length} total)`
   }
 
   return (
@@ -117,15 +116,14 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
           )}
 
           {stats?.kissConnected && packets.length === 0 && (
-            <div className="diagnostics-help">
-              <h4>📡 No Packets Received</h4>
-              <p>KISS TNC is connected but no packets are being received. Check:</p>
+            <div className="diagnostics-info">
+              <h4>📡 Listening for APRS Packets</h4>
+              <p>System is ready and waiting for RF signals on 144.800 MHz.</p>
+              <p>If no packets appear after several minutes, verify:</p>
               <ul>
-                <li>SDR is properly connected and configured</li>
+                <li>Audio source is configured (RTL-SDR, sound card, or external input)</li>
                 <li>Antenna is connected</li>
-                <li>Tuned to correct frequency (144.800 MHz for APRS)</li>
-                <li>TNC decoding is working (check TNC logs)</li>
-                <li>RF activity in your area</li>
+                <li>There is APRS activity in your area</li>
               </ul>
             </div>
           )}
