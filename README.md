@@ -22,7 +22,7 @@
    ──┴──┴──┴──
 ```
 
-Web-based APRS station map with real-time updates via WebSocket. Connects to any KISS-compatible TNC and stores station data in SQLite.
+Web-based APRS station map with real-time updates via WebSocket. Receives APRS packets from SDR software (via KISS protocol) and stores station data in SQLite.
 
 ## Features
 

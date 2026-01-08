@@ -35,10 +35,11 @@ RUN npx esbuild src/server/index.ts \
 # Stage 2: Runtime with Node.js + nginx
 FROM node:22-slim
 
-# Install nginx, supervisor, and build dependencies for better-sqlite3
+# Install nginx, supervisor, curl (for healthcheck), and build dependencies for better-sqlite3
 RUN apt-get update && apt-get install -y \
     nginx \
     supervisor \
+    curl \
     python3 \
     make \
     g++ \
