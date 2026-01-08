@@ -32,10 +32,11 @@ RUN npx esbuild src/server/index.ts \
     --external:better-sqlite3 \
     --external:ws
 
-# Stage 2: Runtime with Node.js + nginx
+# Stage 2: Runtime with Node.js + nginx + Direwolf
 FROM node:22-slim
 
-# Install nginx, supervisor, curl (for healthcheck), and build dependencies for better-sqlite3
+# Install nginx, supervisor, curl (for healthcheck), build dependencies for better-sqlite3,
+# and Direwolf TNC with its dependencies
 RUN apt-get update && apt-get install -y \
     nginx \
     supervisor \
@@ -43,6 +44,8 @@ RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
+    direwolf \
+    alsa-utils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -62,10 +65,18 @@ COPY .appcontainer/nginx.conf /etc/nginx/sites-available/default
 RUN rm -f /etc/nginx/sites-enabled/default && \
     ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-# Create data directory for SQLite
-RUN mkdir -p /app/data
+# Install gettext for envsubst
+RUN apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lists/*
 
-# Supervisor config to run both nginx and node
+# Copy Direwolf config template and startup script
+COPY .appcontainer/direwolf.conf /app/direwolf.conf.template
+COPY .appcontainer/start-direwolf.sh /app/start-direwolf.sh
+RUN chmod +x /app/start-direwolf.sh
+
+# Create data directories for SQLite and Direwolf logs
+RUN mkdir -p /app/data /app/data/logs
+
+# Supervisor config to run nginx, node backend, and direwolf
 RUN mkdir -p /etc/supervisor/conf.d
 COPY <<EOF /etc/supervisor/conf.d/services.conf
 [supervisord]
@@ -73,14 +84,16 @@ nodaemon=true
 logfile=/dev/stdout
 logfile_maxbytes=0
 
-[program:nginx]
-command=nginx -g "daemon off;"
+[program:direwolf]
+command=/app/start-direwolf.sh
+directory=/app
 autostart=true
 autorestart=true
 stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
+priority=10
 
 [program:backend]
 command=node dist-server/index.js
@@ -92,6 +105,17 @@ stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 environment=DATABASE_PATH="/app/data/stations.db"
+priority=20
+
+[program:nginx]
+command=nginx -g "daemon off;"
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+priority=30
 EOF
 
 VOLUME /app/data
