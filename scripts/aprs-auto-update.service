@@ -1,0 +1,20 @@
+[Unit]
+Description=APRS Station Map Auto-Update Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=miles
+WorkingDirectory=/home/miles/aprs-station-map
+Environment="REPO_DIR=/home/miles/aprs-station-map"
+Environment="CHECK_INTERVAL=3600"
+Environment="BRANCH=main"
+ExecStart=/home/miles/aprs-station-map/scripts/auto-update.sh
+Restart=always
+RestartSec=60
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
