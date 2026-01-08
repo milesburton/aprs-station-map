@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_CONFIG } from '../constants'
-import type { Station, Stats, WebSocketMessage } from '../types'
+import type { AprsPacket, Station, Stats, WebSocketMessage } from '../types'
 import { logger } from '../utils'
 
 interface UseStationsResult {
@@ -10,11 +10,13 @@ interface UseStationsResult {
   error: string | null
   connected: boolean
   lastUpdated: Date | null
+  packets: AprsPacket[]
   refresh: () => Promise<void>
 }
 
 const MAX_RECONNECT_ATTEMPTS = 20
 const INITIAL_RECONNECT_DELAY = 1000
+const MAX_PACKETS = 100
 
 export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsResult => {
   const [stations, setStations] = useState<Station[]>([])
@@ -23,6 +25,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
   const [error, setError] = useState<string | null>(null)
   const [connected, setConnected] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [packets, setPackets] = useState<AprsPacket[]>([])
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectAttempts = useRef(0)
@@ -66,6 +69,15 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
         break
       case 'kiss_disconnected':
         logger.warn('KISS TNC disconnected')
+        break
+      case 'aprs_packet':
+        if (message.packet) {
+          setPackets((prev) => {
+            const updated = [...prev, message.packet as AprsPacket]
+            // Keep only the last MAX_PACKETS packets
+            return updated.slice(-MAX_PACKETS)
+          })
+        }
         break
     }
   }, [])
@@ -149,5 +161,5 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
     }
   }, [connect])
 
-  return { stations, stats, loading, error, connected, lastUpdated, refresh }
+  return { stations, stats, loading, error, connected, lastUpdated, packets, refresh }
 }

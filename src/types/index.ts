@@ -64,10 +64,26 @@ export interface Stats {
   kissConnected: boolean
 }
 
+export interface AprsPacket {
+  raw: string
+  source: string
+  destination: string
+  path?: string
+  comment?: string
+  timestamp: string
+}
+
 export interface WebSocketMessage {
-  type: 'init' | 'station_update' | 'stats_update' | 'kiss_connected' | 'kiss_disconnected'
+  type:
+    | 'init'
+    | 'station_update'
+    | 'stats_update'
+    | 'kiss_connected'
+    | 'kiss_disconnected'
+    | 'aprs_packet'
   stations?: Station[]
   station?: Station
   stats?: Stats
   isNew?: boolean
+  packet?: AprsPacket
 }

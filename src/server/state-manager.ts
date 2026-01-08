@@ -20,7 +20,19 @@ export interface ConnectionEvent {
   type: 'kiss_connected' | 'kiss_disconnected'
 }
 
-export type StateEvent = StationUpdateEvent | StatsUpdateEvent | ConnectionEvent
+export interface AprsPacketEvent {
+  type: 'aprs_packet'
+  packet: {
+    raw: string
+    source: string
+    destination: string
+    path?: string
+    comment?: string
+    timestamp: string
+  }
+}
+
+export type StateEvent = StationUpdateEvent | StatsUpdateEvent | ConnectionEvent | AprsPacketEvent
 
 class StateManager extends EventEmitter {
   private kissConnected = false
@@ -56,6 +68,14 @@ class StateManager extends EventEmitter {
 
   isKissConnected(): boolean {
     return this.kissConnected
+  }
+
+  emitAprsPacket(packet: AprsPacketEvent['packet']): void {
+    const event: AprsPacketEvent = {
+      type: 'aprs_packet',
+      packet,
+    }
+    this.emit('state', event)
   }
 }
 

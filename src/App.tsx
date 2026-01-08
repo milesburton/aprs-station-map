@@ -1,12 +1,13 @@
 import type { FC } from 'react'
-import { useCallback, useEffect, useMemo } from 'react'
-import { FilterPanel, StationList, StationMap, StatusBar } from './components'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { DiagnosticsPanel, FilterPanel, StationList, StationMap, StatusBar } from './components'
 import { useFilters, useMapState, useStations } from './hooks'
 import { getUniqueSymbols, updateUrlState } from './services'
 import type { Coordinates } from './types'
 
 export const App: FC = () => {
-  const { stations, loading, error, lastUpdated, refresh } = useStations()
+  const { stations, loading, error, lastUpdated, packets, refresh } = useStations()
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const {
     filter,
     filteredStations,
@@ -85,6 +86,12 @@ export const App: FC = () => {
           />
         </section>
       </main>
+
+      <DiagnosticsPanel
+        packets={packets}
+        isOpen={diagnosticsOpen}
+        onToggle={() => setDiagnosticsOpen(!diagnosticsOpen)}
+      />
     </div>
   )
 }

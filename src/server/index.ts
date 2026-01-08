@@ -180,6 +180,16 @@ export const startServer = async (): Promise<void> => {
           `[APRS] ${parsed.source} > ${parsed.destination}: ${parsed.comment || parsed.raw.slice(0, 50)}`
         )
 
+        // Emit raw packet for diagnostics
+        stateManager.emitAprsPacket({
+          raw: parsed.raw,
+          source: parsed.source,
+          destination: parsed.destination,
+          path: parsed.path.join(','),
+          comment: parsed.comment,
+          timestamp: new Date().toISOString(),
+        })
+
         const existingStation = getStationByCallsign(parsed.source)
         const isNew = !existingStation
         const station = upsertStation(parsed)

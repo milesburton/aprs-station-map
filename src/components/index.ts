@@ -1,3 +1,4 @@
+export { DiagnosticsPanel } from './DiagnosticsPanel'
 export { FilterPanel } from './FilterPanel'
 export { StationList } from './StationList'
 export { StationMap } from './StationMap'
