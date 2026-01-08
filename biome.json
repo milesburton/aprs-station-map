@@ -96,6 +96,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/server/aprs-parser.ts", "src/hooks/useStations.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          }
+        }
+      }
     }
   ]
 }

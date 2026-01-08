@@ -18,7 +18,7 @@ console.log(`Attempting to connect to ${KISS_HOST}:${KISS_PORT}...\n`)
 
 const client = new net.Socket()
 let receivedData = false
-let startTime = Date.now()
+const startTime = Date.now()
 
 // Set timeout
 const timeoutId = setTimeout(() => {
