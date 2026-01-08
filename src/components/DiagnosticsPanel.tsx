@@ -106,12 +106,12 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
               <h4>🔧 KISS TNC Not Connected</h4>
               <p>The application cannot connect to the KISS TNC. Possible issues:</p>
               <ul>
-                <li>KISS TNC software (e.g., Direwolf) is not running</li>
-                <li>Wrong host/port configuration (currently: 172.17.0.1:8001)</li>
-                <li>Firewall blocking the connection</li>
+                <li>Direwolf TNC service is not running inside the container</li>
+                <li>Container was started before Direwolf was ready</li>
+                <li>Audio device configuration issue preventing Direwolf startup</li>
               </ul>
               <p>
-                Run <code>npm run diagnose:kiss</code> to test connectivity
+                Check container logs: <code>docker compose logs -f</code>
               </p>
             </div>
           )}
