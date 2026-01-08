@@ -3,6 +3,8 @@
 
 Live APRS station map with real-time updates, filtering, and statistics. Visualise and explore amateur radio activity on an interactive web map.
 
+**Fully self-contained** - includes integrated Direwolf TNC for APRS packet decoding. Just connect an audio source (RTL-SDR, sound card, or TNC) and run.
+
 ## Quick Start
 
 ```bash
@@ -12,6 +14,12 @@ docker compose -f .appcontainer/compose.yaml up -d
 ```
 
 Open your browser at http://localhost:3000
+
+The container includes:
+- Web frontend with interactive map
+- Node.js backend with WebSocket support
+- Direwolf TNC for APRS decoding
+- SQLite database for station persistence
 
 ## Viewing Logs
 
@@ -32,13 +40,39 @@ docker compose -f .appcontainer/compose.yaml down
 docker inspect --format='{{json .State.Health.Status}}' aprs-station-map
 ```
 
-## Diagnostics
+## Configuration
 
-Test KISS TNC connectivity:
+Set your station details via environment variables:
 
 ```bash
-npm run diagnose:kiss
+export STATION_CALLSIGN=M0XYZ
+export STATION_LATITUDE=51.5074
+export STATION_LONGITUDE=-0.1278
+docker compose -f .appcontainer/compose.yaml up -d
 ```
+
+## Audio Input
+
+Direwolf inside the container can receive audio from:
+
+**RTL-SDR**: Pipe rtl_fm output into the container
+```bash
+rtl_fm -f 144.8M - | docker exec -i aprs-station-map direwolf -c /app/direwolf.conf -
+```
+
+**Sound Card**: The container has access to `/dev/snd` for direct audio input
+
+**Network TNC**: Set `ADEVICE` in direwolf.conf to read from a network source
+
+## Diagnostics
+
+Check container logs to verify Direwolf is decoding packets:
+
+```bash
+docker compose -f .appcontainer/compose.yaml logs -f
+```
+
+The web interface shows real-time diagnostics including KISS TNC connection status and packet reception.
 
 ## Auto-Update (Optional)
 
