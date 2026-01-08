@@ -94,7 +94,7 @@ const parseAx25Header = (
 const parseUncompressedPosition = (info: string): AprsPosition | null => {
   // Match patterns like: !5144.50N/00009.00E or /5144.50N/00009.00E
   const match = info.match(
-    /([0-9]{2})([0-9]{2}\.[0-9]+)([NS])[\/\\]([0-9]{3})([0-9]{2}\.[0-9]+)([EW])/
+    /([0-9]{2})([0-9]{2}\.[0-9]+)([NS])[/\\]([0-9]{3})([0-9]{2}\.[0-9]+)([EW])/
   )
   if (!match) return null
 
@@ -117,7 +117,7 @@ const parseUncompressedPosition = (info: string): AprsPosition | null => {
 // Parse compressed position (base91 encoding)
 const parseCompressedPosition = (info: string): AprsPosition | null => {
   // Compressed format: /YYYYXXXX$cs (symbol table, 4 lat chars, 4 lon chars, symbol, course/speed)
-  const match = info.match(/[\/\\]([!-{]{4})([!-{]{4})(.)/)
+  const match = info.match(/[/\\]([!-{]{4})([!-{]{4})(.)/)
   if (!match) return null
 
   const base91Decode = (chars: string): number => {
@@ -268,14 +268,14 @@ export const parseAprsPacket = (ax25Packet: Uint8Array): AprsPacket | null => {
       position = parseUncompressedPosition(info) ?? parseCompressedPosition(info) ?? undefined
 
       // Extract symbol from position string
-      const symbolMatch = info.match(/[\/\\](.)/)
+      const symbolMatch = info.match(/[/\\](.)/)
       if (symbolMatch) {
         symbolTable = info[info.indexOf(symbolMatch[0])] ?? '/'
         symbol = symbolMatch[1] ?? '-'
       }
 
       // Extract comment (everything after position)
-      const commentMatch = info.match(/[NS][\/\\][0-9]{3}[0-9]{2}\.[0-9]+[EW](.)(.*)/)
+      const commentMatch = info.match(/[NS][/\\][0-9]{3}[0-9]{2}\.[0-9]+[EW](.)(.*)/)
       if (commentMatch) {
         symbol = commentMatch[1] ?? '-'
         comment = (commentMatch[2] ?? '').trim()

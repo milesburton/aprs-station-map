@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto'
-import { type IncomingMessage, type ServerResponse, createServer } from 'node:http'
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { WebSocket, WebSocketServer } from 'ws'
 import { bytesToHex, parseAprsPacket } from './aprs-parser'
 import { config } from './config'
 import {
-  type DbStation,
   cleanupOldHistory,
   closeDatabase,
+  type DbStation,
   getAllStations,
   getStationByCallsign,
   getStationHistory,

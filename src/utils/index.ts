@@ -1,10 +1,10 @@
-export { logger, createChildLogger } from './logger'
 export {
-  calculateDistance,
   calculateBearing,
-  formatDistance,
+  calculateDistance,
   formatBearing,
-  isValidCoordinate,
+  formatDistance,
   isPlausibleLocation,
+  isValidCoordinate,
 } from './geo'
+export { createChildLogger, logger } from './logger'
 export { formatRelativeTime, parseKmlTimestamp } from './time'

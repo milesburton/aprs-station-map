@@ -1,12 +1,21 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
   },
-  "organizeImports": {
-    "enabled": true
+  "files": {
+    "ignoreUnknown": false
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf",
+    "formatWithErrors": false
   },
   "linter": {
     "enabled": true,
@@ -20,56 +29,70 @@
       "correctness": {
         "noUnusedVariables": "error",
         "noUnusedImports": "error",
-        "useExhaustiveDependencies": "warn"
+        "useExhaustiveDependencies": "warn",
+        "noUnusedPrivateClassMembers": "error"
       },
       "style": {
         "noNonNullAssertion": "error",
         "useConst": "error",
         "useTemplate": "error",
-        "noParameterAssign": "error"
+        "noParameterAssign": "error",
+        "useNamingConvention": "off",
+        "noDefaultExport": "off"
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsoleLog": "warn",
+        "noConsole": {
+          "level": "warn",
+          "options": {
+            "allow": ["error", "warn", "log"]
+          }
+        },
         "noDebugger": "error",
         "noEmptyInterface": "error"
       },
       "performance": {
-        "noDelete": "warn"
+        "noDelete": "warn",
+        "noBarrelFile": "off"
+      },
+      "nursery": {
+        "useSortedClasses": "off"
       }
     }
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 100
   },
   "javascript": {
     "formatter": {
       "quoteStyle": "single",
       "semicolons": "asNeeded",
-      "trailingCommas": "es5"
+      "trailingCommas": "es5",
+      "arrowParentheses": "always"
     }
   },
-  "files": {
-    "ignore": [
-      "node_modules",
-      "dist",
-      "dist-server",
-      "coverage",
-      "*.min.js",
-      ".devcontainer",
-      ".appcontainer"
-    ]
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "css": {
+    "formatter": {
+      "enabled": true
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
   "overrides": [
     {
-      "include": ["src/server/**/*.ts"],
+      "includes": ["src/server/**/*.ts", "src/utils/logger.ts"],
       "linter": {
         "rules": {
           "suspicious": {
-            "noConsoleLog": "off"
+            "noConsole": "off"
           }
         }
       }
