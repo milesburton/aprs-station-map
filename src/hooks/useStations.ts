@@ -28,6 +28,48 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
   const reconnectAttempts = useRef(0)
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
+    switch (message.type) {
+      case 'init':
+        if (message.stations) {
+          setStations(message.stations)
+          setLoading(false)
+          setLastUpdated(new Date())
+          logger.info({ count: message.stations.length }, 'Initial stations received')
+        }
+        if (message.stats) {
+          setStats(message.stats)
+        }
+        break
+      case 'station_update':
+        if (message.station) {
+          const updatedStation = message.station
+          setStations((prev) => {
+            const index = prev.findIndex((s) => s.callsign === updatedStation.callsign)
+            if (index >= 0) {
+              const updated = [...prev]
+              updated[index] = updatedStation
+              return updated
+            }
+            return [updatedStation, ...prev]
+          })
+          setLastUpdated(new Date())
+        }
+        break
+      case 'stats_update':
+        if (message.stats) {
+          setStats(message.stats)
+        }
+        break
+      case 'kiss_connected':
+        logger.info('KISS TNC connected')
+        break
+      case 'kiss_disconnected':
+        logger.warn('KISS TNC disconnected')
+        break
+    }
+  }, [])
+
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
 
@@ -47,7 +89,6 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
         setConnected(false)
         wsRef.current = null
 
-        // Attempt reconnection
         if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
           const delay = INITIAL_RECONNECT_DELAY * 2 ** reconnectAttempts.current
           logger.info({ attempt: reconnectAttempts.current + 1, delay }, 'Scheduling reconnect')
@@ -71,52 +112,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data)
-
-          switch (message.type) {
-            case 'init':
-              if (message.stations) {
-                setStations(message.stations)
-                setLoading(false)
-                setLastUpdated(new Date())
-                logger.info({ count: message.stations.length }, 'Initial stations received')
-              }
-              if (message.stats) {
-                setStats(message.stats)
-              }
-              break
-
-            case 'station_update':
-              if (message.station) {
-                const updatedStation = message.station
-                setStations((prev) => {
-                  const index = prev.findIndex((s) => s.callsign === updatedStation.callsign)
-                  if (index >= 0) {
-                    // Update existing
-                    const updated = [...prev]
-                    updated[index] = updatedStation
-                    return updated
-                  }
-                  // Add new station
-                  return [updatedStation, ...prev]
-                })
-                setLastUpdated(new Date())
-              }
-              break
-
-            case 'stats_update':
-              if (message.stats) {
-                setStats(message.stats)
-              }
-              break
-
-            case 'kiss_connected':
-              logger.info('KISS TNC connected')
-              break
-
-            case 'kiss_disconnected':
-              logger.warn('KISS TNC disconnected')
-              break
-          }
+          handleWebSocketMessage(message)
         } catch (err) {
           logger.error({ err }, 'Failed to parse WebSocket message')
         }
@@ -125,25 +121,20 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
       logger.error({ err }, 'Failed to create WebSocket')
       setError('Failed to connect')
     }
-  }, [wsUrl])
+  }, [wsUrl, handleWebSocketMessage])
 
   const refresh = useCallback(async () => {
-    // For WebSocket, just reconnect if not connected
-    if (!connected) {
-      connect()
-    }
-    // Can also fetch via REST API as fallback
     try {
       const response = await fetch(`${DEFAULT_CONFIG.apiUrl}/stations`)
-      if (response.ok) {
-        const data = await response.json()
-        setStations(data.stations)
-        setLastUpdated(new Date())
-      }
+      if (!response.ok) throw new Error('Failed to fetch stations')
+      const data = await response.json()
+      setStations(data)
+      setLastUpdated(new Date())
     } catch (err) {
-      logger.error({ err }, 'Failed to fetch stations via API')
+      logger.error({ err }, 'Failed to refresh stations')
+      setError('Failed to refresh data')
     }
-  }, [connected, connect])
+  }, [])
 
   useEffect(() => {
     connect()

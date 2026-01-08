@@ -1,5 +1,5 @@
 // Simple backend health check script for npm run sanity
-const http = require('http')
+const http = require('node:http')
 
 const HOST = process.env.SANITY_HOST || 'localhost'
 const PORT = process.env.SANITY_PORT || 3001
@@ -15,7 +15,9 @@ const options = {
 
 const req = http.request(options, (res) => {
   let data = ''
-  res.on('data', (chunk) => (data += chunk))
+  res.on('data', (chunk) => {
+    data += chunk
+  })
   res.on('end', () => {
     if (res.statusCode === 200 && data.includes('ok')) {
       console.log('✓ Backend health check passed:', data)

@@ -137,44 +137,34 @@ const parseCompressedPosition = (info: string): AprsPosition | null => {
   return { latitude, longitude }
 }
 
-// Parse Mic-E encoded position (in destination field)
-const parseMicEPosition = (destination: string, info: string): AprsPosition | null => {
-  if (destination.length < 6 || info.length < 9) return null
-
-  // Mic-E encodes latitude in destination callsign
+// Helper for Mic-E latitude/longitude parsing
+function parseMicELatLon(destination: string, _info: string) {
   const latDigits: number[] = []
   const latNS: number[] = []
   const lonEW: number[] = []
-
   for (let i = 0; i < 6; i++) {
     const c = destination.charCodeAt(i)
     if (c >= 0x30 && c <= 0x39) {
-      // 0-9
       latDigits.push(c - 0x30)
-      latNS.push(0) // South
+      latNS.push(0)
       lonEW.push(0)
     } else if (c >= 0x41 && c <= 0x4a) {
-      // A-J (0-9, South)
       latDigits.push(c - 0x41)
       latNS.push(0)
       lonEW.push(1)
-    } else if (c >= 0x4b && c <= 0x4b) {
-      // K (space)
+    } else if (c === 0x4b) {
       latDigits.push(0)
       latNS.push(0)
       lonEW.push(1)
-    } else if (c >= 0x4c && c <= 0x4c) {
-      // L (space)
+    } else if (c === 0x4c) {
       latDigits.push(0)
       latNS.push(0)
       lonEW.push(0)
     } else if (c >= 0x50 && c <= 0x59) {
-      // P-Y (0-9, North)
       latDigits.push(c - 0x50)
       latNS.push(1)
       lonEW.push(1)
-    } else if (c >= 0x5a && c <= 0x5a) {
-      // Z (space)
+    } else if (c === 0x5a) {
       latDigits.push(0)
       latNS.push(1)
       lonEW.push(1)
@@ -182,35 +172,32 @@ const parseMicEPosition = (destination: string, info: string): AprsPosition | nu
       return null
     }
   }
+  return { latDigits, latNS, lonEW }
+}
 
+const parseMicEPosition = (destination: string, info: string): AprsPosition | null => {
+  if (destination.length < 6 || info.length < 9) return null
+  const parsed = parseMicELatLon(destination, info)
+  if (!parsed) return null
+  const { latDigits, latNS, lonEW } = parsed
   const latDeg = (latDigits[0] ?? 0) * 10 + (latDigits[1] ?? 0)
   const latMin =
     (latDigits[2] ?? 0) * 10 +
     (latDigits[3] ?? 0) +
     ((latDigits[4] ?? 0) * 10 + (latDigits[5] ?? 0)) / 100
   let latitude = latDeg + latMin / 60
-
-  // Determine N/S from bit 3 (index 3)
   if (latNS[3] === 0) latitude = -latitude
-
-  // Longitude is encoded in info field bytes 1-3 (after data type indicator)
   const d = info.charCodeAt(1) - 28
   const m = info.charCodeAt(2) - 28
   const h = info.charCodeAt(3) - 28
-
   let lonDeg = d
   if ((lonEW[4] ?? 0) === 1) lonDeg += 100
   if (lonDeg >= 180 && lonDeg <= 189) lonDeg -= 80
   if (lonDeg >= 190 && lonDeg <= 199) lonDeg -= 190
-
   let lonMin = m
   if (lonMin >= 60) lonMin -= 60
-
   let longitude = lonDeg + (lonMin + h / 100) / 60
-
-  // Determine E/W from bit 5 (index 5)
   if ((lonEW[5] ?? 0) === 0) longitude = -longitude
-
   return { latitude, longitude }
 }
 
@@ -237,25 +224,40 @@ const getDataType = (char: string | undefined): AprsPacket['type'] => {
   }
 }
 
+function extractSymbolAndComment(info: string): {
+  symbol: string
+  symbolTable: string
+  comment: string
+} {
+  let symbol = '-'
+  let symbolTable = '/'
+  let comment = ''
+  const symbolMatch = info.match(/[/\\](.)/)
+  if (symbolMatch) {
+    symbolTable = info[info.indexOf(symbolMatch[0])] ?? '/'
+    symbol = symbolMatch[1] ?? '-'
+  }
+  const commentMatch = info.match(/[NS][/\\][0-9]{3}[0-9]{2}\.[0-9]+[EW](.)(.*)/)
+  if (commentMatch) {
+    symbol = commentMatch[1] ?? '-'
+    comment = (commentMatch[2] ?? '').trim()
+  }
+  return { symbol, symbolTable, comment }
+}
+
 export const parseAprsPacket = (ax25Packet: Uint8Array): AprsPacket | null => {
   const header = parseAx25Header(ax25Packet)
   if (!header) return null
-
   const infoBytes = ax25Packet.slice(header.infoStart)
   const info = new TextDecoder().decode(infoBytes)
-
   if (info.length === 0) return null
-
   const dataType = getDataType(info[0])
   let position: AprsPosition | undefined
   let symbol = '-'
   let symbolTable = '/'
   let comment = ''
-
   if (dataType === 'position') {
     const firstChar = info[0]
-
-    // Check for Mic-E
     if (firstChar === '`' || firstChar === "'") {
       position = parseMicEPosition(header.destination, info) ?? undefined
       if (info.length > 8) {
@@ -264,27 +266,15 @@ export const parseAprsPacket = (ax25Packet: Uint8Array): AprsPacket | null => {
         comment = info.slice(9).trim()
       }
     } else {
-      // Standard position
       position = parseUncompressedPosition(info) ?? parseCompressedPosition(info) ?? undefined
-
-      // Extract symbol from position string
-      const symbolMatch = info.match(/[/\\](.)/)
-      if (symbolMatch) {
-        symbolTable = info[info.indexOf(symbolMatch[0])] ?? '/'
-        symbol = symbolMatch[1] ?? '-'
-      }
-
-      // Extract comment (everything after position)
-      const commentMatch = info.match(/[NS][/\\][0-9]{3}[0-9]{2}\.[0-9]+[EW](.)(.*)/)
-      if (commentMatch) {
-        symbol = commentMatch[1] ?? '-'
-        comment = (commentMatch[2] ?? '').trim()
-      }
+      const extracted = extractSymbolAndComment(info)
+      symbol = extracted.symbol
+      symbolTable = extracted.symbolTable
+      comment = extracted.comment
     }
   } else {
     comment = info.slice(1).trim()
   }
-
   return {
     source: header.source,
     destination: header.destination,
