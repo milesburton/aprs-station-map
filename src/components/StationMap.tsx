@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { Circle, MapContainer, TileLayer, useMapEvents } from 'react-leaflet'
+import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMapEvents } from 'react-leaflet'
 import { BEXLEY_LOCATION, DEFAULT_CONFIG, MAP_ATTRIBUTION, MAP_TILE_URL } from '../constants'
 import type { Coordinates, Station } from '../types'
 import { StationMarker } from './StationMarker'
@@ -71,6 +71,32 @@ export const StationMap: FC<StationMapProps> = ({
         dashArray: '10, 5',
       }}
     />
+
+    <CircleMarker
+      center={[BEXLEY_LOCATION.latitude, BEXLEY_LOCATION.longitude]}
+      radius={12}
+      pathOptions={{
+        color: '#ff0000',
+        weight: 3,
+        opacity: 1,
+        fillColor: '#ff0000',
+        fillOpacity: 0.7,
+      }}
+    >
+      <Popup>
+        <div>
+          <h3>🏠 Receiving Station</h3>
+          <p>
+            <strong>Location:</strong> Bexley, London
+          </p>
+          <p>
+            <strong>Coordinates:</strong> {BEXLEY_LOCATION.latitude.toFixed(4)}°,{' '}
+            {BEXLEY_LOCATION.longitude.toFixed(4)}°
+          </p>
+          <p>This is the QTH (location) of the receiving station with KISS TNC</p>
+        </div>
+      </Popup>
+    </CircleMarker>
 
     {stations.map((station) => (
       <StationMarker
