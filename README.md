@@ -32,8 +32,34 @@ docker compose -f .appcontainer/compose.yaml down
 docker inspect --format='{{json .State.Health.Status}}' aprs-station-map
 ```
 
-src/
-scripts/
+## Diagnostics
+
+Test KISS TNC connectivity:
+
+```bash
+npm run diagnose:kiss
+```
+
+## Auto-Update (Optional)
+
+Enable automatic updates to pull the latest code and rebuild the container hourly:
+
+```bash
+# Copy service file to systemd
+sudo cp scripts/aprs-auto-update.service /etc/systemd/system/
+
+# Enable and start the service
+sudo systemctl enable aprs-auto-update
+sudo systemctl start aprs-auto-update
+
+# Check status
+sudo systemctl status aprs-auto-update
+
+# View logs
+sudo journalctl -u aprs-auto-update -f
+```
+
+To customize the update interval, edit `/etc/systemd/system/aprs-auto-update.service` and change the `CHECK_INTERVAL` environment variable (in seconds).
 
 ---
 
