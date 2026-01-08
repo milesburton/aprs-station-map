@@ -35,8 +35,6 @@ RUN npx esbuild src/server/index.ts \
 # Stage 2: Runtime with Node.js + nginx + Direwolf
 FROM node:22-slim
 
-# Install nginx, supervisor, curl (for healthcheck), build dependencies for better-sqlite3,
-# and Direwolf TNC with its dependencies
 RUN apt-get update && apt-get install -y \
     nginx \
     supervisor \
@@ -46,6 +44,8 @@ RUN apt-get update && apt-get install -y \
     g++ \
     direwolf \
     alsa-utils \
+    rtl-sdr \
+    sox \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

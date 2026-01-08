@@ -13,12 +13,17 @@ services:
       - aprs-data:/app/data
     devices:
       - /dev/snd:/dev/snd
+      - /dev/bus/usb:/dev/bus/usb
     environment:
       - KISS_HOST=${KISS_HOST:-127.0.0.1}
       - KISS_PORT=${KISS_PORT:-8001}
       - STATION_LATITUDE=${STATION_LATITUDE:-51.4416}
       - STATION_LONGITUDE=${STATION_LONGITUDE:-0.15}
       - STATION_CALLSIGN=${STATION_CALLSIGN:-NOCALL}
+      - AUDIO_SOURCE=${AUDIO_SOURCE:-null}
+      - RTL_FREQ=${RTL_FREQ:-144.8M}
+      - RTL_GAIN=${RTL_GAIN:-40}
+      - RTL_PPM=${RTL_PPM:-0}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     restart: unless-stopped
     healthcheck:
