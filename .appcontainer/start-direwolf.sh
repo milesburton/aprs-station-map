@@ -11,7 +11,7 @@ export RTL_PPM="${RTL_PPM:-0}"
 
 case "$AUDIO_SOURCE" in
   rtl-sdr)
-    export AUDIO_DEVICE="stdin"
+    export AUDIO_DEVICE="null null"
     envsubst < /app/direwolf.conf.template > /app/direwolf.conf
     echo "Starting RTL-SDR -> Direwolf pipeline"
     echo "Frequency: $RTL_FREQ, Gain: $RTL_GAIN, PPM: $RTL_PPM"
