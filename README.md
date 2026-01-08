@@ -22,7 +22,7 @@
    ──┴──┴──┴──
 ```
 
-Web-based APRS station map with real-time updates via WebSocket. Receives APRS packets from SDR software (via KISS protocol) and stores station data in SQLite.
+Web-based APRS station map with real-time updates via WebSocket. Connects to TNC software via KISS protocol to receive decoded APRS packets and stores station data in SQLite.
 
 ## Features
 
@@ -182,7 +182,23 @@ scripts/
 
 ## Data Source
 
-The application connects to a KISS TNC server via TCP and stores station data in a SQLite database. The database is persisted in a Docker named volume (`aprs-data`) at `/app/data/stations.db`.
+### APRS Packet Flow
+
+```
+RF Signal (144.800 MHz)
+    ↓
+SDR/Radio (audio)
+    ↓
+TNC Software (e.g., Direwolf)
+    ↓ KISS protocol (TCP port 8001)
+This Application (KISS client)
+    ↓
+SQLite Database
+    ↓ WebSocket
+Web Browser
+```
+
+The application connects to TNC software (like Direwolf) via the KISS protocol over TCP. The TNC decodes APRS packets from RF audio and serves them as KISS frames. Station data is persisted in a SQLite database using a Docker named volume (`aprs-data`) at `/app/data/stations.db`.
 
 **Important**: Data is preserved between container rebuilds using the `aprs-data` named volume. Your station history will not be lost when updating the application.
 
