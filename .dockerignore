@@ -1,11 +1,41 @@
+# Development
 node_modules
-dist
+.devcontainer
+.devcontainer/compose.dev.yaml
+
+# Git
 .git
 .gitignore
+
+# Documentation
 *.md
-.env*
-.vscode
-.devcontainer
-tests
-*.test.ts
+!README.md
+
+# Tests
 coverage
+*.spec.ts
+*.spec.tsx
+vitest.config.ts
+src/test-setup.ts
+
+# Build artifacts (will be built in container)
+dist
+dist-server
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Misc
+.DS_Store
+direwolf-stations.kml

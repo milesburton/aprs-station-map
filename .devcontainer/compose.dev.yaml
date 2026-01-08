@@ -1,0 +1,30 @@
+services:
+  aprs-map-dev:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    container_name: aprs-station-map-dev
+    ports:
+      - "3000:3000"  # Vite dev server
+      - "3001:3001"  # Backend API
+    volumes:
+      - .:/workspace:cached
+      - node_modules:/workspace/node_modules
+      - aprs-data-dev:/workspace/data
+    environment:
+      - KISS_HOST=${KISS_HOST:-host.docker.internal}
+      - KISS_PORT=${KISS_PORT:-8001}
+      - STATION_LATITUDE=${STATION_LATITUDE:-0}
+      - STATION_LONGITUDE=${STATION_LONGITUDE:-0}
+      - STATION_CALLSIGN=${STATION_CALLSIGN:-NOCALL}
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+      - NODE_ENV=development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: /bin/bash -c "npm install && npm run dev"
+    stdin_open: true
+    tty: true
+
+volumes:
+  node_modules:
+  aprs-data-dev:

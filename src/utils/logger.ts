@@ -1,6 +1,7 @@
 import pino from 'pino'
 
 const isBrowser = typeof window !== 'undefined'
+const isDev = isBrowser && import.meta.env?.DEV
 
 const browserConfig = {
   browser: {
@@ -15,7 +16,7 @@ const browserConfig = {
 }
 
 export const logger = pino({
-  level: import.meta.env?.DEV ? 'debug' : 'info',
+  level: isDev ? 'debug' : 'info',
   ...(isBrowser ? browserConfig : {}),
 })
 

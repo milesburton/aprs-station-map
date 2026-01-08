@@ -44,8 +44,8 @@ export const App: FC = () => {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>M0LHA APRS Station Map</h1>
-        <p>Real-time APRS stations heard in Bexley, London</p>
+        <h1>APRS Station Map</h1>
+        <p>Real-time APRS stations</p>
       </header>
 
       <StatusBar

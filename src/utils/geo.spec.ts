@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'bun:test'
-import type { Coordinates } from '../../src/types'
+import { describe, expect, test } from 'vitest'
+import type { Coordinates } from '../types'
 import {
   calculateBearing,
   calculateDistance,
@@ -7,7 +7,7 @@ import {
   formatDistance,
   isPlausibleLocation,
   isValidCoordinate,
-} from '../../src/utils/geo'
+} from './geo'
 
 describe('geo utilities', () => {
   const london: Coordinates = { latitude: 51.5074, longitude: -0.1278 }

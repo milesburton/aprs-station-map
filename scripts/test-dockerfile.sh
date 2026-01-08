@@ -1,13 +1,13 @@
 #!/bin/bash
 # Test that the Dockerfile builds correctly on the current platform
-# This validates Bun installation and basic build steps
+# This validates Node.js installation and basic build steps
 
 set -e
 
 echo "Testing Dockerfile build..."
 
 # Build the image with progress output
-docker build --progress=plain -t aprs-station-map-test . 2>&1
+docker build --progress=plain -f .appcontainer/Dockerfile -t aprs-station-map-test . 2>&1
 
 # Verify the build succeeded
 if [ $? -eq 0 ]; then

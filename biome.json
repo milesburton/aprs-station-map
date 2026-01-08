@@ -13,14 +13,29 @@
     "rules": {
       "recommended": true,
       "complexity": {
-        "noForEach": "off"
+        "noForEach": "off",
+        "noExcessiveCognitiveComplexity": "warn",
+        "noUselessConstructor": "error"
+      },
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "useExhaustiveDependencies": "warn"
       },
       "style": {
         "noNonNullAssertion": "error",
-        "useConst": "error"
+        "useConst": "error",
+        "useTemplate": "error",
+        "noParameterAssign": "error"
       },
       "suspicious": {
-        "noExplicitAny": "error"
+        "noExplicitAny": "error",
+        "noConsoleLog": "warn",
+        "noDebugger": "error",
+        "noEmptyInterface": "error"
+      },
+      "performance": {
+        "noDelete": "warn"
       }
     }
   },
@@ -38,6 +53,26 @@
     }
   },
   "files": {
-    "ignore": ["node_modules", "dist", "*.min.js"]
-  }
+    "ignore": [
+      "node_modules",
+      "dist",
+      "dist-server",
+      "coverage",
+      "*.min.js",
+      ".devcontainer",
+      ".appcontainer"
+    ]
+  },
+  "overrides": [
+    {
+      "include": ["src/server/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off"
+          }
+        }
+      }
+    }
+  ]
 }

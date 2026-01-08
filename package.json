@@ -1,19 +1,26 @@
 {
   "name": "aprs-station-map",
   "version": "1.0.0",
-  "description": "Real-time APRS station mapping with KML data visualisation",
+  "description": "Web-based APRS station map with real-time updates via WebSocket. Receives APRS packets from SDR software and stores station data in SQLite",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "bun test",
-    "test:watch": "bun test --watch",
-    "test:coverage": "bun test --coverage",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc --noEmit --project tsconfig.test.json",
+    "validate": "npm run lint && npm run typecheck && npm run typecheck:tests && npm test",
+    "prepare": "husky",
+    "sanity": "node scripts/sanity-check.js",
+    "test:container": "bash scripts/test-container.sh",
+    "test:pre-deploy": "bash scripts/pre-deploy-test.sh"
   },
   "dependencies": {
     "@tmcw/togeojson": "^6.0.0",
@@ -27,18 +34,28 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@commitlint/cli": "^18.6.0",
+    "@commitlint/config-conventional": "^18.6.0",
     "@testing-library/react": "^16.1.0",
     "@types/better-sqlite3": "^7.6.12",
-    "@types/bun": "^1.1.14",
     "@types/leaflet": "^1.9.15",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^2.1.8",
+    "@vitest/ui": "^2.1.8",
     "esbuild": "^0.24.2",
-    "happy-dom": "^16.6.0",
+    "happy-dom": "^15.11.7",
+    "husky": "^9.0.10",
+    "lint-staged": "^15.2.0",
     "typescript": "^5.7.2",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": ["biome check --write --no-errors-on-unmatched"],
+    "*.{ts,tsx,json,md}": ["biome format --write"]
   },
   "author": "Miles Burton",
   "license": "MIT"

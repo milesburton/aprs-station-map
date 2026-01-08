@@ -195,8 +195,10 @@ export const startServer = async (): Promise<void> => {
     console.error('[KISS] Error:', error.message)
   })
 
-  // Connect to KISS TNC
-  await kissClient.connect()
+  // Connect to KISS TNC (don't await - allow server to start independently)
+  kissClient.connect().catch((error) => {
+    console.error('[KISS] Initial connection failed:', error.message)
+  })
 
   // Schedule periodic cleanup
   setInterval(
@@ -291,5 +293,8 @@ export const startServer = async (): Promise<void> => {
 // Run if executed directly
 const isMain = process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js')
 if (isMain) {
-  startServer()
+  startServer().catch((error) => {
+    console.error('[Server] Fatal error:', error)
+    process.exit(1)
+  })
 }

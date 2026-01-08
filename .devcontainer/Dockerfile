@@ -1,23 +1,21 @@
-FROM oven/bun:1.2
+FROM node:22-slim
 
 WORKDIR /workspace
 
-RUN rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
-    && apt-get update --allow-insecure-repositories \
-    && apt-get install -y --allow-unauthenticated ca-certificates gnupg curl \
-    && mkdir -p /etc/apt/keyrings \
-    && for key in 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8; do \
-         for i in 1 2 3 4 5; do \
-           gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $key && break || sleep 5; \
-         done; \
-       done \
-    && gpg --export 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8 | tee /etc/apt/trusted.gpg.d/debian.gpg > /dev/null \
-    && apt-get update \
-    && apt-get install -y \
+# Install development tools
+RUN apt-get update && apt-get install -y \
     git \
+    python3 \
+    make \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
-USER bun
+# Install global npm tools useful for development
+RUN npm install -g nodemon typescript ts-node
 
-ENV PATH="/home/bun/.local/bin:$PATH"
+# Create a non-root user for development
+RUN groupadd -r devuser && useradd -r -g devuser -s /bin/bash devuser \
+    && mkdir -p /home/devuser \
+    && chown -R devuser:devuser /home/devuser /workspace
+
+USER devuser

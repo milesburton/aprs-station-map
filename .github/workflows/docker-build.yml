@@ -4,16 +4,16 @@ on:
   push:
     branches: [master, main, 'feat/**']
     paths:
-      - 'Dockerfile'
+      - '.appcontainer/Dockerfile'
+      - '.appcontainer/nginx.conf'
       - 'package.json'
-      - 'bun.lock'
       - '.github/workflows/docker-build.yml'
   pull_request:
     branches: [master, main]
     paths:
-      - 'Dockerfile'
+      - '.appcontainer/Dockerfile'
+      - '.appcontainer/nginx.conf'
       - 'package.json'
-      - 'bun.lock'
 
 jobs:
   build-amd64:
@@ -28,6 +28,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: .appcontainer/Dockerfile
           push: false
           platforms: linux/amd64
           tags: aprs-station-map:test-amd64
@@ -49,6 +50,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: .appcontainer/Dockerfile
           push: false
           platforms: linux/arm64
           tags: aprs-station-map:test-arm64

@@ -1,10 +1,6 @@
-import { describe, expect, test } from 'bun:test'
-import {
-  filterStations,
-  getStationStats,
-  getUniqueSymbols,
-} from '../../src/services/station-filter'
-import type { FilterState, Station } from '../../src/types'
+import { describe, expect, test } from 'vitest'
+import type { FilterState, Station } from '../types'
+import { filterStations, getStationStats, getUniqueSymbols } from './station-filter'
 
 const createStation = (overrides: Partial<Station> = {}): Station => ({
   callsign: 'TEST-1',
@@ -14,6 +10,7 @@ const createStation = (overrides: Partial<Station> = {}): Station => ({
   lastHeard: new Date(),
   distance: 10,
   bearing: 45,
+  packetCount: 1,
   ...overrides,
 })
 
@@ -28,7 +25,7 @@ const defaultFilter: FilterState = {
 
 describe('station filtering', () => {
   const stations: Station[] = [
-    createStation({ callsign: 'M0LHA', distance: 5, symbol: '-' }),
+    createStation({ callsign: 'TEST-0', distance: 5, symbol: '-' }),
     createStation({ callsign: 'G4ABC', distance: 50, symbol: '>' }),
     createStation({ callsign: 'G8XYZ', distance: 100, symbol: '-', comment: 'mobile station' }),
     createStation({ callsign: '2E0TEST', distance: 200, symbol: 'k' }),
@@ -74,7 +71,7 @@ describe('station filtering', () => {
       }
       const result = filterStations(stations, filter)
       expect(result[0]?.callsign).toBe('2E0TEST')
-      expect(result[3]?.callsign).toBe('M0LHA')
+      expect(result[3]?.callsign).toBe('TEST-0')
     })
 
     test('sorts by distance descending', () => {

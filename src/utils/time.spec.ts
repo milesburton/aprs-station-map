@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'bun:test'
-import { formatRelativeTime, parseKmlTimestamp } from '../../src/utils/time'
+import { describe, expect, test } from 'vitest'
+import { formatRelativeTime, parseKmlTimestamp } from './time'
 
 describe('time utilities', () => {
   describe('formatRelativeTime', () => {

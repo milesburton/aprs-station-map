@@ -1,6 +1,11 @@
+# Production Docker Compose Configuration
+# For development, use: docker compose -f compose.dev.yaml up
+
 services:
   aprs-map:
-    build: .
+    build:
+      context: ..
+      dockerfile: .appcontainer/Dockerfile
     container_name: aprs-station-map
     ports:
       - "3000:80"
@@ -9,9 +14,9 @@ services:
     environment:
       - KISS_HOST=${KISS_HOST:-host.docker.internal}
       - KISS_PORT=${KISS_PORT:-8001}
-      - STATION_LATITUDE=${STATION_LATITUDE:-51.4416}
-      - STATION_LONGITUDE=${STATION_LONGITUDE:-0.15}
-      - STATION_CALLSIGN=${STATION_CALLSIGN:-M0LHA}
+      - STATION_LATITUDE=${STATION_LATITUDE:-0}
+      - STATION_LONGITUDE=${STATION_LONGITUDE:-0}
+      - STATION_CALLSIGN=${STATION_CALLSIGN:-NOCALL}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     extra_hosts:
       - "host.docker.internal:host-gateway"

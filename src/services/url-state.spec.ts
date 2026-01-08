@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'bun:test'
-import { DEFAULT_CONFIG, DEFAULT_FILTER_STATE } from '../../src/constants'
-import { decodeUrlState, encodeUrlState } from '../../src/services/url-state'
-import type { FilterState, MapState } from '../../src/types'
+import { describe, expect, test } from 'vitest'
+import { DEFAULT_CONFIG, DEFAULT_FILTER_STATE } from '../constants'
+import type { FilterState, MapState } from '../types'
+import { decodeUrlState, encodeUrlState } from './url-state'
 
 describe('URL state management', () => {
   const defaultMapState: MapState = {
@@ -12,9 +12,9 @@ describe('URL state management', () => {
 
   describe('encodeUrlState', () => {
     test('encodes search query', () => {
-      const filter: FilterState = { ...DEFAULT_FILTER_STATE, search: 'M0LHA' }
+      const filter: FilterState = { ...DEFAULT_FILTER_STATE, search: 'TEST-1' }
       const encoded = encodeUrlState(filter, defaultMapState)
-      expect(encoded).toContain('q=M0LHA')
+      expect(encoded).toContain('q=TEST-1')
     })
 
     test('encodes non-default distance', () => {
@@ -46,12 +46,29 @@ describe('URL state management', () => {
       expect(encoded).toContain('lng=-1.5678')
       expect(encoded).toContain('z=12')
     })
+
+    test('encodes sort and direction', () => {
+      const filter: FilterState = {
+        ...DEFAULT_FILTER_STATE,
+        sortBy: 'distance',
+        sortDirection: 'asc',
+      }
+      const encoded = encodeUrlState(filter, defaultMapState)
+      expect(encoded).toContain('sort=distance')
+      expect(encoded).toContain('dir=asc')
+    })
+
+    test('does not encode default values', () => {
+      const encoded = encodeUrlState(DEFAULT_FILTER_STATE, defaultMapState)
+      expect(encoded).not.toContain('sort=')
+      expect(encoded).not.toContain('d=')
+    })
   })
 
   describe('decodeUrlState', () => {
     test('decodes search query', () => {
-      const decoded = decodeUrlState('?q=M0LHA')
-      expect(decoded.filter.search).toBe('M0LHA')
+      const decoded = decodeUrlState('?q=TEST-1')
+      expect(decoded.filter.search).toBe('TEST-1')
     })
 
     test('decodes distance', () => {
@@ -76,10 +93,26 @@ describe('URL state management', () => {
       expect(decoded.map.zoom).toBe(12)
     })
 
+    test('decodes sort parameters', () => {
+      const decoded = decodeUrlState('?sort=distance&dir=asc')
+      expect(decoded.filter.sortBy).toBe('distance')
+      expect(decoded.filter.sortDirection).toBe('asc')
+    })
+
     test('handles empty search', () => {
       const decoded = decodeUrlState('')
       expect(decoded.filter.search).toBeUndefined()
       expect(decoded.map.selectedStation).toBeUndefined()
+    })
+
+    test('handles missing map coordinates', () => {
+      const decoded = decodeUrlState('?q=test')
+      expect(decoded.map.centre).toBeUndefined()
+    })
+
+    test('handles partial map coordinates', () => {
+      const decoded = decodeUrlState('?lat=52.1234')
+      expect(decoded.map.centre).toBeUndefined()
     })
   })
 })

@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lock* ./
+COPY package.json package-lock.json* ./
 
 # Install all dependencies (including dev for build tools)
 RUN npm install
@@ -57,7 +57,7 @@ COPY --from=builder /app/dist-server ./dist-server
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx config
-COPY nginx.conf /etc/nginx/sites-available/default
+COPY .appcontainer/nginx.conf /etc/nginx/sites-available/default
 RUN rm -f /etc/nginx/sites-enabled/default && \
     ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 

@@ -40,9 +40,9 @@ export const loadConfig = (): ServerConfig => ({
     host: process.env.WEB_HOST ?? '0.0.0.0',
   },
   station: {
-    latitude: parseNumber(process.env.STATION_LATITUDE, 51.4416),
-    longitude: parseNumber(process.env.STATION_LONGITUDE, 0.15),
-    callsign: process.env.STATION_CALLSIGN ?? 'M0LHA',
+    latitude: parseNumber(process.env.STATION_LATITUDE, 0),
+    longitude: parseNumber(process.env.STATION_LONGITUDE, 0),
+    callsign: process.env.STATION_CALLSIGN ?? 'NOCALL',
   },
   log: {
     level: (process.env.LOG_LEVEL as ServerConfig['log']['level']) ?? 'info',
