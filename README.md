@@ -42,27 +42,36 @@ docker inspect --format='{{json .State.Health.Status}}' aprs-station-map
 
 ## Configuration
 
-Set your station details via environment variables:
+### RTL-SDR Setup
 
 ```bash
 export STATION_CALLSIGN=M0XYZ
 export STATION_LATITUDE=51.5074
 export STATION_LONGITUDE=-0.1278
+export AUDIO_SOURCE=rtl-sdr
+export RTL_FREQ=144.8M
+export RTL_GAIN=40
+export RTL_PPM=0
 docker compose -f .appcontainer/compose.yaml up -d
 ```
 
-## Audio Input
+### Sound Card Setup
 
-Direwolf inside the container can receive audio from:
-
-**RTL-SDR**: Pipe rtl_fm output into the container
 ```bash
-rtl_fm -f 144.8M - | docker exec -i aprs-station-map direwolf -c /app/direwolf.conf -
+export STATION_CALLSIGN=M0XYZ
+export STATION_LATITUDE=51.5074
+export STATION_LONGITUDE=-0.1278
+export AUDIO_SOURCE=soundcard
+docker compose -f .appcontainer/compose.yaml up -d
 ```
 
-**Sound Card**: The container has access to `/dev/snd` for direct audio input
+### Test Mode (No Audio)
 
-**Network TNC**: Set `ADEVICE` in direwolf.conf to read from a network source
+```bash
+export STATION_CALLSIGN=M0XYZ
+export AUDIO_SOURCE=null
+docker compose -f .appcontainer/compose.yaml up -d
+```
 
 ## Diagnostics
 
