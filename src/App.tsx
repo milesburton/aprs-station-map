@@ -6,7 +6,8 @@ import { getUniqueSymbols, updateUrlState } from './services'
 import type { Coordinates } from './types'
 
 export const App: FC = () => {
-  const { stations, loading, error, lastUpdated, packets, refresh } = useStations()
+  const { stations, stats, loading, error, connected, lastUpdated, packets, refresh } =
+    useStations()
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const {
     filter,
@@ -89,6 +90,8 @@ export const App: FC = () => {
 
       <DiagnosticsPanel
         packets={packets}
+        stats={stats}
+        connected={connected}
         isOpen={diagnosticsOpen}
         onToggle={() => setDiagnosticsOpen(!diagnosticsOpen)}
       />

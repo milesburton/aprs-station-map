@@ -401,6 +401,82 @@ body {
   background: var(--colour-background);
 }
 
+.diagnostics-status {
+  background: var(--colour-surface);
+  border-radius: var(--radius);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  font-size: 0.75rem;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--colour-border);
+}
+
+.status-row:last-child {
+  border-bottom: none;
+}
+
+.status-label {
+  color: var(--colour-text-muted);
+  font-weight: 600;
+}
+
+.status-value {
+  color: var(--colour-text);
+}
+
+.status-value.connected {
+  color: var(--colour-success);
+}
+
+.status-value.disconnected {
+  color: var(--colour-error);
+}
+
+.diagnostics-help {
+  background: var(--colour-surface);
+  border-left: 3px solid var(--colour-error);
+  border-radius: var(--radius);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  font-size: 0.75rem;
+}
+
+.diagnostics-help h4 {
+  margin-bottom: var(--spacing-sm);
+  color: var(--colour-text);
+  font-size: 0.875rem;
+}
+
+.diagnostics-help p {
+  margin-bottom: var(--spacing-sm);
+  color: var(--colour-text-muted);
+  line-height: 1.6;
+}
+
+.diagnostics-help ul {
+  margin: var(--spacing-sm) 0;
+  padding-left: var(--spacing-lg);
+  color: var(--colour-text-muted);
+}
+
+.diagnostics-help li {
+  margin-bottom: var(--spacing-xs);
+}
+
+.diagnostics-help code {
+  background: var(--colour-background);
+  padding: var(--spacing-xs);
+  border-radius: var(--radius);
+  font-family: monospace;
+  color: var(--colour-primary);
+}
+
 .diagnostics-empty {
   display: flex;
   flex-direction: column;

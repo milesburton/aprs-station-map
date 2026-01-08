@@ -20,7 +20,8 @@
     "prepare": "husky || true",
     "sanity": "node scripts/sanity-check.js",
     "test:container": "bash scripts/test-container.sh",
-    "test:pre-deploy": "bash scripts/pre-deploy-test.sh"
+    "test:pre-deploy": "bash scripts/pre-deploy-test.sh",
+    "diagnose:kiss": "node scripts/check-kiss-tnc.js"
   },
   "dependencies": {
     "@tmcw/togeojson": "^6.0.0",

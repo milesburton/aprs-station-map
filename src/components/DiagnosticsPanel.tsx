@@ -1,45 +1,136 @@
 import type { FC } from 'react'
-import { useEffect, useRef } from 'react'
-import type { AprsPacket } from '../types'
+import { useEffect, useRef, useState } from 'react'
+import type { AprsPacket, Stats } from '../types'
 import { formatRelativeTime } from '../utils'
 
 interface DiagnosticsPanelProps {
   packets: AprsPacket[]
+  stats: Stats | null
+  connected: boolean
   isOpen: boolean
   onToggle: () => void
 }
 
-export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({ packets, isOpen, onToggle }) => {
+export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
+  packets,
+  stats,
+  connected,
+  isOpen,
+  onToggle,
+}) => {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [lastPacketTime, setLastPacketTime] = useState<Date | null>(null)
 
   useEffect(() => {
     if (scrollRef.current && isOpen) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [packets, isOpen])
+  }, [isOpen])
+
+  useEffect(() => {
+    if (packets.length > 0) {
+      const lastPacket = packets[packets.length - 1]
+      if (lastPacket) {
+        setLastPacketTime(new Date(lastPacket.timestamp))
+      }
+    }
+  }, [packets])
+
+  const getStatusIndicator = () => {
+    if (!connected) return '🔴'
+    if (!stats?.kissConnected) return '🟡'
+    if (packets.length === 0) return '🟡'
+    return '🟢'
+  }
+
+  const getStatusText = () => {
+    if (!connected) return 'WebSocket Disconnected'
+    if (!stats?.kissConnected) return 'KISS TNC Disconnected'
+    if (packets.length === 0) return 'No Packets Received'
+    return 'Receiving Packets'
+  }
 
   return (
     <div className={`diagnostics-panel ${isOpen ? 'open' : 'closed'}`}>
-      <div className="diagnostics-header">
-        <h3>APRS Packet Diagnostics</h3>
+      <button type="button" className="diagnostics-header" onClick={onToggle}>
+        <h3>{getStatusIndicator()} APRS Packet Diagnostics</h3>
         <div className="diagnostics-controls">
           <span className="packet-count">{packets.length} packets</span>
-          <button type="button" onClick={onToggle} className="toggle-button">
-            {isOpen ? '▼ Hide' : '▲ Show'}
-          </button>
+          <span className="toggle-button">{isOpen ? '▼ Hide' : '▲ Show'}</span>
         </div>
-      </div>
+      </button>
 
       {isOpen && (
         <div className="diagnostics-content" ref={scrollRef}>
-          {packets.length === 0 ? (
-            <div className="diagnostics-empty">
-              <p>Waiting for APRS packets...</p>
-              <p className="diagnostics-hint">
-                Packets will appear here as they are received from the KISS TNC
+          <div className="diagnostics-status">
+            <div className="status-row">
+              <span className="status-label">WebSocket:</span>
+              <span className={`status-value ${connected ? 'connected' : 'disconnected'}`}>
+                {connected ? '✅ Connected' : '❌ Disconnected'}
+              </span>
+            </div>
+            <div className="status-row">
+              <span className="status-label">KISS TNC:</span>
+              <span
+                className={`status-value ${stats?.kissConnected ? 'connected' : 'disconnected'}`}
+              >
+                {stats?.kissConnected ? '✅ Connected' : '❌ Disconnected'}
+              </span>
+            </div>
+            <div className="status-row">
+              <span className="status-label">Status:</span>
+              <span className="status-value">{getStatusText()}</span>
+            </div>
+            {lastPacketTime && (
+              <div className="status-row">
+                <span className="status-label">Last Packet:</span>
+                <span className="status-value">{formatRelativeTime(lastPacketTime)}</span>
+              </div>
+            )}
+            {stats && (
+              <>
+                <div className="status-row">
+                  <span className="status-label">Total Stations:</span>
+                  <span className="status-value">{stats.totalStations}</span>
+                </div>
+                <div className="status-row">
+                  <span className="status-label">Total Packets:</span>
+                  <span className="status-value">{stats.totalPackets}</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {!stats?.kissConnected && (
+            <div className="diagnostics-help">
+              <h4>🔧 KISS TNC Not Connected</h4>
+              <p>The application cannot connect to the KISS TNC. Possible issues:</p>
+              <ul>
+                <li>KISS TNC software (e.g., Direwolf) is not running</li>
+                <li>Wrong host/port configuration (currently: 172.17.0.1:8001)</li>
+                <li>Firewall blocking the connection</li>
+              </ul>
+              <p>
+                Run <code>npm run diagnose:kiss</code> to test connectivity
               </p>
             </div>
-          ) : (
+          )}
+
+          {stats?.kissConnected && packets.length === 0 && (
+            <div className="diagnostics-help">
+              <h4>📡 No Packets Received</h4>
+              <p>KISS TNC is connected but no packets are being received. Check:</p>
+              <ul>
+                <li>SDR is properly connected and configured</li>
+                <li>Antenna is connected</li>
+                <li>Tuned to correct frequency (144.800 MHz for APRS)</li>
+                <li>TNC decoding is working (check TNC logs)</li>
+                <li>RF activity in your area</li>
+              </ul>
+            </div>
+          )}
+
+          {packets.length > 0 && (
             <div className="packet-list">
               {packets.map((packet, index) => (
                 <div key={`${packet.timestamp}-${index}`} className="packet-item">
