@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { WebSocket, WebSocketServer } from 'ws'
 import { bytesToHex, parseAprsPacket } from './aprs-parser'
@@ -16,6 +17,7 @@ import {
 } from './database'
 import { calculateBearing, calculateDistance } from './geo'
 import { closeKissClient, getKissClient } from './kiss-client'
+import { SpectrumAnalyzer } from './spectrum-analyzer'
 import { type StateEvent, stateManager } from './state-manager'
 
 interface WebSocketWithId extends WebSocket {
@@ -24,6 +26,17 @@ interface WebSocketWithId extends WebSocket {
 
 // Track connected WebSocket clients
 const clients = new Set<WebSocketWithId>()
+
+// Read version from package.json
+let APP_VERSION = '1.0.0' // fallback
+try {
+  // In production (Docker), package.json is at /app/package.json
+  const packageJson = JSON.parse(readFileSync('/app/package.json', 'utf-8'))
+  APP_VERSION = packageJson.version as string
+  console.log(`[Version] Loaded version ${APP_VERSION}`)
+} catch (error) {
+  console.error('[Version] Failed to load version from package.json, using fallback:', error)
+}
 
 // Convert DB station to API station format
 const toApiStation = (dbStation: DbStation) => {
@@ -41,6 +54,7 @@ const toApiStation = (dbStation: DbStation) => {
     callsign: dbStation.callsign,
     coordinates: coords,
     symbol: dbStation.symbol,
+    symbolTable: dbStation.symbol_table,
     comment: dbStation.comment,
     lastHeard: new Date(dbStation.last_heard).toISOString(),
     distance: coords ? calculateDistance(stationLocation, coords) : null,
@@ -149,6 +163,15 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
       return
     }
 
+    // GET /api/version
+    if (path === '/version' && req.method === 'GET') {
+      sendJson(res, {
+        version: APP_VERSION,
+        buildDate: new Date().toISOString(),
+      })
+      return
+    }
+
     sendJson(res, { error: 'Not found' }, 404)
   } catch (error) {
     console.error('[API] Error:', error)
@@ -240,8 +263,38 @@ export const startServer = async (): Promise<void> => {
     res.end('Not found')
   })
 
-  // Create WebSocket server
-  const wss = new WebSocketServer({ server, path: '/ws' })
+  // Create WebSocket servers using noServer mode
+  // IMPORTANT: When multiple WebSocketServer instances share the same HTTP server,
+  // you MUST use noServer mode and handle upgrades manually. Otherwise, the ws library
+  // may send malformed frames (with RSV1 bit set incorrectly) causing "Invalid frame header"
+  // errors in browsers. This was a significant debugging effort - do not change this pattern.
+  // See: https://github.com/websockets/ws/issues/885
+  const wss = new WebSocketServer({
+    noServer: true,
+    perMessageDeflate: false, // Disable compression to avoid frame corruption
+  })
+
+  const spectrumWss = new WebSocketServer({
+    noServer: true,
+    perMessageDeflate: false,
+  })
+
+  // Handle WebSocket upgrades manually to route to correct server
+  server.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url || '/', `http://${request.headers.host}`).pathname
+
+    if (pathname === '/ws') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request)
+      })
+    } else if (pathname === '/ws/spectrum') {
+      spectrumWss.handleUpgrade(request, socket, head, (ws) => {
+        spectrumWss.emit('connection', ws, request)
+      })
+    } else {
+      socket.destroy()
+    }
+  })
 
   wss.on('connection', (ws: WebSocket) => {
     const wsWithId = ws as WebSocketWithId
@@ -249,11 +302,11 @@ export const startServer = async (): Promise<void> => {
     clients.add(wsWithId)
     console.log(`[WS] Client connected (${clients.size} total)`)
 
-    // Send initial state
-    const stations = getAllStations().map(toApiStation)
-    const stats = getStats()
-    ws.send(
-      JSON.stringify({
+    // Send initial state immediately as a single text frame
+    try {
+      const stations = getAllStations().map(toApiStation)
+      const stats = getStats()
+      const initMessage = JSON.stringify({
         type: 'init',
         stations,
         stats: {
@@ -261,7 +314,10 @@ export const startServer = async (): Promise<void> => {
           kissConnected: stateManager.isKissConnected(),
         },
       })
-    )
+      ws.send(initMessage)
+    } catch (err) {
+      console.error('[WS] Failed to send init:', err)
+    }
 
     ws.on('message', (message: Buffer) => {
       try {
@@ -272,14 +328,58 @@ export const startServer = async (): Promise<void> => {
       }
     })
 
-    ws.on('close', () => {
+    ws.on('close', (code, reason) => {
       clients.delete(wsWithId)
-      console.log(`[WS] Client disconnected (${clients.size} remaining)`)
+      console.log(
+        `[WS] Client disconnected - code: ${code}, reason: "${reason?.toString() || ''}" (${clients.size} remaining)`
+      )
     })
 
     ws.on('error', (error) => {
       console.error('[WS] Client error:', error)
       clients.delete(wsWithId)
+    })
+  })
+
+  // Spectrum analyzer state
+  let spectrumAnalyzer: SpectrumAnalyzer | null = null
+  const spectrumClients = new Set<WebSocket>()
+
+  spectrumWss.on('connection', (ws: WebSocket) => {
+    spectrumClients.add(ws)
+    console.log(`[Spectrum WS] Client connected (${spectrumClients.size} total)`)
+
+    // Start spectrum analyzer if not already running
+    if (!spectrumAnalyzer && spectrumClients.size > 0) {
+      const freq = Number.parseInt(process.env.RTL_FREQ || '144548000', 10)
+      spectrumAnalyzer = new SpectrumAnalyzer(freq)
+
+      spectrumAnalyzer.on('data', (data) => {
+        const message = JSON.stringify({ type: 'spectrum', data })
+        for (const client of spectrumClients) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message)
+          }
+        }
+      })
+
+      spectrumAnalyzer.start()
+    }
+
+    ws.on('close', () => {
+      spectrumClients.delete(ws)
+      console.log(`[Spectrum WS] Client disconnected (${spectrumClients.size} remaining)`)
+
+      // Stop analyzer if no clients
+      if (spectrumClients.size === 0 && spectrumAnalyzer) {
+        spectrumAnalyzer.stop()
+        spectrumAnalyzer = null
+      }
+    })
+
+    ws.on('error', (error) => {
+      console.error('[Spectrum WS] Client error:', error)
+      spectrumClients.delete(ws)
     })
   })
 

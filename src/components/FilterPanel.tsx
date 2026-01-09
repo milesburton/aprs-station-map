@@ -65,7 +65,7 @@ export const FilterPanel: FC<FilterPanelProps> = ({
           <option value="">All symbols</option>
           {availableSymbols.map((symbol) => (
             <option key={symbol} value={symbol}>
-              {symbol} {APRS_SYMBOLS[symbol] ?? 'Unknown'}
+              {symbol} {APRS_SYMBOLS[symbol]?.name ?? 'Unknown'}
             </option>
           ))}
         </select>

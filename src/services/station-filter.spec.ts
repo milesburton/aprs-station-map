@@ -6,6 +6,7 @@ const createStation = (overrides: Partial<Station> = {}): Station => ({
   callsign: 'TEST-1',
   coordinates: { latitude: 51.5, longitude: -0.1 },
   symbol: '-',
+  symbolTable: '/',
   comment: 'Test station',
   lastHeard: new Date(),
   distance: 10,

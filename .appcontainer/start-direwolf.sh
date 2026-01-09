@@ -15,7 +15,14 @@ case "$AUDIO_SOURCE" in
     envsubst < /app/direwolf.conf.template > /app/direwolf.conf
     echo "Starting RTL-SDR -> Direwolf pipeline"
     echo "Frequency: $RTL_FREQ, Gain: $RTL_GAIN, PPM: $RTL_PPM"
-    exec rtl_fm -f "$RTL_FREQ" -s 24000 -g "$RTL_GAIN" -p "$RTL_PPM" - | direwolf -c /app/direwolf.conf -r 24000 -D 1 -
+    echo "Command: rtl_fm -M fm -f $RTL_FREQ -s 22050 -g $RTL_GAIN -p $RTL_PPM -l 0 -E dc -F 9 - | direwolf -c /app/direwolf.conf -r 22050 -d akk -t 0 -"
+    # Use wider bandwidth for better signal capture
+    # -s 22050: Audio sample rate (Direwolf works best with 11025, 22050, or 44100)
+    # -E dc: Enable DC blocking filter
+    # -F 9: Enable fast atan math
+    # -l 0: Squelch level 0 (disabled)
+    # -d akk: Debug audio, kiss, and modem reception (shows decode attempts)
+    exec rtl_fm -M fm -f "$RTL_FREQ" -s 22050 -g "$RTL_GAIN" -p "$RTL_PPM" -l 0 -E dc -F 9 - | direwolf -c /app/direwolf.conf -r 22050 -d akk -t 0 -
     ;;
   soundcard)
     export AUDIO_DEVICE="plughw:0,0"

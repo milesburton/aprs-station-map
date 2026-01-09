@@ -7,8 +7,7 @@ services:
       context: ..
       dockerfile: .appcontainer/Dockerfile
     container_name: aprs-station-map
-    ports:
-      - "3000:80"
+    network_mode: host  # Bypass Docker networking - nginx on :80, backend on :3001
     volumes:
       - aprs-data:/app/data
     devices:
@@ -20,11 +19,13 @@ services:
       - STATION_LATITUDE=${STATION_LATITUDE:-51.4416}
       - STATION_LONGITUDE=${STATION_LONGITUDE:-0.15}
       - STATION_CALLSIGN=${STATION_CALLSIGN:-NOCALL}
-      - AUDIO_SOURCE=${AUDIO_SOURCE:-null}
-      - RTL_FREQ=${RTL_FREQ:-144.8M}
+      - AUDIO_SOURCE=${AUDIO_SOURCE:-rtl-sdr}
+      - RTL_FREQ=${RTL_FREQ:-144800000}
       - RTL_GAIN=${RTL_GAIN:-40}
       - RTL_PPM=${RTL_PPM:-0}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+    env_file:
+      - ../.env
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost/api/health || exit 1"]

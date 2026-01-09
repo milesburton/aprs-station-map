@@ -4,10 +4,13 @@ import { DiagnosticsPanel, FilterPanel, StationList, StationMap, StatusBar } fro
 import { useFilters, useMapState, useStations } from './hooks'
 import { getUniqueSymbols, updateUrlState } from './services'
 import type { Coordinates } from './types'
+import { setupVersionCheck } from './utils/version'
 
 export const App: FC = () => {
+  console.log('[App] Rendering')
   const { stations, stats, loading, error, connected, lastUpdated, packets, refresh } =
     useStations()
+  console.log('[App] useStations returned, stations:', stations.length, 'connected:', connected)
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const {
     filter,
@@ -25,6 +28,16 @@ export const App: FC = () => {
   useEffect(() => {
     updateUrlState(filter, mapState)
   }, [filter, mapState])
+
+  // Setup version checking
+  useEffect(() => {
+    console.log('[App] Version check effect mounting')
+    const cleanup = setupVersionCheck(60000) // Check every minute
+    return () => {
+      console.log('[App] Version check effect cleanup')
+      cleanup()
+    }
+  }, [])
 
   const handleMapMove = useCallback(
     (centre: Coordinates, zoom: number) => {

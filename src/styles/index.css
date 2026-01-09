@@ -281,56 +281,127 @@ body {
 }
 
 .marker-icon {
-  width: 28px;
-  height: 28px;
-  background: var(--colour-surface);
-  border: 2px solid var(--colour-primary);
+  width: 32px;
+  height: 32px;
+  border: 2px solid;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: monospace;
-  font-size: 14px;
-  color: var(--colour-text);
+  font-size: 18px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.marker-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
 }
 
 .station-marker.selected .marker-icon {
-  background: var(--colour-primary);
-  border-color: white;
-  transform: scale(1.2);
+  border-width: 3px;
+  border-color: #ffffff !important;
+  transform: scale(1.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.station-marker:hover .marker-icon {
+  transform: scale(1.15);
+}
+
+.station-marker.category-vehicle .marker-icon {
+  animation: pulse-vehicle 2s ease-in-out infinite;
+}
+
+@keyframes pulse-vehicle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
 }
 
 .station-popup {
-  min-width: 200px;
+  min-width: 250px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .station-popup h3 {
-  font-size: 1rem;
-  margin-bottom: var(--spacing-xs);
+  font-size: 1.1rem;
+  margin-bottom: var(--spacing-sm);
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .station-popup .symbol {
-  font-size: 0.875rem;
-  color: var(--colour-text-muted);
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: #f8fafc;
+  border-radius: var(--radius);
+  display: inline-block;
 }
 
 .station-popup .comment {
   margin: var(--spacing-sm) 0;
   font-size: 0.875rem;
+  color: #334155;
+  font-style: italic;
+}
+
+.station-popup .coordinates {
+  margin: var(--spacing-sm) 0;
+  padding: var(--spacing-sm);
+  background: #f1f5f9;
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  font-family: 'Courier New', monospace;
+}
+
+.station-popup .coordinates strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #475569;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.station-popup .coordinates div {
+  color: #1e293b;
+  padding: 2px 0;
 }
 
 .station-popup .details {
   display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: 0.8rem;
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: #f8fafc;
+  border-radius: var(--radius);
+}
+
+.station-popup .details div {
+  display: flex;
   justify-content: space-between;
-  font-size: 0.75rem;
-  color: var(--colour-text-muted);
+  color: #334155;
+}
+
+.station-popup .details strong {
+  color: #475569;
+  margin-right: var(--spacing-sm);
 }
 
 .station-popup .via {
   margin-top: var(--spacing-sm);
   font-size: 0.75rem;
-  color: var(--colour-text-muted);
+  color: #64748b;
   font-family: monospace;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: #f1f5f9;
+  border-radius: var(--radius);
 }
 
 .diagnostics-panel {
@@ -349,7 +420,8 @@ body {
 }
 
 .diagnostics-panel.open {
-  height: 300px;
+  height: 500px; /* Increased from 300px to accommodate spectrum analyzer */
+  max-height: 60vh;
 }
 
 .diagnostics-header {
@@ -395,7 +467,7 @@ body {
 }
 
 .diagnostics-content {
-  height: calc(100% - 48px);
+  height: calc(100% - 48px - 40px); /* Subtract header (48px) and tabs (40px) */
   overflow-y: auto;
   padding: var(--spacing-md);
   background: var(--colour-background);
@@ -581,6 +653,110 @@ body {
   padding: var(--spacing-xs);
   color: var(--colour-text-muted);
   font-style: italic;
+}
+
+/* Diagnostics Tabs */
+.diagnostics-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--colour-surface);
+  border-bottom: 1px solid var(--colour-border);
+}
+
+.diagnostics-tabs .tab {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--colour-text-muted);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.diagnostics-tabs .tab:hover {
+  color: var(--colour-text);
+  background: var(--colour-background);
+}
+
+.diagnostics-tabs .tab.active {
+  color: var(--colour-primary);
+  border-bottom-color: var(--colour-primary);
+}
+
+/* Spectrum Analyzer */
+.spectrum-analyzer {
+  padding: var(--spacing-md);
+}
+
+.spectrum-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.spectrum-header h4 {
+  margin: 0;
+  color: var(--colour-text);
+  font-size: 1rem;
+}
+
+.spectrum-status {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.spectrum-status.connected {
+  background: var(--colour-success);
+  color: var(--colour-background);
+}
+
+.spectrum-status.disconnected {
+  background: var(--colour-error);
+  color: var(--colour-background);
+}
+
+.spectrum-display {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.spectrum-chart,
+.waterfall-display {
+  background: #000;
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.spectrum-chart canvas,
+.waterfall-display canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+
+.spectrum-chart {
+  min-height: 200px;
+}
+
+.waterfall-display {
+  min-height: 150px;
+}
+
+.spectrum-info {
+  padding: var(--spacing-md);
+  background: var(--colour-surface);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--colour-text-muted);
+  font-size: 0.875rem;
 }
 
 @media (max-width: 768px) {

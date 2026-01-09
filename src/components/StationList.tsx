@@ -20,7 +20,7 @@ const StationItem: FC<StationItemProps> = ({ station, isSelected, onSelect }) =>
     <button type="button" onClick={onSelect} className="station-button">
       <div className="station-header">
         <span className="callsign">{station.callsign}</span>
-        <span className="symbol" title={APRS_SYMBOLS[station.symbol] ?? 'Unknown'}>
+        <span className="symbol" title={APRS_SYMBOLS[station.symbol]?.name ?? 'Unknown'}>
           {station.symbol}
         </span>
       </div>

@@ -7,6 +7,7 @@ export interface Station {
   callsign: string
   coordinates: Coordinates | null
   symbol: string
+  symbolTable: string
   comment: string
   lastHeard: Date | string
   distance: number | null
@@ -16,7 +17,8 @@ export interface Station {
   course?: number
   speed?: number
   via?: string[]
-  packetCount?: number
+  packetCount: number
+  signalStrength?: number
 }
 
 export interface StationFeature {

@@ -11,20 +11,36 @@ interface StationMarkerProps {
   onSelect: (callsign: string) => void
 }
 
-const createIcon = (symbol: string, isSelected: boolean): L.DivIcon =>
-  L.divIcon({
-    className: `station-marker ${isSelected ? 'selected' : ''}`,
-    html: `<div class="marker-icon">${symbol}</div>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
+const createIcon = (symbol: string, isSelected: boolean): L.DivIcon => {
+  const symbolInfo = APRS_SYMBOLS[symbol] ?? {
+    name: 'Unknown',
+    emoji: symbol,
+    color: '#757575',
+    category: 'other' as const,
+  }
+
+  const backgroundColor = isSelected ? symbolInfo.color : `${symbolInfo.color}dd`
+  const borderColor = isSelected ? '#ffffff' : symbolInfo.color
+
+  return L.divIcon({
+    className: `station-marker ${isSelected ? 'selected' : ''} category-${symbolInfo.category}`,
+    html: `
+      <div class="marker-icon" style="background-color: ${backgroundColor}; border-color: ${borderColor};">
+        <span class="marker-emoji">${symbolInfo.emoji}</span>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
   })
+}
 
 export const StationMarker: FC<StationMarkerProps> = ({ station, isSelected, onSelect }) => {
   // Skip rendering if no coordinates
   if (!station.coordinates) return null
 
   const icon = createIcon(station.symbol, isSelected)
-  const symbolName = APRS_SYMBOLS[station.symbol] ?? 'Unknown'
+  const symbolInfo = APRS_SYMBOLS[station.symbol]
+  const symbolName = symbolInfo?.name ?? 'Unknown'
 
   return (
     <Marker
@@ -36,17 +52,38 @@ export const StationMarker: FC<StationMarkerProps> = ({ station, isSelected, onS
         <div className="station-popup">
           <h3>{station.callsign}</h3>
           <p className="symbol">
-            {station.symbol} {symbolName}
+            {symbolInfo?.emoji ?? station.symbol} {symbolName}
           </p>
-          <p className="comment">{station.comment}</p>
+          {station.comment && <p className="comment">{station.comment}</p>}
+
+          {station.coordinates && (
+            <div className="coordinates">
+              <strong>Position:</strong>
+              <div>Lat: {station.coordinates.latitude.toFixed(4)}°</div>
+              <div>Lon: {station.coordinates.longitude.toFixed(4)}°</div>
+            </div>
+          )}
+
           <div className="details">
-            <span>
-              {station.distance != null && station.bearing != null
-                ? `${formatDistance(station.distance)} ${formatBearing(station.bearing)}`
-                : 'No position data'}
-            </span>
-            <span>{formatRelativeTime(station.lastHeard)}</span>
+            <div>
+              <strong>Last Heard:</strong> {formatRelativeTime(station.lastHeard)}
+            </div>
+            <div>
+              <strong>Packets:</strong> {station.packetCount}
+            </div>
+            {station.distance != null && station.bearing != null && (
+              <div>
+                <strong>Distance:</strong> {formatDistance(station.distance)}{' '}
+                {formatBearing(station.bearing)}
+              </div>
+            )}
+            {station.signalStrength != null && (
+              <div>
+                <strong>Signal:</strong> {station.signalStrength.toFixed(1)} dB
+              </div>
+            )}
           </div>
+
           {station.via && station.via.length > 0 && (
             <p className="via">via {station.via.join(' → ')}</p>
           )}
