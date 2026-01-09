@@ -88,8 +88,19 @@ body {
   overflow: hidden;
 }
 
+/* react-resizable-panels container needs explicit dimensions */
+.app-main > [data-panel-group] {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
 .sidebar-panel {
-  min-width: 200px;
+  overflow: hidden;
+}
+
+[data-panel] {
+  overflow: hidden;
 }
 
 .sidebar {
@@ -103,10 +114,11 @@ body {
 }
 
 .resize-handle {
-  width: 4px;
+  width: 8px;
   background: var(--colour-border);
   cursor: col-resize;
   transition: background 0.15s ease;
+  flex-shrink: 0;
 }
 
 .resize-handle:hover,
@@ -115,7 +127,7 @@ body {
 }
 
 .map-panel {
-  min-width: 300px;
+  overflow: hidden;
 }
 
 .map-container {

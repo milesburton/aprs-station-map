@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type { AprsPacket, Stats } from '../types'
 import { formatRelativeTime } from '../utils'
+import { SpectrumAnalyzer } from './SpectrumAnalyzer'
 
 const KissTncHelp: FC = () => (
   <div className="diagnostics-help">
@@ -132,18 +133,19 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
 
   const getStatusIndicator = () => {
     if (!connected) return '🔴'
-    if (!stats?.kissConnected) return '🟡'
+    if (stats !== null && !stats.kissConnected) return '🟡'
     return '🟢'
   }
 
   const getStatusText = () => {
     if (!connected) return 'WebSocket Disconnected'
-    if (!stats?.kissConnected) return 'KISS TNC Disconnected'
+    if (stats !== null && !stats.kissConnected) return 'KISS TNC Disconnected'
+    if (stats === null) return 'Connecting...'
     if (packets.length === 0) return 'Ready - Awaiting Packets'
     return `Receiving Packets (${packets.length} total)`
   }
 
-  const showKissHelp = !stats?.kissConnected
+  const showKissHelp = stats !== null && !stats.kissConnected
   const showAwaitingInfo = stats?.kissConnected && packets.length === 0
 
   return (
@@ -201,14 +203,11 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
             </div>
           )}
 
-          <div
-            className="diagnostics-content"
-            style={{ display: activeTab === 'spectrum' ? 'block' : 'none' }}
-          >
-            <div style={{ padding: '20px' }}>
-              <p>Spectrum Analyzer temporarily disabled for debugging</p>
+          {activeTab === 'spectrum' && (
+            <div className="diagnostics-content">
+              <SpectrumAnalyzer />
             </div>
-          </div>
+          )}
         </>
       )}
     </div>
