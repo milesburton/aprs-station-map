@@ -2,7 +2,7 @@
 set -e
 
 # Configuration from environment
-RTL_FREQ="${RTL_FREQ:-144548000}"
+RTL_FREQ="${RTL_FREQ:-144800000}"
 RTL_GAIN="${RTL_GAIN:-40}"
 RTL_PPM="${RTL_PPM:-0}"
 

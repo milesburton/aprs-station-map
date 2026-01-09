@@ -1,10 +1,10 @@
 import type { FC } from 'react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import {
   Panel,
   Group as PanelGroup,
   Separator as PanelResizeHandle,
-  type PanelSize,
+  useDefaultLayout,
 } from 'react-resizable-panels'
 import { DiagnosticsPanel, FilterPanel, StationList, StationMap } from './components'
 import { useFilters, useLocalStorage, useMapState, useStations } from './hooks'
@@ -12,23 +12,23 @@ import { getUniqueSymbols, updateUrlState } from './services'
 import type { Coordinates } from './types'
 import { setupVersionCheck } from './utils/version'
 
-interface UiState {
-  sidebarSize: number
-  diagnosticsOpen: boolean
-  diagnosticsSize: number
-}
-
-const DEFAULT_UI_STATE: UiState = {
-  sidebarSize: 25,
-  diagnosticsOpen: false,
-  diagnosticsSize: 30,
-}
-
 export const App: FC = () => {
   const { stations, stats, loading, error, connected, lastUpdated, packets, refresh } =
     useStations()
-  const [uiState, setUiState] = useLocalStorage<UiState>('aprs-ui-state', DEFAULT_UI_STATE)
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(uiState.diagnosticsOpen)
+  const [diagnosticsOpen, setDiagnosticsOpen] = useLocalStorage('aprs-diagnostics-open', false)
+
+  const { defaultLayout: horizontalDefault, onLayoutChange: onHorizontalChange } = useDefaultLayout(
+    {
+      id: 'aprs-horizontal-layout',
+      storage: localStorage,
+    }
+  )
+
+  const { defaultLayout: verticalDefault, onLayoutChange: onVerticalChange } = useDefaultLayout({
+    id: 'aprs-vertical-layout',
+    storage: localStorage,
+  })
+
   const {
     filter,
     filteredStations,
@@ -51,10 +51,6 @@ export const App: FC = () => {
     return () => cleanup()
   }, [])
 
-  useEffect(() => {
-    setUiState({ ...uiState, diagnosticsOpen })
-  }, [diagnosticsOpen, setUiState, uiState])
-
   const handleMapMove = useCallback(
     (centre: Coordinates, zoom: number) => {
       setCentre(centre)
@@ -72,20 +68,6 @@ export const App: FC = () => {
     [selectStation, stations, flyTo]
   )
 
-  const handleSidebarResize = useCallback(
-    (panelSize: PanelSize) => {
-      setUiState({ ...uiState, sidebarSize: panelSize.asPercentage })
-    },
-    [setUiState, uiState]
-  )
-
-  const handleDiagnosticsResize = useCallback(
-    (panelSize: PanelSize) => {
-      setUiState({ ...uiState, diagnosticsSize: panelSize.asPercentage })
-    },
-    [setUiState, uiState]
-  )
-
   return (
     <div className="app">
       <header className="app-header">
@@ -93,15 +75,24 @@ export const App: FC = () => {
         <p>Real-time APRS stations</p>
       </header>
 
-      <PanelGroup orientation="vertical" className="app-body">
-        <Panel minSize={30} className="main-panel">
+      <PanelGroup
+        orientation="vertical"
+        className="app-body"
+        defaultLayout={verticalDefault}
+        onLayoutChange={onVerticalChange}
+      >
+        <Panel id="main" minSize={10} className="main-panel">
           <main className="app-main">
-            <PanelGroup orientation="horizontal">
+            <PanelGroup
+              orientation="horizontal"
+              defaultLayout={horizontalDefault}
+              onLayoutChange={onHorizontalChange}
+            >
               <Panel
-                defaultSize={uiState.sidebarSize}
+                id="sidebar"
+                defaultSize={25}
                 minSize={15}
                 maxSize={50}
-                onResize={handleSidebarResize}
                 className="sidebar-panel"
               >
                 <aside className="sidebar">
@@ -124,7 +115,7 @@ export const App: FC = () => {
 
               <PanelResizeHandle className="resize-handle" />
 
-              <Panel minSize={40} className="map-panel">
+              <Panel id="map" minSize={40} className="map-panel">
                 <section className="map-container">
                   <StationMap
                     stations={filteredStations}
@@ -144,10 +135,9 @@ export const App: FC = () => {
           <>
             <PanelResizeHandle className="resize-handle-horizontal" />
             <Panel
-              defaultSize={uiState.diagnosticsSize}
-              minSize={15}
-              maxSize={60}
-              onResize={handleDiagnosticsResize}
+              id="diagnostics"
+              defaultSize={40}
+              minSize={10}
               className="diagnostics-panel-container"
             >
               <DiagnosticsPanel
@@ -168,18 +158,20 @@ export const App: FC = () => {
       </PanelGroup>
 
       {!diagnosticsOpen && (
-        <DiagnosticsPanel
-          packets={packets}
-          stats={stats}
-          connected={connected}
-          isOpen={diagnosticsOpen}
-          onToggle={() => setDiagnosticsOpen(!diagnosticsOpen)}
-          stations={filteredStations}
-          loading={loading}
-          error={error}
-          lastUpdated={lastUpdated}
-          onRefresh={refresh}
-        />
+        <div className="fixed bottom-0 left-0 right-0 z-50">
+          <DiagnosticsPanel
+            packets={packets}
+            stats={stats}
+            connected={connected}
+            isOpen={diagnosticsOpen}
+            onToggle={() => setDiagnosticsOpen(!diagnosticsOpen)}
+            stations={filteredStations}
+            loading={loading}
+            error={error}
+            lastUpdated={lastUpdated}
+            onRefresh={refresh}
+          />
+        </div>
       )}
     </div>
   )

@@ -351,7 +351,7 @@ export const startServer = async (): Promise<void> => {
 
     // Start spectrum analyzer if not already running
     if (!spectrumAnalyzer && spectrumClients.size > 0) {
-      const freq = Number.parseInt(process.env.RTL_FREQ || '144548000', 10)
+      const freq = Number.parseInt(process.env.RTL_FREQ || '144800000', 10)
       spectrumAnalyzer = new SpectrumAnalyzer(freq)
 
       spectrumAnalyzer.on('data', (data) => {

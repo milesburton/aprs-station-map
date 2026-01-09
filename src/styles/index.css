@@ -1,3 +1,4 @@
+@import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
 :root {
@@ -154,17 +155,23 @@ body {
 
 .map-panel {
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .map-container {
   flex: 1;
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .station-map {
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .filter-panel {
@@ -474,336 +481,9 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.diagnostics-panel {
-  display: flex;
-  flex-direction: column;
-  background: var(--colour-surface);
-  border-top: 2px solid var(--colour-primary);
-  height: 100%;
-  overflow: hidden;
-}
-
-.diagnostics-panel.closed {
-  height: 40px;
-}
-
-.diagnostics-panel.open {
-  height: 100%;
-}
-
-.diagnostics-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-xs) var(--spacing-md);
+  position: relative;
+  z-index: 1000;
   background: var(--colour-background);
-  border: none;
-  border-bottom: 1px solid var(--colour-border);
-  cursor: pointer;
-  height: 40px;
-  flex-shrink: 0;
-}
-
-.diagnostics-header h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--colour-text);
-}
-
-.diagnostics-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.packet-count {
-  font-size: 0.75rem;
-  color: var(--colour-text-muted);
-}
-
-.toggle-button {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--colour-primary);
-  border: none;
-  border-radius: var(--radius);
-  color: white;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.toggle-button:hover {
-  background: var(--colour-primary-dark);
-}
-
-.diagnostics-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--spacing-md);
-  background: var(--colour-background);
-}
-
-.diagnostics-status {
-  background: var(--colour-surface);
-  border-radius: var(--radius);
-  padding: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-  font-size: 0.75rem;
-}
-
-.status-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-xs) 0;
-  border-bottom: 1px solid var(--colour-border);
-}
-
-.status-row:last-child {
-  border-bottom: none;
-}
-
-.status-label {
-  color: var(--colour-text-muted);
-  font-weight: 600;
-}
-
-.status-value {
-  color: var(--colour-text);
-}
-
-.status-value.connected {
-  color: var(--colour-success);
-}
-
-.status-value.disconnected {
-  color: var(--colour-error);
-}
-
-.stats-tab {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.stats-grid {
-  display: flex;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
-}
-
-.stat-card {
-  background: var(--colour-surface);
-  border-radius: var(--radius);
-  padding: var(--spacing-md);
-  display: flex;
-  flex-direction: column;
-  min-width: 120px;
-}
-
-.stat-card .stat-value {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--colour-text);
-}
-
-.stat-card .stat-label {
-  font-size: 0.75rem;
-  color: var(--colour-text-muted);
-}
-
-.stats-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding-top: var(--spacing-sm);
-  border-top: 1px solid var(--colour-border);
-}
-
-.stats-actions .error {
-  color: var(--colour-error);
-}
-
-.stats-actions .last-updated {
-  color: var(--colour-text-muted);
-  font-size: 0.875rem;
-}
-
-.diagnostics-help {
-  background: var(--colour-surface);
-  border-left: 3px solid var(--colour-error);
-  border-radius: var(--radius);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-  font-size: 0.75rem;
-}
-
-.diagnostics-help h4 {
-  margin-bottom: var(--spacing-sm);
-  color: var(--colour-text);
-  font-size: 0.875rem;
-}
-
-.diagnostics-help p {
-  margin-bottom: var(--spacing-sm);
-  color: var(--colour-text-muted);
-  line-height: 1.6;
-}
-
-.diagnostics-help ul {
-  margin: var(--spacing-sm) 0;
-  padding-left: var(--spacing-lg);
-  color: var(--colour-text-muted);
-}
-
-.diagnostics-help li {
-  margin-bottom: var(--spacing-xs);
-}
-
-.diagnostics-help code {
-  background: var(--colour-background);
-  padding: var(--spacing-xs);
-  border-radius: var(--radius);
-  font-family: monospace;
-  color: var(--colour-primary);
-}
-
-.diagnostics-info {
-  background: var(--colour-surface);
-  border-left: 3px solid var(--colour-primary);
-  border-radius: var(--radius);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-  font-size: 0.75rem;
-}
-
-.diagnostics-info h4 {
-  margin-bottom: var(--spacing-sm);
-  color: var(--colour-text);
-  font-size: 0.875rem;
-}
-
-.diagnostics-info p {
-  margin-bottom: var(--spacing-sm);
-  color: var(--colour-text-muted);
-  line-height: 1.6;
-}
-
-.diagnostics-info ul {
-  margin: var(--spacing-sm) 0;
-  padding-left: var(--spacing-lg);
-  color: var(--colour-text-muted);
-}
-
-.diagnostics-info li {
-  margin-bottom: var(--spacing-xs);
-}
-
-.diagnostics-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--colour-text-muted);
-  text-align: center;
-}
-
-.diagnostics-hint {
-  font-size: 0.75rem;
-  margin-top: var(--spacing-xs);
-}
-
-.packet-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.packet-item {
-  padding: var(--spacing-sm);
-  background: var(--colour-surface);
-  border: 1px solid var(--colour-border);
-  border-radius: var(--radius);
-  font-family: monospace;
-  font-size: 0.75rem;
-}
-
-.packet-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-xs);
-  gap: var(--spacing-md);
-}
-
-.packet-time {
-  color: var(--colour-text-muted);
-  white-space: nowrap;
-}
-
-.packet-route {
-  color: var(--colour-text);
-  flex: 1;
-}
-
-.packet-route strong {
-  color: var(--colour-success);
-}
-
-.packet-path {
-  color: var(--colour-text-muted);
-  font-size: 0.7rem;
-}
-
-.packet-raw {
-  padding: var(--spacing-xs);
-  background: var(--colour-background);
-  border-radius: var(--radius);
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-  color: var(--colour-primary);
-  border-left: 3px solid var(--colour-primary);
-}
-
-.packet-comment {
-  margin-top: var(--spacing-xs);
-  padding: var(--spacing-xs);
-  color: var(--colour-text-muted);
-  font-style: italic;
-}
-
-/* Diagnostics Tabs */
-.diagnostics-tabs {
-  display: flex;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--colour-surface);
-  border-bottom: 1px solid var(--colour-border);
-}
-
-.diagnostics-tabs .tab {
-  padding: var(--spacing-xs) var(--spacing-md);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--colour-text-muted);
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-.diagnostics-tabs .tab:hover {
-  color: var(--colour-text);
-  background: var(--colour-background);
-}
-
-.diagnostics-tabs .tab.active {
-  color: var(--colour-primary);
-  border-bottom-color: var(--colour-primary);
 }
 
 /* Spectrum Analyzer */

@@ -147,7 +147,6 @@ export const SpectrumAnalyzer: FC = () => {
   const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 800, height: 200 })
   const waterfallDataRef = useRef<ImageData | null>(null)
 
-  // Resize observer to make canvases responsive
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -155,10 +154,12 @@ export const SpectrumAnalyzer: FC = () => {
     const resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0]
       if (entry) {
-        const width = Math.floor(entry.contentRect.width)
-        if (width > 0) {
-          setCanvasSize({ width, height: Math.floor(width * 0.25) })
-          // Reset waterfall data when size changes
+        const containerWidth = Math.floor(entry.contentRect.width)
+        const containerHeight = Math.floor(entry.contentRect.height)
+        if (containerWidth > 0 && containerHeight > 0) {
+          const panelWidth = Math.floor((containerWidth - 24) / 2)
+          const panelHeight = Math.max(300, containerHeight - 80)
+          setCanvasSize({ width: panelWidth, height: panelHeight })
           waterfallDataRef.current = null
         }
       }
@@ -256,28 +257,44 @@ export const SpectrumAnalyzer: FC = () => {
     }
   }, [drawSpectrum, updateWaterfall])
 
-  const waterfallHeight = Math.floor(canvasSize.width * 0.375)
-
   return (
-    <div className="spectrum-analyzer" ref={containerRef}>
-      <div className="spectrum-header">
-        <h4>📡 Spectrum Analyzer</h4>
-        <span className={`spectrum-status ${connected ? 'connected' : 'disconnected'}`}>
+    <div className="flex flex-col h-full" ref={containerRef}>
+      <div className="flex justify-between items-center mb-4">
+        <h4 className="text-lg font-semibold text-slate-100">📡 Spectrum Analyzer</h4>
+        <span
+          className={`px-3 py-1 rounded-md text-sm font-semibold ${connected ? 'bg-green-500 text-slate-900' : 'bg-red-500 text-slate-900'}`}
+        >
           {connected ? '⚡ Live' : '❌ Disconnected'}
         </span>
       </div>
 
-      <div className="spectrum-display">
-        <div className="spectrum-chart">
-          <canvas ref={canvasRef} width={canvasSize.width} height={canvasSize.height} />
+      <div className="flex gap-6 flex-1 min-h-0">
+        <div className="flex-1 flex flex-col">
+          <h5 className="text-sm font-medium text-slate-400 mb-2">Spectrum Scope</h5>
+          <div className="flex-1 bg-black rounded-lg border border-slate-700 overflow-hidden">
+            <canvas
+              ref={canvasRef}
+              width={canvasSize.width}
+              height={canvasSize.height}
+              className="w-full h-full"
+            />
+          </div>
         </div>
-        <div className="waterfall-display">
-          <canvas ref={waterfallCanvasRef} width={canvasSize.width} height={waterfallHeight} />
+        <div className="flex-1 flex flex-col">
+          <h5 className="text-sm font-medium text-slate-400 mb-2">Waterfall</h5>
+          <div className="flex-1 bg-black rounded-lg border border-slate-700 overflow-hidden">
+            <canvas
+              ref={waterfallCanvasRef}
+              width={canvasSize.width}
+              height={canvasSize.height}
+              className="w-full h-full"
+            />
+          </div>
         </div>
       </div>
 
       {!connected && (
-        <div className="spectrum-info">
+        <div className="mt-4 p-4 bg-slate-800 rounded-lg text-center text-slate-400">
           <p>Connecting to spectrum analyzer...</p>
         </div>
       )}
