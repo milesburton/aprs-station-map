@@ -1,16 +1,20 @@
 services:
   aprs-map-dev:
     build:
-      context: .
+      context: ..
       dockerfile: .devcontainer/Dockerfile
+      args:
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
     container_name: aprs-station-map-dev
     ports:
       - "3000:3000"  # Vite dev server
       - "3001:3001"  # Backend API
     volumes:
-      - .:/workspace:cached
+      - ..:/workspace:cached
       - node_modules:/workspace/node_modules
       - aprs-data-dev:/workspace/data
+      - ~/.ssh:/home/devuser/.ssh:ro
     environment:
       - KISS_HOST=${KISS_HOST:-host.docker.internal}
       - KISS_PORT=${KISS_PORT:-8001}
