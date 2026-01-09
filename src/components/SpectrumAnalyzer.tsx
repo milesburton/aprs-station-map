@@ -9,6 +9,11 @@ interface SpectrumData {
   timestamp: number
 }
 
+interface CanvasSize {
+  width: number
+  height: number
+}
+
 const magnitudeToColor = (normalized: number): { r: number; g: number; b: number } => {
   if (normalized < 0.25) {
     const t = normalized / 0.25
@@ -135,10 +140,33 @@ const addWaterfallLine = (imageData: ImageData, width: number, magnitudes: numbe
 }
 
 export const SpectrumAnalyzer: FC = () => {
+  const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const waterfallCanvasRef = useRef<HTMLCanvasElement>(null)
   const [connected, setConnected] = useState(false)
+  const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 800, height: 200 })
   const waterfallDataRef = useRef<ImageData | null>(null)
+
+  // Resize observer to make canvases responsive
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        const width = Math.floor(entry.contentRect.width)
+        if (width > 0) {
+          setCanvasSize({ width, height: Math.floor(width * 0.25) })
+          // Reset waterfall data when size changes
+          waterfallDataRef.current = null
+        }
+      }
+    })
+
+    resizeObserver.observe(container)
+    return () => resizeObserver.disconnect()
+  }, [])
 
   const drawSpectrum = useCallback((data: SpectrumData) => {
     const canvas = canvasRef.current
@@ -228,8 +256,10 @@ export const SpectrumAnalyzer: FC = () => {
     }
   }, [drawSpectrum, updateWaterfall])
 
+  const waterfallHeight = Math.floor(canvasSize.width * 0.375)
+
   return (
-    <div className="spectrum-analyzer">
+    <div className="spectrum-analyzer" ref={containerRef}>
       <div className="spectrum-header">
         <h4>📡 Spectrum Analyzer</h4>
         <span className={`spectrum-status ${connected ? 'connected' : 'disconnected'}`}>
@@ -239,10 +269,10 @@ export const SpectrumAnalyzer: FC = () => {
 
       <div className="spectrum-display">
         <div className="spectrum-chart">
-          <canvas ref={canvasRef} width={800} height={200} />
+          <canvas ref={canvasRef} width={canvasSize.width} height={canvasSize.height} />
         </div>
         <div className="waterfall-display">
-          <canvas ref={waterfallCanvasRef} width={800} height={300} />
+          <canvas ref={waterfallCanvasRef} width={canvasSize.width} height={waterfallHeight} />
         </div>
       </div>
 

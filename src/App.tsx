@@ -15,11 +15,13 @@ import { setupVersionCheck } from './utils/version'
 interface UiState {
   sidebarSize: number
   diagnosticsOpen: boolean
+  diagnosticsSize: number
 }
 
 const DEFAULT_UI_STATE: UiState = {
   sidebarSize: 25,
   diagnosticsOpen: false,
+  diagnosticsSize: 30,
 }
 
 export const App: FC = () => {
@@ -77,69 +79,108 @@ export const App: FC = () => {
     [setUiState, uiState]
   )
 
+  const handleDiagnosticsResize = useCallback(
+    (panelSize: PanelSize) => {
+      setUiState({ ...uiState, diagnosticsSize: panelSize.asPercentage })
+    },
+    [setUiState, uiState]
+  )
+
   return (
-    <div className={`app ${diagnosticsOpen ? 'diagnostics-open' : ''}`}>
+    <div className="app">
       <header className="app-header">
         <h1>APRS Station Map</h1>
         <p>Real-time APRS stations</p>
       </header>
 
-      <main className="app-main">
-        <PanelGroup orientation="horizontal">
-          <Panel
-            defaultSize={uiState.sidebarSize}
-            minSize={15}
-            maxSize={50}
-            onResize={handleSidebarResize}
-            className="sidebar-panel"
-          >
-            <aside className="sidebar">
-              <FilterPanel
-                filter={filter}
-                availableSymbols={availableSymbols}
-                onSearchChange={setSearch}
-                onDistanceChange={setMaxDistance}
-                onSymbolChange={setSymbolFilter}
-                onSortChange={setSort}
-                onReset={resetFilters}
-              />
-              <StationList
+      <PanelGroup orientation="vertical" className="app-body">
+        <Panel minSize={30} className="main-panel">
+          <main className="app-main">
+            <PanelGroup orientation="horizontal">
+              <Panel
+                defaultSize={uiState.sidebarSize}
+                minSize={15}
+                maxSize={50}
+                onResize={handleSidebarResize}
+                className="sidebar-panel"
+              >
+                <aside className="sidebar">
+                  <FilterPanel
+                    filter={filter}
+                    availableSymbols={availableSymbols}
+                    onSearchChange={setSearch}
+                    onDistanceChange={setMaxDistance}
+                    onSymbolChange={setSymbolFilter}
+                    onSortChange={setSort}
+                    onReset={resetFilters}
+                  />
+                  <StationList
+                    stations={filteredStations}
+                    selectedStation={mapState.selectedStation}
+                    onSelectStation={handleStationSelect}
+                  />
+                </aside>
+              </Panel>
+
+              <PanelResizeHandle className="resize-handle" />
+
+              <Panel minSize={40} className="map-panel">
+                <section className="map-container">
+                  <StationMap
+                    stations={filteredStations}
+                    selectedStation={mapState.selectedStation}
+                    centre={mapState.centre}
+                    zoom={mapState.zoom}
+                    onSelectStation={handleStationSelect}
+                    onMapMove={handleMapMove}
+                  />
+                </section>
+              </Panel>
+            </PanelGroup>
+          </main>
+        </Panel>
+
+        {diagnosticsOpen && (
+          <>
+            <PanelResizeHandle className="resize-handle-horizontal" />
+            <Panel
+              defaultSize={uiState.diagnosticsSize}
+              minSize={15}
+              maxSize={60}
+              onResize={handleDiagnosticsResize}
+              className="diagnostics-panel-container"
+            >
+              <DiagnosticsPanel
+                packets={packets}
+                stats={stats}
+                connected={connected}
+                isOpen={diagnosticsOpen}
+                onToggle={() => setDiagnosticsOpen(!diagnosticsOpen)}
                 stations={filteredStations}
-                selectedStation={mapState.selectedStation}
-                onSelectStation={handleStationSelect}
+                loading={loading}
+                error={error}
+                lastUpdated={lastUpdated}
+                onRefresh={refresh}
               />
-            </aside>
-          </Panel>
+            </Panel>
+          </>
+        )}
+      </PanelGroup>
 
-          <PanelResizeHandle className="resize-handle" />
-
-          <Panel minSize={40} className="map-panel">
-            <section className="map-container">
-              <StationMap
-                stations={filteredStations}
-                selectedStation={mapState.selectedStation}
-                centre={mapState.centre}
-                zoom={mapState.zoom}
-                onSelectStation={handleStationSelect}
-                onMapMove={handleMapMove}
-              />
-            </section>
-          </Panel>
-        </PanelGroup>
-      </main>
-
-      <DiagnosticsPanel
-        packets={packets}
-        stats={stats}
-        connected={connected}
-        isOpen={diagnosticsOpen}
-        onToggle={() => setDiagnosticsOpen(!diagnosticsOpen)}
-        stations={filteredStations}
-        loading={loading}
-        error={error}
-        lastUpdated={lastUpdated}
-        onRefresh={refresh}
-      />
+      {!diagnosticsOpen && (
+        <DiagnosticsPanel
+          packets={packets}
+          stats={stats}
+          connected={connected}
+          isOpen={diagnosticsOpen}
+          onToggle={() => setDiagnosticsOpen(!diagnosticsOpen)}
+          stations={filteredStations}
+          loading={loading}
+          error={error}
+          lastUpdated={lastUpdated}
+          onRefresh={refresh}
+        />
+      )}
     </div>
   )
 }

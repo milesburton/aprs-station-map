@@ -37,8 +37,17 @@ body {
   height: 100vh;
 }
 
-.app.diagnostics-open .app-main {
-  height: calc(100vh - 60px - 300px);
+.app-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.main-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .app-header {
@@ -127,6 +136,19 @@ body {
 
 .resize-handle:hover,
 .resize-handle[data-resize-handle-active] {
+  background: var(--colour-primary);
+}
+
+.resize-handle-horizontal {
+  height: 8px;
+  background: var(--colour-border);
+  cursor: row-resize;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.resize-handle-horizontal:hover,
+.resize-handle-horizontal[data-resize-handle-active] {
   background: var(--colour-primary);
 }
 
@@ -448,12 +470,19 @@ body {
   border-radius: var(--radius);
 }
 
+.diagnostics-panel-container {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .diagnostics-panel {
   display: flex;
   flex-direction: column;
   background: var(--colour-surface);
   border-top: 2px solid var(--colour-primary);
-  flex-shrink: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .diagnostics-panel.closed {
@@ -461,7 +490,7 @@ body {
 }
 
 .diagnostics-panel.open {
-  height: 300px;
+  height: 100%;
 }
 
 .diagnostics-header {
@@ -829,17 +858,7 @@ body {
 .spectrum-chart canvas,
 .waterfall-display canvas {
   display: block;
-  width: 100%;
-  height: auto;
   max-width: 100%;
-}
-
-.spectrum-chart {
-  min-height: 200px;
-}
-
-.waterfall-display {
-  min-height: 150px;
 }
 
 .spectrum-info {

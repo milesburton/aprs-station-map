@@ -31,14 +31,31 @@ From the project root:
 
 ```bash
 # Build and run
-docker compose up -d
+docker compose -f .appcontainer/compose.yaml up -d
 
 # View logs
-docker compose logs -f
+docker compose -f .appcontainer/compose.yaml logs -f
 
 # Stop
-docker compose down
+docker compose -f .appcontainer/compose.yaml down
 ```
+
+## Rebuilding After Code Changes
+
+Docker caches build layers aggressively. If your code changes aren't appearing in the running container, you need to rebuild without cache:
+
+```bash
+# Rebuild without cache (required after code changes)
+docker compose -f .appcontainer/compose.yaml down
+docker compose -f .appcontainer/compose.yaml build --no-cache
+docker compose -f .appcontainer/compose.yaml up -d
+```
+
+**When to use `--no-cache`:**
+- After modifying frontend code (React components, CSS, etc.)
+- After modifying backend code (server, API endpoints)
+- After updating dependencies in package.json
+- Anytime the GUI or behavior doesn't reflect your latest changes
 
 ## Environment Variables
 
@@ -73,8 +90,8 @@ docker inspect --format='{{json .State.Health.Status}}' aprs-station-map
 ## Building Manually
 
 ```bash
-# From project root
-docker build -f .appcontainer/Dockerfile -t aprs-station-map .
+# From project root (use --no-cache after code changes)
+docker build --no-cache -f .appcontainer/Dockerfile -t aprs-station-map .
 
 # Run
 docker run -d \
