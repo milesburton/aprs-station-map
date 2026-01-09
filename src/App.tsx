@@ -1,17 +1,32 @@
 import type { FC } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  Panel,
+  Group as PanelGroup,
+  Separator as PanelResizeHandle,
+  type PanelSize,
+} from 'react-resizable-panels'
 import { DiagnosticsPanel, FilterPanel, StationList, StationMap, StatusBar } from './components'
-import { useFilters, useMapState, useStations } from './hooks'
+import { useFilters, useLocalStorage, useMapState, useStations } from './hooks'
 import { getUniqueSymbols, updateUrlState } from './services'
 import type { Coordinates } from './types'
 import { setupVersionCheck } from './utils/version'
 
+interface UiState {
+  sidebarSize: number
+  diagnosticsOpen: boolean
+}
+
+const DEFAULT_UI_STATE: UiState = {
+  sidebarSize: 25,
+  diagnosticsOpen: false,
+}
+
 export const App: FC = () => {
-  console.log('[App] Rendering')
   const { stations, stats, loading, error, connected, lastUpdated, packets, refresh } =
     useStations()
-  console.log('[App] useStations returned, stations:', stations.length, 'connected:', connected)
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
+  const [uiState, setUiState] = useLocalStorage<UiState>('aprs-ui-state', DEFAULT_UI_STATE)
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(uiState.diagnosticsOpen)
   const {
     filter,
     filteredStations,
@@ -29,15 +44,14 @@ export const App: FC = () => {
     updateUrlState(filter, mapState)
   }, [filter, mapState])
 
-  // Setup version checking
   useEffect(() => {
-    console.log('[App] Version check effect mounting')
-    const cleanup = setupVersionCheck(60000) // Check every minute
-    return () => {
-      console.log('[App] Version check effect cleanup')
-      cleanup()
-    }
+    const cleanup = setupVersionCheck(60000)
+    return () => cleanup()
   }, [])
+
+  useEffect(() => {
+    setUiState({ ...uiState, diagnosticsOpen })
+  }, [diagnosticsOpen, setUiState, uiState])
 
   const handleMapMove = useCallback(
     (centre: Coordinates, zoom: number) => {
@@ -56,6 +70,13 @@ export const App: FC = () => {
     [selectStation, stations, flyTo]
   )
 
+  const handleSidebarResize = useCallback(
+    (panelSize: PanelSize) => {
+      setUiState({ ...uiState, sidebarSize: panelSize.asPercentage })
+    },
+    [setUiState, uiState]
+  )
+
   return (
     <div className="app">
       <header className="app-header">
@@ -72,33 +93,47 @@ export const App: FC = () => {
       />
 
       <main className="app-main">
-        <aside className="sidebar">
-          <FilterPanel
-            filter={filter}
-            availableSymbols={availableSymbols}
-            onSearchChange={setSearch}
-            onDistanceChange={setMaxDistance}
-            onSymbolChange={setSymbolFilter}
-            onSortChange={setSort}
-            onReset={resetFilters}
-          />
-          <StationList
-            stations={filteredStations}
-            selectedStation={mapState.selectedStation}
-            onSelectStation={handleStationSelect}
-          />
-        </aside>
+        <PanelGroup orientation="horizontal">
+          <Panel
+            defaultSize={uiState.sidebarSize}
+            minSize={15}
+            maxSize={50}
+            onResize={handleSidebarResize}
+            className="sidebar-panel"
+          >
+            <aside className="sidebar">
+              <FilterPanel
+                filter={filter}
+                availableSymbols={availableSymbols}
+                onSearchChange={setSearch}
+                onDistanceChange={setMaxDistance}
+                onSymbolChange={setSymbolFilter}
+                onSortChange={setSort}
+                onReset={resetFilters}
+              />
+              <StationList
+                stations={filteredStations}
+                selectedStation={mapState.selectedStation}
+                onSelectStation={handleStationSelect}
+              />
+            </aside>
+          </Panel>
 
-        <section className="map-container">
-          <StationMap
-            stations={filteredStations}
-            selectedStation={mapState.selectedStation}
-            centre={mapState.centre}
-            zoom={mapState.zoom}
-            onSelectStation={handleStationSelect}
-            onMapMove={handleMapMove}
-          />
-        </section>
+          <PanelResizeHandle className="resize-handle" />
+
+          <Panel minSize={40} className="map-panel">
+            <section className="map-container">
+              <StationMap
+                stations={filteredStations}
+                selectedStation={mapState.selectedStation}
+                centre={mapState.centre}
+                zoom={mapState.zoom}
+                onSelectStation={handleStationSelect}
+                onMapMove={handleMapMove}
+              />
+            </section>
+          </Panel>
+        </PanelGroup>
       </main>
 
       <DiagnosticsPanel
