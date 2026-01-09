@@ -1,7 +1,8 @@
 import type { FC } from 'react'
 import { useEffect, useRef, useState } from 'react'
-import type { AprsPacket, Stats } from '../types'
-import { formatRelativeTime } from '../utils'
+import { getStationStats } from '../services'
+import type { AprsPacket, Station, Stats } from '../types'
+import { formatDistance, formatRelativeTime } from '../utils'
 import { SpectrumAnalyzer } from './SpectrumAnalyzer'
 
 const KissTncHelp: FC = () => (
@@ -97,12 +98,64 @@ const StatusDisplay: FC<StatusDisplayProps> = ({
   </div>
 )
 
+interface StatsTabProps {
+  stations: Station[]
+  loading: boolean
+  error: string | null
+  lastUpdated: Date | null
+  onRefresh: () => void
+}
+
+const StatsTab: FC<StatsTabProps> = ({ stations, loading, error, lastUpdated, onRefresh }) => {
+  const { total, avgDistance, furthest } = getStationStats(stations)
+
+  return (
+    <div className="diagnostics-content stats-tab">
+      <div className="stats-grid">
+        <div className="stat-card">
+          <span className="stat-value">{total}</span>
+          <span className="stat-label">Stations</span>
+        </div>
+        {total > 0 && (
+          <>
+            <div className="stat-card">
+              <span className="stat-value">{formatDistance(avgDistance)}</span>
+              <span className="stat-label">Avg Distance</span>
+            </div>
+            {furthest && furthest.distance != null && (
+              <div className="stat-card">
+                <span className="stat-value">{furthest.callsign}</span>
+                <span className="stat-label">Furthest ({formatDistance(furthest.distance)})</span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="stats-actions">
+        {error && <span className="error">{error}</span>}
+        {lastUpdated && (
+          <span className="last-updated">Updated {formatRelativeTime(lastUpdated)}</span>
+        )}
+        <button type="button" onClick={onRefresh} disabled={loading} className="refresh-button">
+          {loading ? 'Loading...' : 'Refresh'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 interface DiagnosticsPanelProps {
   packets: AprsPacket[]
   stats: Stats | null
   connected: boolean
   isOpen: boolean
   onToggle: () => void
+  stations: Station[]
+  loading: boolean
+  error: string | null
+  lastUpdated: Date | null
+  onRefresh: () => void
 }
 
 export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
@@ -111,10 +164,15 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
   connected,
   isOpen,
   onToggle,
+  stations,
+  loading,
+  error,
+  lastUpdated,
+  onRefresh,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [lastPacketTime, setLastPacketTime] = useState<Date | null>(null)
-  const [activeTab, setActiveTab] = useState<'packets' | 'spectrum'>('packets')
+  const [activeTab, setActiveTab] = useState<'stats' | 'packets' | 'spectrum'>('stats')
 
   useEffect(() => {
     if (scrollRef.current && isOpen) {
@@ -163,6 +221,13 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
           <div className="diagnostics-tabs">
             <button
               type="button"
+              className={`tab ${activeTab === 'stats' ? 'active' : ''}`}
+              onClick={() => setActiveTab('stats')}
+            >
+              📈 Stats
+            </button>
+            <button
+              type="button"
               className={`tab ${activeTab === 'packets' ? 'active' : ''}`}
               onClick={() => setActiveTab('packets')}
             >
@@ -176,6 +241,16 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
               📊 Spectrum
             </button>
           </div>
+
+          {activeTab === 'stats' && (
+            <StatsTab
+              stations={stations}
+              loading={loading}
+              error={error}
+              lastUpdated={lastUpdated}
+              onRefresh={onRefresh}
+            />
+          )}
 
           {activeTab === 'packets' && (
             <div className="diagnostics-content" ref={scrollRef}>

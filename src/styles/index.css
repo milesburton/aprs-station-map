@@ -37,6 +37,10 @@ body {
   height: 100vh;
 }
 
+.app.diagnostics-open .app-main {
+  height: calc(100vh - 60px - 300px);
+}
+
 .app-header {
   padding: var(--spacing-md);
   background: var(--colour-surface);
@@ -121,29 +125,12 @@ body {
   flex-shrink: 0;
 }
 
-.resize-handle.horizontal {
-  width: 100%;
-  height: 8px;
-  cursor: row-resize;
-}
-
 .resize-handle:hover,
 .resize-handle[data-resize-handle-active] {
   background: var(--colour-primary);
 }
 
-.content-panel {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-}
-
 .map-panel {
-  overflow: hidden;
-}
-
-.diagnostics-panel-container {
   overflow: hidden;
 }
 
@@ -464,32 +451,30 @@ body {
 .diagnostics-panel {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: 100%;
   background: var(--colour-surface);
-  border-top: 2px solid var(--colour-border);
+  border-top: 2px solid var(--colour-primary);
+  flex-shrink: 0;
 }
 
 .diagnostics-panel.closed {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 48px;
+  height: 40px;
 }
 
 .diagnostics-panel.open {
-  height: 100%;
+  height: 300px;
 }
 
 .diagnostics-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-md);
   background: var(--colour-background);
+  border: none;
   border-bottom: 1px solid var(--colour-border);
   cursor: pointer;
+  height: 40px;
+  flex-shrink: 0;
 }
 
 .diagnostics-header h3 {
@@ -566,6 +551,55 @@ body {
 
 .status-value.disconnected {
   color: var(--colour-error);
+}
+
+.stats-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.stats-grid {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  background: var(--colour-surface);
+  border-radius: var(--radius);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+}
+
+.stat-card .stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--colour-text);
+}
+
+.stat-card .stat-label {
+  font-size: 0.75rem;
+  color: var(--colour-text-muted);
+}
+
+.stats-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--colour-border);
+}
+
+.stats-actions .error {
+  color: var(--colour-error);
+}
+
+.stats-actions .last-updated {
+  color: var(--colour-text-muted);
+  font-size: 0.875rem;
 }
 
 .diagnostics-help {
