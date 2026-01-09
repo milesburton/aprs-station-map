@@ -15,12 +15,18 @@
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "biomejs.biome"
       },
-      "extensions": ["biomejs.biome", "eamodio.gitlens", "dbaeumer.vscode-eslint"]
+      "extensions": [
+        "biomejs.biome",
+        "eamodio.gitlens",
+        "dbaeumer.vscode-eslint",
+        "anthropic.claude-code",
+        "continue.continue"
+      ]
     }
   },
   "mounts": ["source=${localEnv:HOME}/.ssh,target=/home/devuser/.ssh,type=bind,readonly"],
   "forwardPorts": [3000, 3001],
   "postCreateCommand": "npm install && echo 'Dev Container Ready! Run: npm run dev'",
-  "postStartCommand": "npm install",
+  "postStartCommand": "sudo chown -R devuser:devuser /workspace && npm install",
   "remoteUser": "devuser"
 }
