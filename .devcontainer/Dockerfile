@@ -32,16 +32,14 @@ RUN apt-get update && apt-get install -y \
 # Install global npm tools useful for development
 RUN npm install -g nodemon typescript ts-node
 
-# Create a non-root user with matching UID/GID for proper file permissions
-RUN groupadd -g ${USER_GID} devuser \
-    && useradd -u ${USER_UID} -g ${USER_GID} -m -s /bin/bash devuser \
-    && echo "devuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/devuser \
-    && chmod 0440 /etc/sudoers.d/devuser \
-    && chown -R devuser:devuser /workspace
+# Use existing node user (UID/GID 1000) and add sudo access
+RUN echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/node \
+    && chmod 0440 /etc/sudoers.d/node \
+    && chown -R node:node /workspace
 
 # Create .ssh directory with correct permissions
-RUN mkdir -p /home/devuser/.ssh \
-    && chown devuser:devuser /home/devuser/.ssh \
-    && chmod 700 /home/devuser/.ssh
+RUN mkdir -p /home/node/.ssh \
+    && chown node:node /home/node/.ssh \
+    && chmod 700 /home/node/.ssh
 
-USER devuser
+USER node
