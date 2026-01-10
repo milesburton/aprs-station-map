@@ -212,22 +212,22 @@ const StatsTab: FC<StatsTabProps> = ({ stations, loading, error, lastUpdated, on
   const { total, avgDistance, furthest } = getStationStats(stations)
 
   return (
-    <div className={tabContent.withGap}>
-      <div className="flex gap-5 flex-wrap">
-        <div className="bg-slate-800 border border-slate-600 rounded-xl p-6 flex flex-col min-w-[180px] shadow-md">
-          <span className="text-4xl font-bold text-white">{total}</span>
-          <span className="text-sm text-slate-400 mt-3 font-medium">Stations</span>
+    <div className="flex-1 overflow-y-auto p-6 bg-slate-900">
+      <div className="flex gap-4 flex-wrap mb-6">
+        <div className="bg-slate-800 rounded-lg p-5 flex flex-col min-w-[160px]">
+          <span className="text-3xl font-bold text-white">{total}</span>
+          <span className="text-sm text-slate-400 mt-2">Stations</span>
         </div>
         {total > 0 && (
           <>
-            <div className="bg-slate-800 border border-slate-600 rounded-xl p-6 flex flex-col min-w-[180px] shadow-md">
-              <span className="text-4xl font-bold text-white">{formatDistance(avgDistance)}</span>
-              <span className="text-sm text-slate-400 mt-3 font-medium">Avg Distance</span>
+            <div className="bg-slate-800 rounded-lg p-5 flex flex-col min-w-[160px]">
+              <span className="text-3xl font-bold text-white">{formatDistance(avgDistance)}</span>
+              <span className="text-sm text-slate-400 mt-2">Avg Distance</span>
             </div>
             {furthest && furthest.distance != null && (
-              <div className="bg-slate-800 border border-slate-600 rounded-xl p-6 flex flex-col min-w-[180px] shadow-md">
-                <span className="text-4xl font-bold text-green-400">{furthest.callsign}</span>
-                <span className="text-sm text-slate-400 mt-3 font-medium">
+              <div className="bg-slate-800 rounded-lg p-5 flex flex-col min-w-[160px]">
+                <span className="text-3xl font-bold text-green-400">{furthest.callsign}</span>
+                <span className="text-sm text-slate-400 mt-2">
                   Furthest ({formatDistance(furthest.distance)})
                 </span>
               </div>
@@ -236,8 +236,8 @@ const StatsTab: FC<StatsTabProps> = ({ stations, loading, error, lastUpdated, on
         )}
       </div>
 
-      <div className="flex items-center gap-6 pt-6 border-t border-slate-600">
-        {error && <span className="text-red-400">{error}</span>}
+      <div className="flex items-center gap-4">
+        {error && <span className="text-red-400 text-sm">{error}</span>}
         {lastUpdated && (
           <span className="text-slate-400 text-sm">Updated {formatRelativeTime(lastUpdated)}</span>
         )}
@@ -245,7 +245,7 @@ const StatsTab: FC<StatsTabProps> = ({ stations, loading, error, lastUpdated, on
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="px-5 py-2.5 bg-blue-600 border-none rounded-lg text-white text-sm font-medium cursor-pointer transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          className="px-4 py-2 bg-blue-600 rounded-md text-white text-sm font-medium cursor-pointer transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Loading...' : 'Refresh'}
         </button>
@@ -338,42 +338,44 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
 
       {isOpen && (
         <>
-          <div className="flex gap-1 px-4 py-2 bg-slate-950 border-b border-slate-700">
-            <button
-              type="button"
-              className={`px-4 py-2.5 cursor-pointer text-sm font-medium transition-all rounded-lg ${activeTab === 'stats' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'}`}
-              onClick={() => setActiveTab('stats')}
-            >
-              📈 Stats
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2.5 cursor-pointer text-sm font-medium transition-all rounded-lg ${activeTab === 'packets' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'}`}
-              onClick={() => setActiveTab('packets')}
-            >
-              📦 Packets
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2.5 cursor-pointer text-sm font-medium transition-all rounded-lg ${activeTab === 'spectrum' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'}`}
-              onClick={() => setActiveTab('spectrum')}
-            >
-              📊 Spectrum
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2.5 cursor-pointer text-sm font-medium transition-all rounded-lg ${activeTab === 'status' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'}`}
-              onClick={() => setActiveTab('status')}
-            >
-              🔧 Status
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2.5 cursor-pointer text-sm font-medium transition-all rounded-lg ${activeTab === 'about' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'}`}
-              onClick={() => setActiveTab('about')}
-            >
-              ℹ️ About
-            </button>
+          <div className="flex px-4 py-3 bg-slate-900 border-b border-slate-700">
+            <div className="inline-flex bg-slate-800 rounded-lg p-1 gap-1">
+              <button
+                type="button"
+                className={`px-4 py-2 text-sm font-medium transition-all rounded-md ${activeTab === 'stats' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                onClick={() => setActiveTab('stats')}
+              >
+                Stats
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 text-sm font-medium transition-all rounded-md ${activeTab === 'packets' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                onClick={() => setActiveTab('packets')}
+              >
+                Packets
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 text-sm font-medium transition-all rounded-md ${activeTab === 'spectrum' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                onClick={() => setActiveTab('spectrum')}
+              >
+                Spectrum
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 text-sm font-medium transition-all rounded-md ${activeTab === 'status' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                onClick={() => setActiveTab('status')}
+              >
+                Status
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 text-sm font-medium transition-all rounded-md ${activeTab === 'about' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                onClick={() => setActiveTab('about')}
+              >
+                About
+              </button>
+            </div>
           </div>
 
           {activeTab === 'stats' && (
