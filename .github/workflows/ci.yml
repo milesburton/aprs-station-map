@@ -73,8 +73,6 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    container:
-      image: mcr.microsoft.com/playwright:v1.57.0-noble
     steps:
       - uses: actions/checkout@v4
 
@@ -85,6 +83,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
 
       - name: Build app
         run: npm run build
@@ -99,8 +100,6 @@ jobs:
 
       - name: Run Playwright tests
         run: npm run test:e2e
-        env:
-          HOME: /root
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
