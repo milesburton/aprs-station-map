@@ -2,13 +2,14 @@ import L from 'leaflet'
 import type { FC } from 'react'
 import { Marker, Popup } from 'react-leaflet'
 import { APRS_SYMBOLS } from '../constants'
-import type { Station } from '../types'
+import type { AprsPacket, Station } from '../types'
 import { formatBearing, formatDistance, formatRelativeTime } from '../utils'
 
 interface StationMarkerProps {
   station: Station
   isSelected: boolean
   onSelect: (callsign: string) => void
+  history: AprsPacket[]
 }
 
 const createIcon = (symbol: string, isSelected: boolean): L.DivIcon => {
@@ -34,8 +35,17 @@ const createIcon = (symbol: string, isSelected: boolean): L.DivIcon => {
   })
 }
 
-export const StationMarker: FC<StationMarkerProps> = ({ station, isSelected, onSelect }) => {
-  // Skip rendering if no coordinates
+const formatUtcTime = (date: Date | string) => {
+  const d = typeof date === 'string' ? new Date(date) : date
+  return `${d.toISOString().slice(11, 19)} UTC`
+}
+
+export const StationMarker: FC<StationMarkerProps> = ({
+  station,
+  isSelected,
+  onSelect,
+  history,
+}) => {
   if (!station.coordinates) return null
 
   const icon = createIcon(station.symbol, isSelected)
@@ -48,7 +58,7 @@ export const StationMarker: FC<StationMarkerProps> = ({ station, isSelected, onS
       icon={icon}
       eventHandlers={{ click: () => onSelect(station.callsign) }}
     >
-      <Popup>
+      <Popup maxHeight={300} maxWidth={350}>
         <div className="station-popup">
           <h3>{station.callsign}</h3>
           <p className="symbol">
@@ -66,7 +76,8 @@ export const StationMarker: FC<StationMarkerProps> = ({ station, isSelected, onS
 
           <div className="details">
             <div>
-              <strong>Last Heard:</strong> {formatRelativeTime(station.lastHeard)}
+              <strong>Last Heard:</strong> {formatRelativeTime(station.lastHeard)} (
+              {formatUtcTime(station.lastHeard)})
             </div>
             <div>
               <strong>Packets:</strong> {station.packetCount}
@@ -86,6 +97,28 @@ export const StationMarker: FC<StationMarkerProps> = ({ station, isSelected, onS
 
           {station.via && station.via.length > 0 && (
             <p className="via">via {station.via.join(' → ')}</p>
+          )}
+
+          {history.length > 0 && (
+            <div className="history">
+              <strong>Recent Activity ({history.length}):</strong>
+              <div className="history-list">
+                {[...history]
+                  .reverse()
+                  .slice(0, 5)
+                  .map((packet, i) => (
+                    <div key={`${packet.timestamp}-${i}`} className="history-item">
+                      <span className="history-time">{formatUtcTime(packet.timestamp)}</span>
+                      {packet.position && (
+                        <span className="history-pos">
+                          {packet.position.latitude.toFixed(4)}°,{' '}
+                          {packet.position.longitude.toFixed(4)}°
+                        </span>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
           )}
         </div>
       </Popup>

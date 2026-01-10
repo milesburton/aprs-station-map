@@ -73,6 +73,16 @@ export interface AprsPacket {
   path?: string
   comment?: string
   timestamp: string
+  type?: 'position' | 'status' | 'message' | 'telemetry' | 'weather' | 'unknown'
+  symbol?: string
+  symbolTable?: string
+  position?: {
+    latitude: number
+    longitude: number
+    altitude?: number
+    course?: number
+    speed?: number
+  }
 }
 
 export interface WebSocketMessage {

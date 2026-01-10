@@ -11,10 +11,12 @@ interface UseStationsResult {
   connected: boolean
   lastUpdated: Date | null
   packets: AprsPacket[]
+  stationHistory: Map<string, AprsPacket[]>
   refresh: () => Promise<void>
 }
 
 const MAX_PACKETS = 100
+const MAX_STATION_HISTORY = 50
 
 export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsResult => {
   const [stations, setStations] = useState<Station[]>([])
@@ -24,6 +26,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
   const [connected, setConnected] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [packets, setPackets] = useState<AprsPacket[]>([])
+  const [stationHistory, setStationHistory] = useState<Map<string, AprsPacket[]>>(new Map())
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -117,9 +120,18 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
               break
             case 'aprs_packet':
               if (message.packet) {
+                const packet = message.packet as AprsPacket
                 setPackets((prev) => {
-                  const updated = [...prev, message.packet as AprsPacket]
+                  const updated = [...prev, packet]
                   return updated.slice(-MAX_PACKETS)
+                })
+                setStationHistory((prev) => {
+                  const newMap = new Map(prev)
+                  const callsign = packet.source
+                  const existing = newMap.get(callsign) ?? []
+                  const updated = [...existing, packet].slice(-MAX_STATION_HISTORY)
+                  newMap.set(callsign, updated)
+                  return newMap
                 })
               }
               break
@@ -155,5 +167,15 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
     }
   }
 
-  return { stations, stats, loading, error, connected, lastUpdated, packets, refresh }
+  return {
+    stations,
+    stats,
+    loading,
+    error,
+    connected,
+    lastUpdated,
+    packets,
+    stationHistory,
+    refresh,
+  }
 }

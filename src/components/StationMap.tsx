@@ -1,7 +1,7 @@
 import type { FC } from 'react'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMapEvents } from 'react-leaflet'
 import { BEXLEY_LOCATION, DEFAULT_CONFIG, MAP_ATTRIBUTION, MAP_TILE_URL } from '../constants'
-import type { Coordinates, Station } from '../types'
+import type { AprsPacket, Coordinates, Station } from '../types'
 import { StationMarker } from './StationMarker'
 
 interface StationMapProps {
@@ -11,6 +11,7 @@ interface StationMapProps {
   zoom: number
   onSelectStation: (callsign: string | null) => void
   onMapMove: (centre: Coordinates, zoom: number) => void
+  stationHistory: Map<string, AprsPacket[]>
 }
 
 const MapEventHandler: FC<{
@@ -35,11 +36,12 @@ export const StationMap: FC<StationMapProps> = ({
   zoom,
   onSelectStation,
   onMapMove,
+  stationHistory,
 }) => (
   <MapContainer
     center={[centre.latitude, centre.longitude]}
     zoom={zoom}
-    className="station-map"
+    className="w-full h-full"
     scrollWheelZoom={true}
   >
     <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
@@ -104,6 +106,7 @@ export const StationMap: FC<StationMapProps> = ({
         station={station}
         isSelected={station.callsign === selectedStation}
         onSelect={onSelectStation}
+        history={stationHistory.get(station.callsign) ?? []}
       />
     ))}
   </MapContainer>

@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getStationStats } from '../services'
 import { card, colors, heading, innerCard, tabContent } from '../styles/tokens'
 import type { AprsPacket, Station, Stats } from '../types'
@@ -46,32 +46,122 @@ const AwaitingPacketsInfo: FC = () => (
   </div>
 )
 
-const PacketItem: FC<{ packet: AprsPacket; index: number }> = ({ packet, index }) => (
-  <div
-    key={`${packet.timestamp}-${index}`}
-    className="bg-slate-800 border border-slate-600 rounded-xl p-5 font-mono text-sm shadow-md"
-  >
-    <div className="flex justify-between items-center mb-4 gap-6">
-      <span className="text-slate-400 whitespace-nowrap text-xs bg-slate-900 px-3 py-1.5 rounded-md">
-        {formatRelativeTime(new Date(packet.timestamp))}
-      </span>
-      <span className="text-slate-100 flex-1 text-right">
-        <strong className="text-green-400 text-base">{packet.source}</strong>
-        <span className="text-slate-500 mx-2">→</span>
-        <span className="text-slate-200">{packet.destination}</span>
-        {packet.path && <span className="text-slate-500 text-xs ml-3">via {packet.path}</span>}
-      </span>
-    </div>
-    <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-all text-blue-400 border-l-4 border-blue-500">
-      {packet.raw}
-    </div>
-    {packet.comment && (
-      <div className="mt-4 pt-4 border-t border-slate-700 text-slate-400 italic text-xs">
-        {packet.comment}
+const formatPacketType = (type?: string) => {
+  switch (type) {
+    case 'position':
+      return '📍 Position'
+    case 'status':
+      return '📝 Status'
+    case 'message':
+      return '💬 Message'
+    case 'telemetry':
+      return '📊 Telemetry'
+    case 'weather':
+      return '🌤️ Weather'
+    default:
+      return '❓ Unknown'
+  }
+}
+
+const formatPosition = (position?: AprsPacket['position']) => {
+  if (!position) return '-'
+  return `${position.latitude.toFixed(4)}°, ${position.longitude.toFixed(4)}°`
+}
+
+const exportPacketsToCsv = (packets: AprsPacket[]) => {
+  const headers = ['Time', 'Source', 'Destination', 'Type', 'Path', 'Position', 'Comment', 'Raw']
+  const rows = packets.map((p) => [
+    new Date(p.timestamp).toISOString(),
+    p.source,
+    p.destination,
+    p.type ?? 'unknown',
+    p.path ?? '',
+    p.position ? `${p.position.latitude},${p.position.longitude}` : '',
+    p.comment ?? '',
+    p.raw.replace(/"/g, '""'),
+  ])
+
+  const csvContent = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c}"`).join(','))].join(
+    '\n'
+  )
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `aprs-packets-${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+interface PacketsTabProps {
+  packets: AprsPacket[]
+}
+
+const PacketsTab: FC<PacketsTabProps> = ({ packets }) => {
+  if (packets.length === 0) {
+    return (
+      <div className="flex-1 overflow-y-auto p-6 bg-slate-900">
+        <div className="text-center text-slate-400 py-12">
+          <p className="text-lg mb-3">No packets received yet</p>
+          <p className="text-sm">Packets will appear here as they are decoded</p>
+        </div>
       </div>
-    )}
-  </div>
-)
+    )
+  }
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden bg-slate-900">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700">
+        <span className="text-sm text-slate-400">{packets.length} packets</span>
+        <button
+          type="button"
+          onClick={() => exportPacketsToCsv(packets)}
+          className="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-md text-white text-xs font-medium transition-colors"
+        >
+          Export CSV
+        </button>
+      </div>
+      <div className="flex-1 overflow-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-800 sticky top-0">
+            <tr className="text-left text-slate-400">
+              <th className="px-3 py-2 font-medium">Time</th>
+              <th className="px-3 py-2 font-medium">Source</th>
+              <th className="px-3 py-2 font-medium">Dest</th>
+              <th className="px-3 py-2 font-medium">Type</th>
+              <th className="px-3 py-2 font-medium">Position</th>
+              <th className="px-3 py-2 font-medium">Comment</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-700">
+            {[...packets].reverse().map((packet, index) => (
+              <tr
+                key={`${packet.timestamp}-${index}`}
+                className="hover:bg-slate-800 transition-colors"
+              >
+                <td className="px-3 py-2 text-slate-400 whitespace-nowrap">
+                  {formatRelativeTime(new Date(packet.timestamp))}
+                </td>
+                <td className="px-3 py-2 text-green-400 font-mono font-medium">{packet.source}</td>
+                <td className="px-3 py-2 text-slate-300 font-mono">{packet.destination}</td>
+                <td className="px-3 py-2 text-slate-300 whitespace-nowrap">
+                  {formatPacketType(packet.type)}
+                </td>
+                <td className="px-3 py-2 text-blue-400 font-mono text-xs">
+                  {formatPosition(packet.position)}
+                </td>
+                <td className="px-3 py-2 text-slate-400 max-w-xs truncate" title={packet.comment}>
+                  {packet.comment || '-'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
 
 interface StatusTabProps {
   connected: boolean
@@ -279,17 +369,10 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
   lastUpdated,
   onRefresh,
 }) => {
-  const scrollRef = useRef<HTMLDivElement>(null)
   const [lastPacketTime, setLastPacketTime] = useState<Date | null>(null)
   const [activeTab, setActiveTab] = useState<'stats' | 'packets' | 'spectrum' | 'status' | 'about'>(
     'stats'
   )
-
-  useEffect(() => {
-    if (scrollRef.current && isOpen) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [isOpen])
 
   useEffect(() => {
     if (packets.length > 0) {
@@ -316,13 +399,11 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
 
   return (
     <div
-      className="flex flex-col bg-slate-800 border-t-2 border-blue-600 overflow-hidden"
-      style={{ height: isOpen ? '100%' : '40px' }}
+      className={`shrink-0 flex flex-col bg-slate-800 border-t-2 border-blue-600 overflow-hidden ${isOpen ? 'h-72' : 'h-10'}`}
     >
       <button
         type="button"
-        className="flex justify-between items-center px-4 bg-slate-900 border-none border-b border-slate-700 cursor-pointer shrink-0"
-        style={{ height: '40px', minHeight: '40px' }}
+        className="flex justify-between items-center px-4 h-10 min-h-10 bg-slate-900 border-none border-b border-slate-700 cursor-pointer shrink-0"
         onClick={onToggle}
       >
         <h3 className="text-sm font-semibold text-slate-100">
@@ -388,26 +469,7 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
             />
           )}
 
-          {activeTab === 'packets' && (
-            <div className={tabContent.base} ref={scrollRef}>
-              {packets.length === 0 ? (
-                <div className={`text-center ${colors.text.secondary} py-12`}>
-                  <p className="text-lg mb-3">No packets received yet</p>
-                  <p className="text-sm">Packets will appear here as they are decoded</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-5">
-                  {packets.map((packet, index) => (
-                    <PacketItem
-                      key={`${packet.timestamp}-${index}`}
-                      packet={packet}
-                      index={index}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {activeTab === 'packets' && <PacketsTab packets={packets} />}
 
           {activeTab === 'spectrum' && (
             <div className={tabContent.base}>

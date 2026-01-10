@@ -1,6 +1,17 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+/* Ensure Leaflet markers render properly */
+.leaflet-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
 :root {
   --colour-primary: #2563eb;
   --colour-primary-dark: #1d4ed8;
@@ -475,6 +486,46 @@ body {
   padding: var(--spacing-xs) var(--spacing-sm);
   background: #f1f5f9;
   border-radius: var(--radius);
+}
+
+.station-popup .history {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: #f1f5f9;
+  border-radius: var(--radius);
+}
+
+.station-popup .history strong {
+  display: block;
+  font-size: 0.75rem;
+  color: #475569;
+  margin-bottom: var(--spacing-xs);
+}
+
+.station-popup .history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.station-popup .history-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  font-family: monospace;
+  padding: 2px 4px;
+  background: white;
+  border-radius: 2px;
+}
+
+.station-popup .history-time {
+  color: #64748b;
+}
+
+.station-popup .history-pos {
+  color: #3b82f6;
 }
 
 .diagnostics-panel-container {
