@@ -12,6 +12,7 @@ interface StationMapProps {
   onSelectStation: (callsign: string | null) => void
   onMapMove: (centre: Coordinates, zoom: number) => void
   stationHistory: Map<string, AprsPacket[]>
+  trailMaxAgeHours: number
 }
 
 const MapEventHandler: FC<{
@@ -37,6 +38,7 @@ export const StationMap: FC<StationMapProps> = ({
   onSelectStation,
   onMapMove,
   stationHistory,
+  trailMaxAgeHours,
 }) => (
   <MapContainer
     center={[centre.latitude, centre.longitude]}
@@ -107,6 +109,7 @@ export const StationMap: FC<StationMapProps> = ({
         isSelected={station.callsign === selectedStation}
         onSelect={onSelectStation}
         history={stationHistory.get(station.callsign) ?? []}
+        trailMaxAgeHours={trailMaxAgeHours}
       />
     ))}
   </MapContainer>

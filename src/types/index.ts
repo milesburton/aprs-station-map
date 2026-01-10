@@ -40,6 +40,7 @@ export interface FilterState {
   hideNoPosition: boolean
   sortBy: SortField
   sortDirection: SortDirection
+  trailMaxAgeHours: number
 }
 
 export type SortField = 'callsign' | 'distance' | 'lastHeard'

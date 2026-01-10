@@ -20,6 +20,7 @@ export const DEFAULT_FILTER_STATE: FilterState = {
   hideNoPosition: false,
   sortBy: 'lastHeard',
   sortDirection: 'desc',
+  trailMaxAgeHours: 24,
 }
 
 export const EARTH_RADIUS_KM = 6371

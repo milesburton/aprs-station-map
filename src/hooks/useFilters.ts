@@ -10,6 +10,7 @@ interface UseFiltersResult {
   setMaxDistance: (distance: number) => void
   setSymbolFilter: (symbol: string | null) => void
   setSort: (field: SortField, direction: SortDirection) => void
+  setTrailMaxAge: (hours: number) => void
   resetFilters: () => void
 }
 
@@ -36,6 +37,11 @@ export const useFilters = (stations: Station[]): UseFiltersResult => {
     []
   )
 
+  const setTrailMaxAge = useCallback(
+    (trailMaxAgeHours: number) => setFilter((prev) => ({ ...prev, trailMaxAgeHours })),
+    []
+  )
+
   const resetFilters = useCallback(() => setFilter(DEFAULT_FILTER_STATE), [])
 
   return {
@@ -45,6 +51,7 @@ export const useFilters = (stations: Station[]): UseFiltersResult => {
     setMaxDistance,
     setSymbolFilter,
     setSort,
+    setTrailMaxAge,
     resetFilters,
   }
 }

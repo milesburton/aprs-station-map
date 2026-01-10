@@ -94,6 +94,7 @@ export const App: FC = () => {
               onSelectStation={handleStationSelect}
               onMapMove={handleMapMove}
               stationHistory={stationHistory}
+              trailMaxAgeHours={filter.trailMaxAgeHours}
             />
           </div>
 
