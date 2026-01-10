@@ -20,8 +20,14 @@
       ]
     }
   },
-  "mounts": ["source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,type=bind,readonly"],
-  "forwardPorts": [3000, 3001],
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,type=bind,readonly",
+    "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind"
+  ],
+  "forwardPorts": [
+    3000,
+    3001
+  ],
   "postCreateCommand": "npm install",
   "postStartCommand": "sudo chown -R node:node /workspace && npm install",
   "remoteUser": "node"
