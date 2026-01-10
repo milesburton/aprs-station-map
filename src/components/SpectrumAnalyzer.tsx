@@ -14,6 +14,18 @@ interface CanvasSize {
   height: number
 }
 
+// Store waterfall history globally so it persists across tab switches
+// This provides a smoother UX when navigating between diagnostic tabs
+const waterfallHistory: {
+  data: Uint8ClampedArray | null
+  width: number
+  height: number
+} = {
+  data: null,
+  width: 0,
+  height: 0,
+}
+
 const magnitudeToColor = (normalized: number): { r: number; g: number; b: number } => {
   if (normalized < 0.25) {
     const t = normalized / 0.25
@@ -159,15 +171,28 @@ export const SpectrumAnalyzer: FC = () => {
         if (containerWidth > 0 && containerHeight > 0) {
           const panelWidth = Math.floor((containerWidth - 24) / 2)
           const panelHeight = Math.max(300, containerHeight - 80)
-          setCanvasSize({ width: panelWidth, height: panelHeight })
-          waterfallDataRef.current = null
+          const newSize = { width: panelWidth, height: panelHeight }
+
+          // Only reset waterfall if size actually changed significantly
+          if (
+            Math.abs(canvasSize.width - newSize.width) > 10 ||
+            Math.abs(canvasSize.height - newSize.height) > 10
+          ) {
+            setCanvasSize(newSize)
+            waterfallDataRef.current = null
+            // Clear global history on significant resize
+            waterfallHistory.data = null
+          } else if (canvasSize.width === 800 && canvasSize.height === 200) {
+            // Initial size, update it
+            setCanvasSize(newSize)
+          }
         }
       }
     })
 
     resizeObserver.observe(container)
     return () => resizeObserver.disconnect()
-  }, [])
+  }, [canvasSize.width, canvasSize.height])
 
   const drawSpectrum = useCallback((data: SpectrumData) => {
     const canvas = canvasRef.current
@@ -202,11 +227,22 @@ export const SpectrumAnalyzer: FC = () => {
 
     if (!waterfallDataRef.current) {
       waterfallDataRef.current = ctx.createImageData(width, height)
-      for (let i = 0; i < waterfallDataRef.current.data.length; i += 4) {
-        waterfallDataRef.current.data[i] = 0
-        waterfallDataRef.current.data[i + 1] = 0
-        waterfallDataRef.current.data[i + 2] = 0
-        waterfallDataRef.current.data[i + 3] = 255
+
+      // Try to restore from global history if dimensions match
+      if (
+        waterfallHistory.data &&
+        waterfallHistory.width === width &&
+        waterfallHistory.height === height
+      ) {
+        waterfallDataRef.current.data.set(waterfallHistory.data)
+      } else {
+        // Initialize with black background
+        for (let i = 0; i < waterfallDataRef.current.data.length; i += 4) {
+          waterfallDataRef.current.data[i] = 0
+          waterfallDataRef.current.data[i + 1] = 0
+          waterfallDataRef.current.data[i + 2] = 0
+          waterfallDataRef.current.data[i + 3] = 255
+        }
       }
     }
 
@@ -216,7 +252,36 @@ export const SpectrumAnalyzer: FC = () => {
     addWaterfallLine(imageData, width, data.magnitudes)
 
     ctx.putImageData(imageData, 0, 0)
+
+    // Save to global history for persistence across tab switches
+    waterfallHistory.data = new Uint8ClampedArray(imageData.data)
+    waterfallHistory.width = width
+    waterfallHistory.height = height
   }, [])
+
+  // Restore waterfall display on mount (when switching back to spectrum tab)
+  useEffect(() => {
+    const canvas = waterfallCanvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const width = canvas.width
+    const height = canvas.height
+
+    // Restore from global history if available and dimensions match
+    if (
+      waterfallHistory.data &&
+      waterfallHistory.width === width &&
+      waterfallHistory.height === height
+    ) {
+      const imageData = ctx.createImageData(width, height)
+      imageData.data.set(waterfallHistory.data)
+      ctx.putImageData(imageData, 0, 0)
+      waterfallDataRef.current = imageData
+    }
+  }, [canvasSize])
 
   useEffect(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'

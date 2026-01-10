@@ -1,10 +1,15 @@
 import type { FC } from 'react'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { DiagnosticsPanel, FilterPanel, StationList, StationMap } from './components'
 import { useFilters, useLocalStorage, useMapState, useStations } from './hooks'
 import { getUniqueSymbols, updateUrlState } from './services'
 import type { Coordinates } from './types'
 import { setupVersionCheck } from './utils/version'
+
+const SIDEBAR_WIDTH_KEY = 'aprs-sidebar-width'
+const DEFAULT_SIDEBAR_WIDTH = 288
+const MIN_SIDEBAR_WIDTH = 200
+const MAX_SIDEBAR_WIDTH = 500
 
 export const App: FC = () => {
   const {
@@ -19,6 +24,11 @@ export const App: FC = () => {
     refresh,
   } = useStations()
   const [diagnosticsOpen, setDiagnosticsOpen] = useLocalStorage('aprs-diagnostics-open', false)
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY)
+    return saved ? Number.parseInt(saved, 10) : DEFAULT_SIDEBAR_WIDTH
+  })
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false)
 
   const {
     filter,
@@ -60,6 +70,34 @@ export const App: FC = () => {
     [selectStation, stations, flyTo]
   )
 
+  const handleSidebarMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsResizingSidebar(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isResizingSidebar) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = e.clientX
+      const clampedWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, newWidth))
+      setSidebarWidth(clampedWidth)
+    }
+
+    const handleMouseUp = () => {
+      setIsResizingSidebar(false)
+      localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString())
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizingSidebar, sidebarWidth])
+
   return (
     <div className="flex flex-col h-screen bg-slate-900 overflow-hidden">
       <header className="px-4 py-2 bg-slate-800 border-b border-slate-700 shrink-0">
@@ -67,8 +105,11 @@ export const App: FC = () => {
         <p className="text-xs text-slate-400">Real-time APRS stations via KISS TNC</p>
       </header>
 
-      <div className="flex flex-1 min-h-0">
-        <aside className="w-72 shrink-0 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden">
+      <div className={`flex flex-1 min-h-0 ${isResizingSidebar ? 'select-none' : ''}`}>
+        <aside
+          style={{ width: sidebarWidth }}
+          className="shrink-0 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden"
+        >
           <FilterPanel
             filter={filter}
             availableSymbols={availableSymbols}
@@ -85,6 +126,12 @@ export const App: FC = () => {
             onSelectStation={handleStationSelect}
           />
         </aside>
+        {/* Sidebar resize handle */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only */}
+        <div
+          className="w-1 shrink-0 bg-slate-700 hover:bg-blue-500 cursor-ew-resize transition-colors"
+          onMouseDown={handleSidebarMouseDown}
+        />
 
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div className={`flex-1 min-h-0 ${diagnosticsOpen ? '' : ''}`}>

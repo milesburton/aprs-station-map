@@ -1,6 +1,6 @@
 import L from 'leaflet'
 import type { FC } from 'react'
-import { useEffect, useRef } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import { Marker, Popup } from 'react-leaflet'
 import { APRS_SYMBOLS } from '../constants'
 import type { AprsPacket, Station } from '../types'
@@ -43,7 +43,7 @@ const formatUtcTime = (date: Date | string) => {
   return `${d.toISOString().slice(11, 19)} UTC`
 }
 
-export const StationMarker: FC<StationMarkerProps> = ({
+const StationMarkerInner: FC<StationMarkerProps> = ({
   station,
   isSelected,
   onSelect,
@@ -144,3 +144,25 @@ export const StationMarker: FC<StationMarkerProps> = ({
     </>
   )
 }
+
+// Memoize to prevent re-renders when other stations update
+// Only re-render when this specific station's data changes
+export const StationMarker = memo(StationMarkerInner, (prevProps, nextProps) => {
+  // Return true if props are equal (no re-render needed)
+  if (prevProps.isSelected !== nextProps.isSelected) return false
+  if (prevProps.trailMaxAgeHours !== nextProps.trailMaxAgeHours) return false
+  if (prevProps.history.length !== nextProps.history.length) return false
+
+  // Deep compare station - only check fields that affect rendering
+  const prevStation = prevProps.station
+  const nextStation = nextProps.station
+  if (prevStation.callsign !== nextStation.callsign) return false
+  if (prevStation.lastHeard !== nextStation.lastHeard) return false
+  if (prevStation.packetCount !== nextStation.packetCount) return false
+  if (prevStation.comment !== nextStation.comment) return false
+  if (prevStation.symbol !== nextStation.symbol) return false
+  if (prevStation.coordinates?.latitude !== nextStation.coordinates?.latitude) return false
+  if (prevStation.coordinates?.longitude !== nextStation.coordinates?.longitude) return false
+
+  return true
+})
