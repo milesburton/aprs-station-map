@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const isCI = !!process.env.CI
-const baseURL = isCI ? 'http://localhost:4173' : 'http://localhost'
+const baseURL = isCI ? 'http://localhost:4173' : 'http://localhost:3000'
 
 export default defineConfig({
   testDir: './e2e',
