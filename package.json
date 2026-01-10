@@ -1,6 +1,6 @@
 {
   "name": "aprs-station-map",
-  "version": "1.0.17",
+  "version": "1.0.21",
   "description": "Web-based APRS station map with real-time updates via WebSocket. Connects to TNC software via KISS protocol to receive decoded APRS packets and stores station data in SQLite",
   "type": "module",
   "scripts": {

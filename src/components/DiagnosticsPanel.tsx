@@ -1,11 +1,17 @@
 import type { FC } from 'react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getStationStats } from '../services'
 import { card, colors, heading, innerCard, tabContent } from '../styles/tokens'
 import type { AprsPacket, Station, Stats } from '../types'
 import { formatDistance, formatRelativeTime } from '../utils'
 import { CLIENT_VERSION } from '../utils/version'
 import { SpectrumAnalyzer } from './SpectrumAnalyzer'
+
+const PANEL_HEIGHT_KEY = 'aprs-diagnostics-panel-height'
+const DEFAULT_HEIGHT = 288
+const MIN_HEIGHT = 150
+const MAX_HEIGHT = 600
+const COLLAPSED_HEIGHT = 40
 
 declare const __BUILD_TIME__: string
 
@@ -375,6 +381,12 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'stats' | 'packets' | 'spectrum' | 'status' | 'about'>(
     'stats'
   )
+  const [panelHeight, setPanelHeight] = useState(() => {
+    const saved = localStorage.getItem(PANEL_HEIGHT_KEY)
+    return saved ? Number.parseInt(saved, 10) : DEFAULT_HEIGHT
+  })
+  const [isResizing, setIsResizing] = useState(false)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (packets.length > 0) {
@@ -384,6 +396,35 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
       }
     }
   }, [packets])
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsResizing(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const windowHeight = window.innerHeight
+      const newHeight = windowHeight - e.clientY
+      const clampedHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, newHeight))
+      setPanelHeight(clampedHeight)
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      localStorage.setItem(PANEL_HEIGHT_KEY, panelHeight.toString())
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing, panelHeight])
 
   const getStatusIndicator = () => {
     if (!connected) return '🔴'
@@ -399,10 +440,21 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
     return `Receiving Packets (${packets.length} total)`
   }
 
+  const currentHeight = isOpen ? panelHeight : COLLAPSED_HEIGHT
+
   return (
     <div
-      className={`shrink-0 flex flex-col bg-slate-800 border-t-2 border-blue-600 overflow-hidden ${isOpen ? 'h-72' : 'h-10'}`}
+      ref={panelRef}
+      style={{ height: currentHeight }}
+      className={`shrink-0 flex flex-col bg-slate-800 border-t-2 border-blue-600 overflow-hidden ${isResizing ? 'select-none' : ''}`}
     >
+      {isOpen && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only
+        <div
+          className="h-1 bg-slate-700 hover:bg-blue-500 cursor-ns-resize transition-colors shrink-0"
+          onMouseDown={handleMouseDown}
+        />
+      )}
       <button
         type="button"
         className="flex justify-between items-center px-4 h-10 min-h-10 bg-slate-900 border-none border-b border-slate-700 cursor-pointer shrink-0"
