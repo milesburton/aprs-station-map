@@ -107,6 +107,7 @@ export const App: FC = () => {
 
       <div className={`flex flex-1 min-h-0 ${isResizingSidebar ? 'select-none' : ''}`}>
         <aside
+          data-testid="sidebar"
           style={{ width: sidebarWidth }}
           className="shrink-0 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden"
         >
@@ -129,6 +130,7 @@ export const App: FC = () => {
         {/* Sidebar resize handle */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only */}
         <div
+          data-testid="sidebar-resize-handle"
           className="w-1 shrink-0 bg-slate-700 hover:bg-blue-500 cursor-ew-resize transition-colors"
           onMouseDown={handleSidebarMouseDown}
         />
