@@ -109,7 +109,7 @@ const drawCenterMarker = (
 
   ctx.fillStyle = '#f00'
   ctx.font = '12px monospace'
-  ctx.fillText(`Center: ${(centerFreq / 1e6).toFixed(3)} MHz`, width / 2 + 5, 15)
+  ctx.fillText(`Centre: ${(centerFreq / 1e6).toFixed(3)} MHz`, width / 2 + 5, 15)
 }
 
 const scrollWaterfallDown = (imageData: ImageData, width: number, height: number) => {

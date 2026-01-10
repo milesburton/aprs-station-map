@@ -1,8 +1,9 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Run lint-staged for auto-fixing and type checking
+npm version patch --no-git-tag-version
+git add package.json package-lock.json
+
 npx lint-staged
 
-# Run tests
 npm test

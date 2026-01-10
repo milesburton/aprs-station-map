@@ -1,7 +1,6 @@
 # Stage 1: Build frontend and backend
 FROM node:22-slim AS builder
 
-# Install build dependencies for better-sqlite3
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
@@ -10,16 +9,12 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy package files
 COPY package.json package-lock.json* ./
 
-# Install all dependencies (including dev for build tools)
 RUN npm install
 
-# Copy source files
 COPY . .
 
-# Build frontend
 RUN npm run build
 
 # Bundle backend with esbuild (external native and cjs modules)
