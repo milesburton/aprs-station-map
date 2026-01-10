@@ -48,8 +48,12 @@ export const StationTrail: FC<StationTrailProps> = ({ history, maxAgeHours = 24 
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     )
 
-    const oldestTime = new Date(sorted[0].timestamp).getTime()
-    const newestTime = new Date(sorted[sorted.length - 1].timestamp).getTime()
+    const first = sorted[0]
+    const last = sorted[sorted.length - 1]
+    if (!first || !last) return []
+
+    const oldestTime = new Date(first.timestamp).getTime()
+    const newestTime = new Date(last.timestamp).getTime()
     const timeRange = newestTime - oldestTime
 
     const segments: Array<{

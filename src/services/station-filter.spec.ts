@@ -22,6 +22,7 @@ const defaultFilter: FilterState = {
   hideNoPosition: false,
   sortBy: 'lastHeard',
   sortDirection: 'desc',
+  trailMaxAgeHours: 24,
 }
 
 describe('station filtering', () => {
