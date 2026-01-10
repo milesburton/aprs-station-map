@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     iputils-ping \
     openssh-client \
+    gh \
     && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g nodemon typescript ts-node
