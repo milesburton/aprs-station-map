@@ -178,31 +178,33 @@ const StatusTab: FC<StatusTabProps> = ({ connected, stats, lastPacketTime, getSt
     <div className={tabContent.withGap}>
       <div className={card.full}>
         <h4 className={heading.section}>Service Status</h4>
-        <div className="space-y-4">
-          <div className={`flex justify-between items-center py-4 px-5 ${innerCard.base}`}>
-            <span className={`${colors.text.secondary} font-semibold`}>WebSocket Connection:</span>
+        <div className="space-y-3">
+          <div className={`flex justify-between items-center py-3 px-5 ${innerCard.base}`}>
+            <span className={`${colors.text.secondary} font-medium w-48`}>
+              WebSocket Connection
+            </span>
             <span
               className={`px-4 py-2 rounded-md text-sm font-semibold ${connected ? colors.status.success : colors.status.error}`}
             >
               {connected ? '✅ Connected' : '❌ Disconnected'}
             </span>
           </div>
-          <div className={`flex justify-between items-center py-4 px-5 ${innerCard.base}`}>
-            <span className={`${colors.text.secondary} font-semibold`}>KISS TNC:</span>
+          <div className={`flex justify-between items-center py-3 px-5 ${innerCard.base}`}>
+            <span className={`${colors.text.secondary} font-medium w-48`}>KISS TNC</span>
             <span
               className={`px-4 py-2 rounded-md text-sm font-semibold ${stats?.kissConnected ? colors.status.success : colors.status.error}`}
             >
               {stats?.kissConnected ? '✅ Connected' : '❌ Disconnected'}
             </span>
           </div>
-          <div className={`flex justify-between items-center py-4 px-5 ${innerCard.base}`}>
-            <span className={`${colors.text.secondary} font-semibold`}>Overall Status:</span>
+          <div className={`flex justify-between items-center py-3 px-5 ${innerCard.base}`}>
+            <span className={`${colors.text.secondary} font-medium w-48`}>Overall Status</span>
             <span className={colors.text.primary}>{getStatusText()}</span>
           </div>
           {lastPacketTime && (
-            <div className={`flex justify-between items-center py-4 px-5 ${innerCard.base}`}>
-              <span className={`${colors.text.secondary} font-semibold`}>
-                Last Packet Received:
+            <div className={`flex justify-between items-center py-3 px-5 ${innerCard.base}`}>
+              <span className={`${colors.text.secondary} font-medium w-48`}>
+                Last Packet Received
               </span>
               <span className={colors.text.primary}>{formatRelativeTime(lastPacketTime)}</span>
             </div>

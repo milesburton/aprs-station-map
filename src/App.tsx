@@ -27,6 +27,7 @@ export const App: FC = () => {
     setMaxDistance,
     setSymbolFilter,
     setSort,
+    setTrailMaxAge,
     resetFilters,
   } = useFilters(stations)
   const { mapState, setCentre, setZoom, selectStation, flyTo } = useMapState()
@@ -75,6 +76,7 @@ export const App: FC = () => {
             onDistanceChange={setMaxDistance}
             onSymbolChange={setSymbolFilter}
             onSortChange={setSort}
+            onTrailAgeChange={setTrailMaxAge}
             onReset={resetFilters}
           />
           <StationList

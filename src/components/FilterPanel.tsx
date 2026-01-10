@@ -9,6 +9,7 @@ interface FilterPanelProps {
   onDistanceChange: (distance: number) => void
   onSymbolChange: (symbol: string | null) => void
   onSortChange: (field: SortField, direction: SortDirection) => void
+  onTrailAgeChange: (hours: number) => void
   onReset: () => void
 }
 
@@ -19,6 +20,7 @@ export const FilterPanel: FC<FilterPanelProps> = ({
   onDistanceChange,
   onSymbolChange,
   onSortChange,
+  onTrailAgeChange,
   onReset,
 }) => {
   const handleSortClick = (field: SortField) => {
@@ -68,6 +70,27 @@ export const FilterPanel: FC<FilterPanelProps> = ({
               {symbol} {APRS_SYMBOLS[symbol]?.name ?? 'Unknown'}
             </option>
           ))}
+        </select>
+      </div>
+
+      <div className="filter-row">
+        <label htmlFor="trail-age-filter">
+          Trail history:{' '}
+          {filter.trailMaxAgeHours === 0 ? 'All time' : `${filter.trailMaxAgeHours}h`}
+        </label>
+        <select
+          id="trail-age-filter"
+          value={filter.trailMaxAgeHours}
+          onChange={(e) => onTrailAgeChange(Number(e.target.value))}
+          className="symbol-select"
+        >
+          <option value={0}>All time</option>
+          <option value={0.083}>5 minutes</option>
+          <option value={0.167}>10 minutes</option>
+          <option value={1}>1 hour</option>
+          <option value={6}>6 hours</option>
+          <option value={24}>24 hours</option>
+          <option value={168}>1 week</option>
         </select>
       </div>
 
