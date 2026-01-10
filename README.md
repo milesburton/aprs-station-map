@@ -48,6 +48,10 @@ docker compose -f .appcontainer/compose.yaml down
 
 Data persists in the `aprs-data` Docker volume.
 
+## Development
+
+Open in VS Code with the Dev Containers extension, or use `devcontainer open`.
+
 ---
 
 MIT Licence
