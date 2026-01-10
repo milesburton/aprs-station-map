@@ -2,11 +2,9 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import './styles/index.css'
 
-// Declare build-time constants injected by Vite
-declare const __BUILD_ID__: string
-declare const __BUILD_TIME__: string
+import { CLIENT_VERSION } from './utils/version'
 
-console.log(`[Build] ID: ${__BUILD_ID__} | Time: ${__BUILD_TIME__}`)
+console.log(`[Build] Version: ${CLIENT_VERSION}`)
 console.log('[Page] Script loaded, readyState:', document.readyState)
 
 // Log page load events
