@@ -17,14 +17,21 @@ Open http://localhost:3000
 
 Create a `.env` file:
 
-```env
-STATION_CALLSIGN=M0XYZ
-STATION_LATITUDE=51.5074
-STATION_LONGITUDE=-0.1278
-AUDIO_SOURCE=rtl-sdr  # or: soundcard, null
-RTL_FREQ=144.8M
-RTL_GAIN=40
-RTL_PPM=0
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `STATION_CALLSIGN` | Your callsign | required |
+| `STATION_LATITUDE` | Station latitude | required |
+| `STATION_LONGITUDE` | Station longitude | required |
+| `AUDIO_SOURCE` | rtl-sdr, soundcard, or null | rtl-sdr |
+| `RTL_FREQ` | RTL-SDR frequency | 144.8M |
+| `RTL_GAIN` | RTL-SDR gain | 40 |
+| `RTL_PPM` | RTL-SDR PPM correction | 0 |
+
+## Rebuild
+
+```bash
+docker compose -f .appcontainer/compose.yaml build --no-cache
+docker compose -f .appcontainer/compose.yaml up -d
 ```
 
 ## Logs
@@ -39,7 +46,8 @@ docker compose -f .appcontainer/compose.yaml logs -f
 docker compose -f .appcontainer/compose.yaml down
 ```
 
+Data persists in the `aprs-data` Docker volume.
+
 ---
 
 MIT Licence
-
