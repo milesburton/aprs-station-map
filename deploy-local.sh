@@ -51,8 +51,8 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [--target pi|lab]"
             echo ""
             echo "Options:"
-            echo "  --target pi   Deploy to production Pi (192.168.1.150)"
-            echo "  --target lab  Deploy to home lab test server (192.168.1.245)"
+            echo "  --target pi   Deploy to production Pi (uses DEPLOY_TARGET_PI from .env)"
+            echo "  --target lab  Deploy to home lab test server (uses DEPLOY_TARGET_LAB from .env)"
             echo ""
             echo "Without --target, uses DEPLOY_TARGET from .env"
             exit 0
@@ -86,18 +86,26 @@ else
     fi
 fi
 
-# Handle target presets
+# Handle target presets (use environment variables from .env)
 case "$TARGET_PRESET" in
     pi|prod|production)
-        DEPLOY_TARGET="miles@192.168.1.150"
-        DEPLOY_DIR="aprs-station-map"
-        DEPLOY_PORT="80"
+        if [ -z "$DEPLOY_TARGET_PI" ]; then
+            error "DEPLOY_TARGET_PI not set in .env"
+            exit 1
+        fi
+        DEPLOY_TARGET="$DEPLOY_TARGET_PI"
+        DEPLOY_DIR="${DEPLOY_DIR_PI:-aprs-station-map}"
+        DEPLOY_PORT="${DEPLOY_PORT_PI:-80}"
         log "Using production Pi target"
         ;;
     lab|test)
-        DEPLOY_TARGET="miles@192.168.1.245"
-        DEPLOY_DIR="aprs-station-map"
-        DEPLOY_PORT="8001"
+        if [ -z "$DEPLOY_TARGET_LAB" ]; then
+            error "DEPLOY_TARGET_LAB not set in .env"
+            exit 1
+        fi
+        DEPLOY_TARGET="$DEPLOY_TARGET_LAB"
+        DEPLOY_DIR="${DEPLOY_DIR_LAB:-aprs-station-map}"
+        DEPLOY_PORT="${DEPLOY_PORT_LAB:-8001}"
         log "Using home lab test target"
         ;;
     "")
