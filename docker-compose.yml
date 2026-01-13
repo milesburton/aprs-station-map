@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  aprs-station-map:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${DEPLOY_PORT:-8001}:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - STATION_CALLSIGN=${STATION_CALLSIGN:-M0XYZ}
+      - STATION_LATITUDE=${STATION_LATITUDE:-51.5074}
+      - STATION_LONGITUDE=${STATION_LONGITUDE:-0.1278}
+      - AUDIO_SOURCE=${AUDIO_SOURCE:-rtl-sdr}
+      - RTL_FREQ=${RTL_FREQ:-144800000}
+      - RTL_GAIN=${RTL_GAIN:-40}
+      - RTL_PPM=${RTL_PPM:-0}
+    container_name: aprs-station-map
+    volumes:
+      - aprs-data:/app/data
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    privileged: true
+    networks:
+      - default
+      - nginx-proxy
+
+volumes:
+  aprs-data:
+
+networks:
+  nginx-proxy:
+    external: true
+    name: nginx-proxy-network

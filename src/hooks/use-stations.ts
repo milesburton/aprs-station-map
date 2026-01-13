@@ -18,6 +18,31 @@ interface UseStationsResult {
 const MAX_PACKETS = 100
 const MAX_STATION_HISTORY = 50
 
+// Deduplicate stations by callsign, keeping the most recent
+const deduplicateStations = (stations: Station[]): Station[] => {
+  const map = new Map<string, Station>()
+  for (const station of stations) {
+    const existing = map.get(station.callsign)
+    if (!existing) {
+      map.set(station.callsign, station)
+    } else {
+      // Keep the one with more recent lastHeard
+      const existingTime =
+        typeof existing.lastHeard === 'string'
+          ? new Date(existing.lastHeard).getTime()
+          : existing.lastHeard.getTime()
+      const newTime =
+        typeof station.lastHeard === 'string'
+          ? new Date(station.lastHeard).getTime()
+          : station.lastHeard.getTime()
+      if (newTime > existingTime) {
+        map.set(station.callsign, station)
+      }
+    }
+  }
+  return Array.from(map.values())
+}
+
 export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsResult => {
   const [stations, setStations] = useState<Station[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
@@ -83,7 +108,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
           switch (message.type) {
             case 'init':
               if (message.stations) {
-                setStations(message.stations)
+                setStations(deduplicateStations(message.stations))
                 setLoading(false)
                 setLastUpdated(new Date())
                 logger.info({ count: message.stations.length }, 'Initial stations received')
@@ -160,8 +185,10 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
       const response = await fetch(`${DEFAULT_CONFIG.apiUrl}/stations`)
       if (!response.ok) throw new Error('Failed to fetch stations')
       const data = await response.json()
-      setStations(data)
-      setLastUpdated(new Date())
+      if (data.stations) {
+        setStations(deduplicateStations(data.stations))
+        setLastUpdated(new Date())
+      }
     } catch {
       setError('Failed to refresh data')
     }

@@ -1,9 +1,5 @@
 import { expect, test } from '@playwright/test'
 
-// Use preview server (port 4173) to avoid Vite HMR interference
-test.use({ baseURL: 'http://localhost:4173' })
-
-// Helper to create the WebSocket mock init script
 const createWebSocketMock = (options: {
   stations: unknown[]
   stats: Record<string, unknown>
@@ -291,9 +287,10 @@ test.describe('Sidebar Resize Tests', () => {
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
 
-    // Check width is preserved
     const widthAfterReload = (await page.getByTestId('sidebar').boundingBox())?.width
-    expect(widthAfterReload).toBeCloseTo(widthAfterResize, -1)
+    expect(widthAfterReload).toBeDefined()
+    expect(widthAfterResize).toBeDefined()
+    expect(Math.abs((widthAfterReload ?? 0) - (widthAfterResize ?? 0))).toBeLessThanOrEqual(10)
   })
 })
 

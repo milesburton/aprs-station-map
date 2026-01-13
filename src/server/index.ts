@@ -60,6 +60,7 @@ const toApiStation = (dbStation: DbStation) => {
     distance: coords ? calculateDistance(stationLocation, coords) : null,
     bearing: coords ? calculateBearing(stationLocation, coords) : null,
     packetCount: dbStation.packet_count,
+    via: dbStation.last_path ? dbStation.last_path.split(',').filter(Boolean) : [],
   }
 }
 

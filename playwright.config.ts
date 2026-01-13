@@ -27,4 +27,10 @@ export default defineConfig({
       maxDiffPixelRatio: 0.01,
     },
   },
+  webServer: {
+    command: isCI ? 'npm run preview' : 'npm run dev',
+    url: baseURL,
+    reuseExistingServer: true,
+    timeout: 120000,
+  },
 })

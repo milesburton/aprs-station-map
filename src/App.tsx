@@ -38,6 +38,8 @@ export const App: FC = () => {
     setSymbolFilter,
     setSort,
     setTrailMaxAge,
+    setStationMaxAge,
+    setRfOnly,
     resetFilters,
   } = useFilters(stations)
   const { mapState, setCentre, setZoom, selectStation, flyTo } = useMapState()
@@ -119,6 +121,8 @@ export const App: FC = () => {
             onSymbolChange={setSymbolFilter}
             onSortChange={setSort}
             onTrailAgeChange={setTrailMaxAge}
+            onStationAgeChange={setStationMaxAge}
+            onRfOnlyChange={setRfOnly}
             onReset={resetFilters}
           />
           <StationList

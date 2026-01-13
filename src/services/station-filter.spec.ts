@@ -23,6 +23,8 @@ const defaultFilter: FilterState = {
   sortBy: 'lastHeard',
   sortDirection: 'desc',
   trailMaxAgeHours: 24,
+  stationMaxAgeHours: 24,
+  rfOnly: false,
 }
 
 describe('station filtering', () => {
@@ -85,6 +87,55 @@ describe('station filtering', () => {
       const result = filterStations(stations, filter)
       expect(result[0]?.distance).toBe(200)
       expect(result[3]?.distance).toBe(5)
+    })
+
+    test('filters RF-only stations (no via path)', () => {
+      const stationsWithVia = [
+        createStation({ callsign: 'RF-DIRECT', via: [] }),
+        createStation({ callsign: 'RF-DIGI', via: ['MB7USE', 'WIDE1-1'] }),
+        createStation({ callsign: 'INET-GATED', via: ['TCPIP', 'qAR'] }),
+        createStation({ callsign: 'INET-MIXED', via: ['MB7UUE', 'TCPIP*'] }),
+      ]
+      const filter = { ...defaultFilter, rfOnly: true }
+      const result = filterStations(stationsWithVia, filter)
+      expect(result).toHaveLength(2)
+      expect(result.map((s) => s.callsign)).toContain('RF-DIRECT')
+      expect(result.map((s) => s.callsign)).toContain('RF-DIGI')
+    })
+
+    test('includes all stations when rfOnly is false', () => {
+      const stationsWithVia = [
+        createStation({ callsign: 'RF-DIRECT', via: [] }),
+        createStation({ callsign: 'INET-GATED', via: ['TCPIP', 'qAR'] }),
+      ]
+      const filter = { ...defaultFilter, rfOnly: false }
+      const result = filterStations(stationsWithVia, filter)
+      expect(result).toHaveLength(2)
+    })
+
+    test('treats stations without via field as RF-only', () => {
+      const stationsNoVia = [
+        createStation({ callsign: 'NO-VIA' }), // no via field at all
+      ]
+      const filter = { ...defaultFilter, rfOnly: true }
+      const result = filterStations(stationsNoVia, filter)
+      expect(result).toHaveLength(1)
+    })
+
+    test('filters various internet gateway markers', () => {
+      const stationsWithGateways = [
+        createStation({ callsign: 'QAC', via: ['qAC'] }),
+        createStation({ callsign: 'QAO', via: ['qAO'] }),
+        createStation({ callsign: 'QAS', via: ['qAS'] }),
+        createStation({ callsign: 'QAX', via: ['qAX'] }),
+        createStation({ callsign: 'QAI', via: ['qAI'] }),
+        createStation({ callsign: 'QAZ', via: ['qAZ'] }),
+        createStation({ callsign: 'RF-ONLY', via: ['WIDE1-1'] }),
+      ]
+      const filter = { ...defaultFilter, rfOnly: true }
+      const result = filterStations(stationsWithGateways, filter)
+      expect(result).toHaveLength(1)
+      expect(result[0]?.callsign).toBe('RF-ONLY')
     })
   })
 

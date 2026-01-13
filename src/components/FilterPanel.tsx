@@ -2,6 +2,8 @@ import type { FC } from 'react'
 import { APRS_SYMBOLS, DEFAULT_CONFIG } from '../constants'
 import type { FilterState, SortDirection, SortField } from '../types'
 
+const STATION_AGE_VALUES = [1, 24, 168, 720, 0] // 1h, 24h, 7d, 30d, all
+
 interface FilterPanelProps {
   filter: FilterState
   availableSymbols: string[]
@@ -10,7 +12,20 @@ interface FilterPanelProps {
   onSymbolChange: (symbol: string | null) => void
   onSortChange: (field: SortField, direction: SortDirection) => void
   onTrailAgeChange: (hours: number) => void
+  onStationAgeChange: (hours: number) => void
+  onRfOnlyChange: (rfOnly: boolean) => void
   onReset: () => void
+}
+
+const formatStationAge = (hours: number): string => {
+  if (hours === 0) return 'All time'
+  if (hours < 1) return `${Math.round(hours * 60)} min`
+  if (hours === 1) return '1 hour'
+  if (hours < 24) return `${hours} hours`
+  if (hours === 24) return '24 hours'
+  if (hours === 168) return '7 days'
+  if (hours === 720) return '30 days'
+  return `${Math.round(hours / 24)} days`
 }
 
 export const FilterPanel: FC<FilterPanelProps> = ({
@@ -21,6 +36,8 @@ export const FilterPanel: FC<FilterPanelProps> = ({
   onSymbolChange,
   onSortChange,
   onTrailAgeChange,
+  onStationAgeChange,
+  onRfOnlyChange,
   onReset,
 }) => {
   const handleSortClick = (field: SortField) => {
@@ -74,6 +91,22 @@ export const FilterPanel: FC<FilterPanelProps> = ({
       </div>
 
       <div className="filter-row">
+        <label htmlFor="station-age-filter">
+          Show stations heard in: {formatStationAge(filter.stationMaxAgeHours)}
+        </label>
+        <input
+          id="station-age-filter"
+          type="range"
+          min={0}
+          max={4}
+          step={1}
+          value={STATION_AGE_VALUES.indexOf(filter.stationMaxAgeHours)}
+          onChange={(e) => onStationAgeChange(STATION_AGE_VALUES[Number(e.target.value)] ?? 24)}
+          className="distance-slider"
+        />
+      </div>
+
+      <div className="filter-row">
         <label htmlFor="trail-age-filter">
           Trail history:{' '}
           {filter.trailMaxAgeHours === 0 ? 'All time' : `${filter.trailMaxAgeHours}h`}
@@ -92,6 +125,17 @@ export const FilterPanel: FC<FilterPanelProps> = ({
           <option value={24}>24 hours</option>
           <option value={168}>1 week</option>
         </select>
+      </div>
+
+      <div className="filter-row">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={filter.rfOnly}
+            onChange={(e) => onRfOnlyChange(e.target.checked)}
+          />
+          RF only (hide internet-gated)
+        </label>
       </div>
 
       <div className="filter-row sort-buttons">
