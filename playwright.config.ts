@@ -30,7 +30,7 @@ export default defineConfig({
   webServer: {
     command: isCI ? 'npm run preview' : 'npm run dev',
     url: baseURL,
-    reuseExistingServer: !isCI,
+    reuseExistingServer: true,
     timeout: 120000,
   },
 })
