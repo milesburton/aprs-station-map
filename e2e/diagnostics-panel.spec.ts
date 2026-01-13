@@ -24,6 +24,15 @@ const mockStations = [
   },
 ]
 
+const getDiagnosticsPanel = (page: import('@playwright/test').Page) =>
+  page.locator('[class*="bg-slate-900"][class*="border-t"]').first()
+
+const expandPanel = async (page: import('@playwright/test').Page) => {
+  const panel = getDiagnosticsPanel(page)
+  await panel.locator('button:has-text("▲")').click()
+  await page.waitForTimeout(300)
+}
+
 test.describe('Diagnostics Panel Visual Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.route('**/api/stations', (route) => {
@@ -99,59 +108,54 @@ test.describe('Diagnostics Panel Visual Tests', () => {
   })
 
   test('Stats tab visual snapshot', async ({ page }) => {
-    const panel = page.locator('[class*="bg-slate-800"][class*="border-t-2"]')
-    await panel.locator('button:has-text("Show")').click()
-    await page.waitForTimeout(300)
+    const panel = getDiagnosticsPanel(page)
+    await expandPanel(page)
 
     await expect(panel).toHaveScreenshot('stats-tab.png')
   })
 
   test('Packets tab visual snapshot', async ({ page }) => {
-    const panel = page.locator('[class*="bg-slate-800"][class*="border-t-2"]')
-    await panel.locator('button:has-text("Show")').click()
-    await page.waitForTimeout(300)
+    const panel = getDiagnosticsPanel(page)
+    await expandPanel(page)
 
-    await page.getByRole('button', { name: 'Packets', exact: true }).click()
+    await page.getByRole('tab', { name: 'Packets' }).click()
     await page.waitForTimeout(300)
 
     await expect(panel).toHaveScreenshot('packets-tab.png')
   })
 
   test('Spectrum tab visual snapshot', async ({ page }) => {
-    const panel = page.locator('[class*="bg-slate-800"][class*="border-t-2"]')
-    await panel.locator('button:has-text("Show")').click()
-    await page.waitForTimeout(300)
+    const panel = getDiagnosticsPanel(page)
+    await expandPanel(page)
 
-    await panel.locator('button:has-text("Spectrum")').click()
+    await page.getByRole('tab', { name: 'Spectrum' }).click()
     await page.waitForTimeout(300)
 
     await expect(panel).toHaveScreenshot('spectrum-tab.png')
   })
 
   test('Status tab visual snapshot', async ({ page }) => {
-    const panel = page.locator('[class*="bg-slate-800"][class*="border-t-2"]')
-    await panel.locator('button:has-text("Show")').click()
-    await page.waitForTimeout(300)
+    const panel = getDiagnosticsPanel(page)
+    await expandPanel(page)
 
-    await panel.locator('button:has-text("Status")').click()
+    await page.getByRole('tab', { name: 'Status' }).click()
     await page.waitForTimeout(300)
 
     await expect(panel).toHaveScreenshot('status-tab.png')
   })
 
   test('About tab visual snapshot', async ({ page }) => {
-    const panel = page.locator('[class*="bg-slate-800"][class*="border-t-2"]')
-    await panel.locator('button:has-text("Show")').click()
-    await page.waitForTimeout(300)
+    const panel = getDiagnosticsPanel(page)
+    await expandPanel(page)
 
-    await panel.locator('button:has-text("About")').click()
+    await page.getByRole('tab', { name: 'About' }).click()
     await page.waitForTimeout(300)
 
     await expect(panel).toHaveScreenshot('about-tab.png')
   })
 
   test('Panel collapsed state visual snapshot', async ({ page }) => {
-    const panel = page.locator('[class*="bg-slate-800"][class*="border-t-2"]')
+    const panel = getDiagnosticsPanel(page)
     await expect(panel).toHaveScreenshot('panel-collapsed.png')
   })
 })

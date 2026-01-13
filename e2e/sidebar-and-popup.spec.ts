@@ -1,9 +1,5 @@
 import { expect, test } from '@playwright/test'
 
-// Use preview server (port 4173) to avoid Vite HMR interference
-test.use({ baseURL: 'http://localhost:4173' })
-
-// Helper to create the WebSocket mock init script
 const createWebSocketMock = (options: {
   stations: unknown[]
   stats: Record<string, unknown>
