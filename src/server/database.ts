@@ -14,6 +14,7 @@ export interface DbStation {
   comment: string
   last_heard: number
   packet_count: number
+  last_path: string
   created_at: number
   updated_at: number
 }
@@ -41,6 +42,7 @@ const SCHEMA = `
     comment TEXT DEFAULT '',
     last_heard INTEGER NOT NULL,
     packet_count INTEGER DEFAULT 1,
+    last_path TEXT DEFAULT '',
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
@@ -79,6 +81,14 @@ export const initializeDatabase = (path: string = config.database.path): Databas
   db.pragma('foreign_keys = ON')
   db.exec(SCHEMA)
 
+  // Migration: add last_path column if it doesn't exist
+  try {
+    db.exec('ALTER TABLE stations ADD COLUMN last_path TEXT DEFAULT ""')
+    console.log('[DB] Added last_path column')
+  } catch {
+    // Column already exists
+  }
+
   console.log(`[DB] Database initialized at ${path}`)
   return db
 }
@@ -106,6 +116,8 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
   const existingStmt = database.prepare('SELECT * FROM stations WHERE callsign = ?')
   const existing = existingStmt.get(packet.source) as DbStation | undefined
 
+  const pathStr = packet.path.join(',')
+
   if (existing) {
     // Update existing station
     const updateStmt = database.prepare(`
@@ -117,6 +129,7 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
         comment = CASE WHEN ? != '' THEN ? ELSE comment END,
         last_heard = ?,
         packet_count = packet_count + 1,
+        last_path = ?,
         updated_at = ?
       WHERE callsign = ?
     `)
@@ -129,6 +142,7 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
       packet.comment,
       packet.comment,
       now,
+      pathStr,
       now,
       packet.source
     )
@@ -145,13 +159,14 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
       comment: packet.comment || existing.comment,
       last_heard: now,
       packet_count: existing.packet_count + 1,
+      last_path: pathStr,
       updated_at: now,
     }
   }
   // Insert new station
   const insertStmt = database.prepare(`
-      INSERT INTO stations (callsign, latitude, longitude, symbol, symbol_table, comment, last_heard, packet_count, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+      INSERT INTO stations (callsign, latitude, longitude, symbol, symbol_table, comment, last_heard, packet_count, last_path, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
     `)
 
   insertStmt.run(
@@ -162,6 +177,7 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
     packet.symbolTable,
     packet.comment,
     now,
+    pathStr,
     now,
     now
   )

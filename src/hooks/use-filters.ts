@@ -1,7 +1,22 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { DEFAULT_FILTER_STATE } from '../constants'
 import { filterStations } from '../services'
 import type { FilterState, SortDirection, SortField, Station } from '../types'
+
+const FILTER_STORAGE_KEY = 'aprs-filter-state'
+
+const loadFilterState = (): FilterState => {
+  try {
+    const saved = localStorage.getItem(FILTER_STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved) as Partial<FilterState>
+      return { ...DEFAULT_FILTER_STATE, ...parsed }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return DEFAULT_FILTER_STATE
+}
 
 interface UseFiltersResult {
   filter: FilterState
@@ -11,13 +26,21 @@ interface UseFiltersResult {
   setSymbolFilter: (symbol: string | null) => void
   setSort: (field: SortField, direction: SortDirection) => void
   setTrailMaxAge: (hours: number) => void
+  setStationMaxAge: (hours: number) => void
+  setRfOnly: (rfOnly: boolean) => void
   resetFilters: () => void
 }
 
 export const useFilters = (stations: Station[]): UseFiltersResult => {
-  const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER_STATE)
+  const [filter, setFilter] = useState<FilterState>(loadFilterState)
 
   const filteredStations = useMemo(() => filterStations(stations, filter), [stations, filter])
+
+  // Persist filter state to localStorage (exclude search to avoid stale queries)
+  useEffect(() => {
+    const { search: _, ...filterToSave } = filter
+    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filterToSave))
+  }, [filter])
 
   const setSearch = useCallback((search: string) => setFilter((prev) => ({ ...prev, search })), [])
 
@@ -42,6 +65,13 @@ export const useFilters = (stations: Station[]): UseFiltersResult => {
     []
   )
 
+  const setStationMaxAge = useCallback(
+    (stationMaxAgeHours: number) => setFilter((prev) => ({ ...prev, stationMaxAgeHours })),
+    []
+  )
+
+  const setRfOnly = useCallback((rfOnly: boolean) => setFilter((prev) => ({ ...prev, rfOnly })), [])
+
   const resetFilters = useCallback(() => setFilter(DEFAULT_FILTER_STATE), [])
 
   return {
@@ -52,6 +82,8 @@ export const useFilters = (stations: Station[]): UseFiltersResult => {
     setSymbolFilter,
     setSort,
     setTrailMaxAge,
+    setStationMaxAge,
+    setRfOnly,
     resetFilters,
   }
 }

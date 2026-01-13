@@ -4,7 +4,7 @@ services:
   aprs-station-map:
     build:
       context: .
-      dockerfile: .appcontainer/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "${DEPLOY_PORT:-8001}:80"
     restart: unless-stopped

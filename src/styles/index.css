@@ -201,6 +201,20 @@ body {
   margin-bottom: var(--spacing-xs);
 }
 
+.filter-row .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+.filter-row .checkbox-label input[type="checkbox"] {
+  accent-color: var(--colour-primary);
+  width: 1rem;
+  height: 1rem;
+}
+
 .search-input,
 .symbol-select {
   width: 100%;
