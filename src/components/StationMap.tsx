@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMapEvents } from 'react-leaflet'
+import MarkerClusterGroup from 'react-leaflet-cluster'
 import { BEXLEY_LOCATION, DEFAULT_CONFIG, MAP_ATTRIBUTION, MAP_TILE_URL } from '../constants'
 import type { AprsPacket, Coordinates, Station } from '../types'
 import { StationMarker } from './StationMarker'
@@ -7,9 +8,11 @@ import { StationMarker } from './StationMarker'
 interface StationMapProps {
   stations: Station[]
   selectedStation: string | null
+  followedStation: string | null
   centre: Coordinates
   zoom: number
   onSelectStation: (callsign: string | null) => void
+  onFollowStation: (callsign: string | null) => void
   onMapMove: (centre: Coordinates, zoom: number) => void
   stationHistory: Map<string, AprsPacket[]>
   trailMaxAgeHours: number
@@ -33,9 +36,11 @@ const distanceRings = [50, 100, 200, 300, 400, 500]
 export const StationMap: FC<StationMapProps> = ({
   stations,
   selectedStation,
+  followedStation,
   centre,
   zoom,
   onSelectStation,
+  onFollowStation,
   onMapMove,
   stationHistory,
   trailMaxAgeHours,
@@ -102,15 +107,25 @@ export const StationMap: FC<StationMapProps> = ({
       </Popup>
     </CircleMarker>
 
-    {stations.map((station) => (
-      <StationMarker
-        key={station.callsign}
-        station={station}
-        isSelected={station.callsign === selectedStation}
-        onSelect={onSelectStation}
-        history={stationHistory.get(station.callsign) ?? []}
-        trailMaxAgeHours={trailMaxAgeHours}
-      />
-    ))}
+    <MarkerClusterGroup
+      chunkedLoading
+      maxClusterRadius={50}
+      spiderfyOnMaxZoom={true}
+      showCoverageOnHover={false}
+      disableClusteringAtZoom={12}
+    >
+      {stations.map((station) => (
+        <StationMarker
+          key={station.callsign}
+          station={station}
+          isSelected={station.callsign === selectedStation}
+          isFollowed={station.callsign === followedStation}
+          onSelect={onSelectStation}
+          onFollow={onFollowStation}
+          history={stationHistory.get(station.callsign) ?? []}
+          trailMaxAgeHours={trailMaxAgeHours}
+        />
+      ))}
+    </MarkerClusterGroup>
   </MapContainer>
 )

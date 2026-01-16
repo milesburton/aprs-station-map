@@ -1,20 +1,21 @@
 import type { FC } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getStationStats } from '../services'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import {
+  setActiveTab,
+  setDiagnosticsHeight,
+  TAB_HEIGHT_CONSTRAINTS,
+  type TabId,
+} from '../store/slices/uiSlice'
 import type { AprsPacket, Station, Stats } from '../types'
 import { formatDistance, formatRelativeTime } from '../utils'
 import { CLIENT_VERSION } from '../utils/version'
 import { SpectrumAnalyzer } from './SpectrumAnalyzer'
 
-const PANEL_HEIGHT_KEY = 'aprs-diagnostics-panel-height'
-const DEFAULT_HEIGHT = 288
-const MIN_HEIGHT = 150
-const MAX_HEIGHT = 600
-const COLLAPSED_HEIGHT = 40
+const COLLAPSED_HEIGHT = 24
 
 declare const __BUILD_TIME__: string
-
-type TabId = 'stats' | 'packets' | 'spectrum' | 'status' | 'about'
 
 // Reusable Tab component with proper accessibility
 const Tab: FC<{ label: string; active: boolean; onClick: () => void }> = ({
@@ -27,11 +28,7 @@ const Tab: FC<{ label: string; active: boolean; onClick: () => void }> = ({
     role="tab"
     aria-selected={active}
     onClick={onClick}
-    className={`px-3 py-1.5 text-xs font-medium rounded-t transition-colors ${
-      active
-        ? 'bg-slate-900 text-blue-400 border border-slate-700 border-b-slate-900'
-        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-    }`}
+    className={`diag-tab ${active ? 'active' : ''}`}
   >
     {label}
   </button>
@@ -48,56 +45,21 @@ const ActionButton: FC<{
     type="button"
     onClick={onClick}
     disabled={disabled}
-    className={`px-3 py-1 rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-      variant === 'success'
-        ? 'bg-green-600 hover:bg-green-500 text-white'
-        : 'bg-blue-600 hover:bg-blue-500 text-white'
-    }`}
+    className={`diag-btn ${variant === 'success' ? 'diag-btn-success' : 'diag-btn-primary'}`}
   >
     {children}
   </button>
 )
 
-// Status indicator badge
-const StatusBadge: FC<{ success: boolean; label: string }> = ({ success, label }) => (
-  <span
-    className={`px-2 py-0.5 rounded text-xs font-medium ${
-      success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-    }`}
-  >
-    {success ? '●' : '○'} {label}
-  </span>
-)
-
 // Compact stat card
-const StatCard: FC<{ value: string | number; label: string; color?: string }> = ({
-  value,
-  label,
-  color = 'text-white',
-}) => (
-  <div className="bg-slate-800 rounded p-3 min-w-[100px]">
-    <div className={`text-xl font-bold ${color}`}>{value}</div>
-    <div className="text-xs text-slate-400 mt-0.5">{label}</div>
-  </div>
-)
-
-const KissTncHelp: FC = () => (
-  <div className="bg-slate-800 border-l-2 border-red-500 p-3 text-xs rounded-r">
-    <h4 className="text-slate-100 font-medium mb-1">KISS TNC Not Connected</h4>
-    <ul className="text-slate-400 list-disc pl-4 space-y-0.5">
-      <li>Direwolf TNC service is not running</li>
-      <li>Audio device configuration issue</li>
-    </ul>
-    <p className="text-slate-400 mt-2">
-      Check: <code className="bg-slate-700 px-1 rounded text-blue-400">docker compose logs -f</code>
-    </p>
-  </div>
-)
-
-const AwaitingPacketsInfo: FC = () => (
-  <div className="bg-slate-800 border-l-2 border-blue-500 p-3 text-xs rounded-r">
-    <h4 className="text-slate-100 font-medium mb-1">Listening for APRS Packets</h4>
-    <p className="text-slate-400">System ready, waiting for RF signals on 144.800 MHz.</p>
+const StatCard: FC<{
+  value: string | number
+  label: string
+  color?: 'blue' | 'green' | 'purple'
+}> = ({ value, label, color = 'blue' }) => (
+  <div className="diag-stat-card">
+    <div className={`diag-stat-value diag-stat-${color}`}>{value}</div>
+    <div className="diag-stat-label">{label}</div>
   </div>
 )
 
@@ -204,124 +166,93 @@ const PacketsTab: FC<{ packets: AprsPacket[] }> = ({ packets }) => {
   )
 }
 
+// Status indicator for inline display
+const StatusIndicator: FC<{ success: boolean; label: string }> = ({ success, label }) => (
+  <span className={`diag-status-badge ${success ? 'success' : 'error'}`}>
+    {success ? '●' : '○'} {label}
+  </span>
+)
+
 // Tab Content: Status
 interface StatusTabProps {
   connected: boolean
+  kissConnected: boolean
   stats: Stats | null
   lastPacketTime: Date | null
   statusText: string
 }
 
-const StatusTab: FC<StatusTabProps> = ({ connected, stats, lastPacketTime, statusText }) => {
-  const showKissHelp = stats !== null && !stats.kissConnected
-  const showAwaitingInfo = stats?.kissConnected && stats.totalPackets === 0
-
-  return (
-    <div className="flex-1 overflow-y-auto p-3 space-y-3">
-      <div className="bg-slate-800 rounded p-3">
-        <h4 className="text-xs font-medium text-slate-100 mb-2">Service Status</h4>
-        <div className="space-y-1.5 text-xs">
-          <div className="flex justify-between items-center py-1.5 px-2 bg-slate-900 rounded">
-            <span className="text-slate-400">WebSocket</span>
-            <StatusBadge success={connected} label={connected ? 'Connected' : 'Disconnected'} />
-          </div>
-          <div className="flex justify-between items-center py-1.5 px-2 bg-slate-900 rounded">
-            <span className="text-slate-400">KISS TNC</span>
-            <StatusBadge
-              success={stats?.kissConnected ?? false}
-              label={stats?.kissConnected ? 'Connected' : 'Disconnected'}
-            />
-          </div>
-          <div className="flex justify-between items-center py-1.5 px-2 bg-slate-900 rounded">
-            <span className="text-slate-400">Status</span>
-            <span className="text-slate-100">{statusText}</span>
-          </div>
-          {lastPacketTime && (
-            <div className="flex justify-between items-center py-1.5 px-2 bg-slate-900 rounded">
-              <span className="text-slate-400">Last Packet</span>
-              <span className="text-slate-100">{formatRelativeTime(lastPacketTime)}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {stats && (
-        <div className="bg-slate-800 rounded p-3">
-          <h4 className="text-xs font-medium text-slate-100 mb-2">Statistics</h4>
-          <div className="grid grid-cols-4 gap-2">
-            <div className="bg-slate-900 rounded p-2 text-center">
-              <div className="text-lg font-bold text-blue-400">{stats.totalStations}</div>
-              <div className="text-xs text-slate-400">Stations</div>
-            </div>
-            <div className="bg-slate-900 rounded p-2 text-center">
-              <div className="text-lg font-bold text-green-400">{stats.stationsWithPosition}</div>
-              <div className="text-xs text-slate-400">With Pos</div>
-            </div>
-            <div className="bg-slate-900 rounded p-2 text-center">
-              <div className="text-lg font-bold text-purple-400">{stats.totalPackets}</div>
-              <div className="text-xs text-slate-400">Packets</div>
-            </div>
-            <div className="bg-slate-900 rounded p-2 text-center">
-              <div className="text-lg font-bold text-orange-400">144.8</div>
-              <div className="text-xs text-slate-400">MHz</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showKissHelp && <KissTncHelp />}
-      {showAwaitingInfo && <AwaitingPacketsInfo />}
+const StatusTab: FC<StatusTabProps> = ({
+  connected,
+  kissConnected,
+  stats,
+  lastPacketTime,
+  statusText,
+}) => (
+  <div className="diag-status-content">
+    <div className="diag-status-row">
+      <span className="diag-status-label">WebSocket</span>
+      <StatusIndicator success={connected} label={connected ? 'Connected' : 'Disconnected'} />
     </div>
-  )
-}
+    <div className="diag-status-row">
+      <span className="diag-status-label">KISS TNC</span>
+      <StatusIndicator
+        success={kissConnected}
+        label={kissConnected ? 'Connected' : 'Disconnected'}
+      />
+    </div>
+    <div className="diag-status-row">
+      <span className="diag-status-label">Status</span>
+      <span className="diag-status-value">{statusText}</span>
+    </div>
+    {lastPacketTime && (
+      <div className="diag-status-row">
+        <span className="diag-status-label">Last Packet</span>
+        <span className="diag-status-value">{formatRelativeTime(lastPacketTime)}</span>
+      </div>
+    )}
+    {stats && (
+      <>
+        <div className="diag-status-divider" />
+        <div className="diag-status-row">
+          <span className="diag-status-label">Stations</span>
+          <span className="diag-status-value diag-status-blue">{stats.totalStations}</span>
+        </div>
+        <div className="diag-status-row">
+          <span className="diag-status-label">With Position</span>
+          <span className="diag-status-value diag-status-green">{stats.stationsWithPosition}</span>
+        </div>
+        <div className="diag-status-row">
+          <span className="diag-status-label">Packets</span>
+          <span className="diag-status-value diag-status-purple">{stats.totalPackets}</span>
+        </div>
+      </>
+    )}
+  </div>
+)
+
+// About info item component
+const AboutItem: FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="diag-about-item">
+    <span className="diag-about-label">{label}</span>
+    <span className="diag-about-value">{value}</span>
+  </div>
+)
 
 // Tab Content: About
 const AboutTab: FC = () => {
   const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? new Date(__BUILD_TIME__) : null
 
   return (
-    <div className="flex-1 overflow-y-auto p-3 space-y-3">
-      <div className="bg-slate-800 rounded p-3">
-        <h4 className="text-xs font-medium text-slate-100 mb-2">APRS Station Map</h4>
-        <div className="space-y-1 text-xs">
-          <div className="flex justify-between py-1 border-b border-slate-700">
-            <span className="text-slate-400">Version</span>
-            <span className="text-slate-100 font-mono">{CLIENT_VERSION}</span>
-          </div>
-          {buildTime && (
-            <div className="flex justify-between py-1 border-b border-slate-700">
-              <span className="text-slate-400">Build Time</span>
-              <span className="text-slate-100 font-mono">{buildTime.toLocaleString()}</span>
-            </div>
-          )}
-          <div className="flex justify-between py-1 border-b border-slate-700">
-            <span className="text-slate-400">Frequency</span>
-            <span className="text-slate-100 font-mono">144.800 MHz</span>
-          </div>
-          <div className="flex justify-between py-1">
-            <span className="text-slate-400">Protocol</span>
-            <span className="text-slate-100 font-mono">APRS (AX.25)</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-slate-800 rounded p-3">
-        <h4 className="text-xs font-medium text-slate-100 mb-2">Components</h4>
-        <div className="space-y-1 text-xs">
-          <div className="flex justify-between py-1 border-b border-slate-700">
-            <span className="text-slate-400">TNC</span>
-            <span className="text-slate-100">Direwolf</span>
-          </div>
-          <div className="flex justify-between py-1 border-b border-slate-700">
-            <span className="text-slate-400">Frontend</span>
-            <span className="text-slate-100">React + Leaflet</span>
-          </div>
-          <div className="flex justify-between py-1">
-            <span className="text-slate-400">Backend</span>
-            <span className="text-slate-100">Node.js + WebSocket</span>
-          </div>
-        </div>
-      </div>
+    <div className="diag-about-content">
+      <AboutItem label="Version" value={CLIENT_VERSION} />
+      {buildTime && <AboutItem label="Built" value={buildTime.toLocaleString()} />}
+      <AboutItem label="Frequency" value="144.800 MHz" />
+      <AboutItem label="Protocol" value="APRS (AX.25)" />
+      <div className="diag-about-divider" />
+      <AboutItem label="TNC" value="Direwolf" />
+      <AboutItem label="Frontend" value="React + Leaflet" />
+      <AboutItem label="Backend" value="Node.js + WebSocket" />
     </div>
   )
 }
@@ -339,35 +270,31 @@ const StatsTab: FC<StatsTabProps> = ({ stations, loading, error, lastUpdated, on
   const { total, avgDistance, furthest } = getStationStats(stations)
 
   return (
-    <div className="flex-1 overflow-y-auto p-3">
-      <div className="flex gap-2 flex-wrap mb-3">
-        <StatCard value={total} label="Stations" color="text-blue-400" />
+    <div className="diag-stats-content">
+      <div className="diag-stats-cards">
+        <StatCard value={total} label="Stations" color="blue" />
         {total > 0 && (
           <>
-            <StatCard
-              value={formatDistance(avgDistance)}
-              label="Avg Distance"
-              color="text-green-400"
-            />
+            <StatCard value={formatDistance(avgDistance)} label="Avg Distance" color="green" />
             {furthest && furthest.distance != null && (
               <StatCard
                 value={furthest.callsign}
                 label={`Furthest (${formatDistance(furthest.distance)})`}
-                color="text-purple-400"
+                color="purple"
               />
             )}
           </>
         )}
       </div>
 
-      <div className="flex items-center gap-2 text-xs">
+      <div className="diag-stats-actions">
         <ActionButton onClick={onRefresh} disabled={loading}>
           {loading ? 'Loading...' : 'Refresh'}
         </ActionButton>
         {lastUpdated && (
-          <span className="text-slate-400">Updated {formatRelativeTime(lastUpdated)}</span>
+          <span className="diag-stats-updated">Updated {formatRelativeTime(lastUpdated)}</span>
         )}
-        {error && <span className="text-red-400">{error}</span>}
+        {error && <span className="diag-stats-error">{error}</span>}
       </div>
     </div>
   )
@@ -378,9 +305,11 @@ interface DiagnosticsPanelProps {
   packets: AprsPacket[]
   stats: Stats | null
   connected: boolean
+  kissConnected: boolean
   isOpen: boolean
   onToggle: () => void
   stations: Station[]
+  totalStations: number
   loading: boolean
   error: string | null
   lastUpdated: Date | null
@@ -391,20 +320,21 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
   packets,
   stats,
   connected,
+  kissConnected,
   isOpen,
   onToggle,
   stations,
+  totalStations,
   loading,
   error,
   lastUpdated,
   onRefresh,
 }) => {
+  const dispatch = useAppDispatch()
+  const activeTab = useAppSelector((state) => state.ui.activeTab)
+  const panelHeight = useAppSelector((state) => state.ui.diagnosticsHeight)
+
   const [lastPacketTime, setLastPacketTime] = useState<Date | null>(null)
-  const [activeTab, setActiveTab] = useState<TabId>('stats')
-  const [panelHeight, setPanelHeight] = useState(() => {
-    const saved = localStorage.getItem(PANEL_HEIGHT_KEY)
-    return saved ? Number.parseInt(saved, 10) : DEFAULT_HEIGHT
-  })
   const [isResizing, setIsResizing] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -417,6 +347,13 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
     }
   }, [packets])
 
+  const handleTabChange = useCallback(
+    (tabId: TabId) => {
+      dispatch(setActiveTab(tabId))
+    },
+    [dispatch]
+  )
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     setIsResizing(true)
@@ -428,13 +365,13 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
     const handleMouseMove = (e: MouseEvent) => {
       const windowHeight = window.innerHeight
       const newHeight = windowHeight - e.clientY
-      const clampedHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, newHeight))
-      setPanelHeight(clampedHeight)
+      const constraints = TAB_HEIGHT_CONSTRAINTS[activeTab]
+      const clampedHeight = Math.min(constraints.max, Math.max(constraints.min, newHeight))
+      dispatch(setDiagnosticsHeight(clampedHeight))
     }
 
     const handleMouseUp = () => {
       setIsResizing(false)
-      localStorage.setItem(PANEL_HEIGHT_KEY, panelHeight.toString())
     }
 
     document.addEventListener('mousemove', handleMouseMove)
@@ -444,17 +381,17 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [isResizing, panelHeight])
+  }, [isResizing, dispatch, activeTab])
 
   const getStatusIndicator = () => {
     if (!connected) return '🔴'
-    if (stats !== null && !stats.kissConnected) return '🟡'
+    if (!kissConnected) return '🟡'
     return '🟢'
   }
 
   const getStatusText = () => {
     if (!connected) return 'Disconnected'
-    if (stats !== null && !stats.kissConnected) return 'TNC Disconnected'
+    if (!kissConnected) return 'TNC Disconnected'
     if (stats === null) return 'Connecting...'
     if (packets.length === 0) return 'Awaiting Packets'
     return `Receiving (${packets.length})`
@@ -478,48 +415,51 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
       {/* Resize handle */}
       {isOpen && (
         // biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only
-        <div
-          className="h-1 bg-slate-700 hover:bg-blue-500 cursor-ns-resize transition-colors shrink-0"
-          onMouseDown={handleMouseDown}
-        />
+        <div className="diagnostics-resize-handle" onMouseDown={handleMouseDown} />
       )}
 
-      {/* Header bar with toggle */}
-      <div className="flex items-center justify-between px-3 h-9 min-h-[36px] bg-slate-800 border-b border-slate-700 shrink-0">
-        <button type="button" onClick={onToggle} className="flex items-center gap-2 text-xs">
-          <span>{getStatusIndicator()}</span>
-          <span className="font-medium text-slate-100">Diagnostics</span>
-          <span className="text-slate-500">|</span>
-          <span className="text-slate-400">{getStatusText()}</span>
-        </button>
-        <button
-          type="button"
-          onClick={onToggle}
-          className="px-2 py-0.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
-        >
-          {isOpen ? '▼' : '▲'}
-        </button>
+      {/* Combined header + tab bar */}
+      <div className="diag-header-bar">
+        <span className="diag-status-indicator">{getStatusIndicator()}</span>
+        {isOpen ? (
+          <>
+            <div role="tablist" className="diag-tabs">
+              {tabs.map((tab) => (
+                <Tab
+                  key={tab.id}
+                  label={tab.label}
+                  active={activeTab === tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                />
+              ))}
+            </div>
+            <div className="diag-header-right">
+              <span className="diag-station-count">
+                {stations.length}/{totalStations}
+              </span>
+              <button type="button" onClick={onToggle} className="diag-collapse-btn">
+                ▼
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="diag-collapsed-title">Diagnostics</span>
+            <span className="diag-collapsed-status">{getStatusText()}</span>
+            <span className="diag-station-count">
+              {stations.length}/{totalStations}
+            </span>
+            <button type="button" onClick={onToggle} className="diag-collapse-btn">
+              ▲
+            </button>
+          </>
+        )}
       </div>
 
       {isOpen && (
         <>
-          {/* Tab bar */}
-          <div
-            role="tablist"
-            className="flex gap-1 border-b border-slate-700 bg-slate-800 px-2 pt-1 shrink-0"
-          >
-            {tabs.map((tab) => (
-              <Tab
-                key={tab.id}
-                label={tab.label}
-                active={activeTab === tab.id}
-                onClick={() => setActiveTab(tab.id)}
-              />
-            ))}
-          </div>
-
           {/* Tab content */}
-          <div role="tabpanel" className="flex-1 flex flex-col overflow-hidden bg-slate-900">
+          <div role="tabpanel" className="diag-content">
             {activeTab === 'stats' && (
               <StatsTab
                 stations={stations}
@@ -538,6 +478,7 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
             {activeTab === 'status' && (
               <StatusTab
                 connected={connected}
+                kissConnected={kissConnected}
                 stats={stats}
                 lastPacketTime={lastPacketTime}
                 statusText={getStatusText()}

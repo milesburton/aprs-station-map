@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Polyline } from 'react-leaflet'
 import type { AprsPacket } from '../types'
 
@@ -8,25 +8,15 @@ interface StationTrailProps {
   maxAgeHours?: number
 }
 
-const getTrailColor = (ageRatio: number): string => {
-  const r = Math.round(34 + (239 - 34) * ageRatio)
-  const g = Math.round(197 + (68 - 197) * ageRatio)
-  const b = Math.round(94 + (68 - 94) * ageRatio)
-  return `rgb(${r}, ${g}, ${b})`
-}
+// Trail color: green (recent) to red (old)
+const TRAIL_COLOR = '#22c55e'
 
-export const StationTrail: FC<StationTrailProps> = ({ history, maxAgeHours = 24 }) => {
-  const trailSegments = useMemo(() => {
+const StationTrailInner: FC<StationTrailProps> = ({ history, maxAgeHours = 24 }) => {
+  const trailData = useMemo(() => {
     const positionPackets = history.filter((p) => p.position)
 
     if (positionPackets.length < 2) {
-      console.log(
-        '[Trail] Not enough position packets:',
-        positionPackets.length,
-        'maxAge:',
-        maxAgeHours
-      )
-      return []
+      return null
     }
 
     let recentPackets = positionPackets
@@ -40,72 +30,44 @@ export const StationTrail: FC<StationTrailProps> = ({ history, maxAgeHours = 24 
     }
 
     if (recentPackets.length < 2) {
-      console.log('[Trail] Not enough recent packets after filtering:', recentPackets.length)
-      return []
+      return null
     }
 
     const sorted = [...recentPackets].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     )
 
-    const first = sorted[0]
-    const last = sorted[sorted.length - 1]
-    if (!first || !last) return []
-
-    const oldestTime = new Date(first.timestamp).getTime()
-    const newestTime = new Date(last.timestamp).getTime()
-    const timeRange = newestTime - oldestTime
-
-    const segments: Array<{
-      positions: [number, number][]
-      color: string
-      opacity: number
-    }> = []
-
-    for (let i = 0; i < sorted.length - 1; i++) {
-      const current = sorted[i]
-      const next = sorted[i + 1]
-
-      if (!current?.position || !next?.position) continue
-
-      const currentTime = new Date(current.timestamp).getTime()
-      const ageRatio = timeRange > 0 ? (newestTime - currentTime) / timeRange : 0
-      const opacity = 0.4 + (1 - ageRatio) * 0.4
-
-      segments.push({
-        positions: [
-          [current.position.latitude, current.position.longitude],
-          [next.position.latitude, next.position.longitude],
-        ],
-        color: getTrailColor(ageRatio),
-        opacity,
-      })
+    // Build single array of positions for one polyline
+    const positions: [number, number][] = []
+    for (const packet of sorted) {
+      if (packet.position) {
+        positions.push([packet.position.latitude, packet.position.longitude])
+      }
     }
 
-    console.log('[Trail] Generated', segments.length, 'trail segments')
-    return segments
+    return positions.length >= 2 ? positions : null
   }, [history, maxAgeHours])
 
-  return (
-    <>
-      {trailSegments.map((segment) => {
-        const pos1 = segment.positions[0]
-        const pos2 = segment.positions[1]
-        if (!pos1 || !pos2) return null
+  if (!trailData) return null
 
-        const key = `${pos1[0]}-${pos1[1]}-${pos2[0]}-${pos2[1]}`
-        return (
-          <Polyline
-            key={key}
-            positions={segment.positions}
-            pathOptions={{
-              color: segment.color,
-              weight: 3,
-              opacity: segment.opacity,
-            }}
-          />
-        )
-      })}
-    </>
+  return (
+    <Polyline
+      positions={trailData}
+      pathOptions={{
+        color: TRAIL_COLOR,
+        weight: 3,
+        opacity: 0.7,
+      }}
+    />
   )
 }
+
+export const StationTrail = memo(StationTrailInner, (prevProps, nextProps) => {
+  if (prevProps.maxAgeHours !== nextProps.maxAgeHours) return false
+  if (prevProps.history.length !== nextProps.history.length) return false
+  // Check if the last packet changed (most common update)
+  const prevLast = prevProps.history[prevProps.history.length - 1]
+  const nextLast = nextProps.history[nextProps.history.length - 1]
+  if (prevLast?.timestamp !== nextLast?.timestamp) return false
+  return true
+})

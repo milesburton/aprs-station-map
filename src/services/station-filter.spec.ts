@@ -25,6 +25,7 @@ const defaultFilter: FilterState = {
   trailMaxAgeHours: 24,
   stationMaxAgeHours: 24,
   rfOnly: false,
+  directOnly: false,
 }
 
 describe('station filtering', () => {
@@ -136,6 +137,43 @@ describe('station filtering', () => {
       const result = filterStations(stationsWithGateways, filter)
       expect(result).toHaveLength(1)
       expect(result[0]?.callsign).toBe('RF-ONLY')
+    })
+
+    test('filters direct-only stations (no digipeaters)', () => {
+      const stationsWithVia = [
+        createStation({ callsign: 'DIRECT', via: [] }),
+        createStation({ callsign: 'DIRECT-NO-VIA' }), // no via field
+        createStation({ callsign: 'DIGIPEATED', via: ['MB7USE', 'WIDE1-1'] }),
+        createStation({ callsign: 'INET-GATED', via: ['TCPIP', 'qAR'] }),
+      ]
+      const filter = { ...defaultFilter, directOnly: true }
+      const result = filterStations(stationsWithVia, filter)
+      expect(result).toHaveLength(2)
+      expect(result.map((s) => s.callsign)).toContain('DIRECT')
+      expect(result.map((s) => s.callsign)).toContain('DIRECT-NO-VIA')
+    })
+
+    test('includes digipeated stations when directOnly is false', () => {
+      const stationsWithVia = [
+        createStation({ callsign: 'DIRECT', via: [] }),
+        createStation({ callsign: 'DIGIPEATED', via: ['MB7USE'] }),
+      ]
+      const filter = { ...defaultFilter, directOnly: false }
+      const result = filterStations(stationsWithVia, filter)
+      expect(result).toHaveLength(2)
+    })
+
+    test('combines rfOnly and directOnly filters', () => {
+      const stationsWithVia = [
+        createStation({ callsign: 'DIRECT-RF', via: [] }),
+        createStation({ callsign: 'DIGI-RF', via: ['WIDE1-1'] }),
+        createStation({ callsign: 'INET-GATED', via: ['qAR'] }),
+      ]
+      // rfOnly=true, directOnly=true: only direct RF stations
+      const filter = { ...defaultFilter, rfOnly: true, directOnly: true }
+      const result = filterStations(stationsWithVia, filter)
+      expect(result).toHaveLength(1)
+      expect(result[0]?.callsign).toBe('DIRECT-RF')
     })
   })
 

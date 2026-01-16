@@ -14,6 +14,7 @@ interface FilterPanelProps {
   onTrailAgeChange: (hours: number) => void
   onStationAgeChange: (hours: number) => void
   onRfOnlyChange: (rfOnly: boolean) => void
+  onDirectOnlyChange: (directOnly: boolean) => void
   onReset: () => void
 }
 
@@ -38,6 +39,7 @@ export const FilterPanel: FC<FilterPanelProps> = ({
   onTrailAgeChange,
   onStationAgeChange,
   onRfOnlyChange,
+  onDirectOnlyChange,
   onReset,
 }) => {
   const handleSortClick = (field: SortField) => {
@@ -135,6 +137,17 @@ export const FilterPanel: FC<FilterPanelProps> = ({
             onChange={(e) => onRfOnlyChange(e.target.checked)}
           />
           RF only (hide internet-gated)
+        </label>
+      </div>
+
+      <div className="filter-row">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={filter.directOnly}
+            onChange={(e) => onDirectOnlyChange(e.target.checked)}
+          />
+          Direct only (hide digipeated)
         </label>
       </div>
 

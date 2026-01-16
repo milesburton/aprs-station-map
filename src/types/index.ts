@@ -43,6 +43,7 @@ export interface FilterState {
   trailMaxAgeHours: number
   stationMaxAgeHours: number
   rfOnly: boolean
+  directOnly: boolean
 }
 
 export type SortField = 'callsign' | 'distance' | 'lastHeard'
@@ -52,6 +53,7 @@ export interface MapState {
   centre: Coordinates
   zoom: number
   selectedStation: string | null
+  followedStation: string | null
 }
 
 export interface AppConfig {

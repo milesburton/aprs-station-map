@@ -4,17 +4,39 @@ export const CLIENT_VERSION = packageJson.version
 
 export interface VersionInfo {
   version: string
-  buildDate: string
+  commit: string
+  branch: string
+  buildTime: string
 }
+
+// Store the initial build time when the app loads
+let initialBuildTime: string | null = null
 
 export const checkVersion = async (): Promise<boolean> => {
   try {
-    const response = await fetch('/api/version')
+    // Add cache-busting query param to avoid browser caching
+    const response = await fetch(`/version.json?t=${Date.now()}`)
+    if (!response.ok) return true // Assume match if fetch fails
+
     const serverVersion: VersionInfo = await response.json()
 
-    console.log(`[Version] Client: ${CLIENT_VERSION}, Server: ${serverVersion.version}`)
+    // On first check, store the build time
+    if (initialBuildTime === null) {
+      initialBuildTime = serverVersion.buildTime
+      console.log(`[Version] Initial build time: ${initialBuildTime}`)
+      return true
+    }
 
-    return CLIENT_VERSION === serverVersion.version
+    // Compare build times - if server has newer build, reload
+    const hasNewVersion = serverVersion.buildTime !== initialBuildTime
+
+    if (hasNewVersion) {
+      console.log(
+        `[Version] New version detected! Old: ${initialBuildTime}, New: ${serverVersion.buildTime}`
+      )
+    }
+
+    return !hasNewVersion
   } catch (error) {
     console.error('[Version] Failed to check version:', error)
     return true // Assume versions match if check fails
@@ -25,16 +47,15 @@ export const setupVersionCheck = (intervalMs = 30000): (() => void) => {
   const checkAndReload = async () => {
     const versionsMatch = await checkVersion()
     if (!versionsMatch) {
-      console.log('[Version] New version detected, reloading...')
-      // Show a notification before reloading
-      if (confirm('A new version is available. Reload to update?')) {
-        window.location.reload()
-      }
+      console.log('[Version] Reloading to get new version...')
+      window.location.reload()
     }
   }
 
-  // Don't check immediately on mount - wait for interval
-  // This prevents reload loops
+  // Check immediately to capture the initial build time
+  checkVersion()
+
+  // Then check periodically
   const intervalId = setInterval(checkAndReload, intervalMs)
 
   // Return cleanup function

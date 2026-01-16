@@ -8,6 +8,7 @@ describe('URL state management', () => {
     centre: DEFAULT_CONFIG.stationLocation,
     zoom: DEFAULT_CONFIG.defaultZoom,
     selectedStation: null,
+    followedStation: null,
   }
 
   describe('encodeUrlState', () => {
@@ -40,6 +41,7 @@ describe('URL state management', () => {
         centre: { latitude: 52.1234, longitude: -1.5678 },
         zoom: 12,
         selectedStation: null,
+        followedStation: null,
       }
       const encoded = encodeUrlState(DEFAULT_FILTER_STATE, mapState)
       expect(encoded).toContain('lat=52.1234')

@@ -1,5 +1,8 @@
 import type { FC } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import { setSpectrumPoppedOut } from '../store/slices/uiSlice'
+import { WindowPortal } from './WindowPortal'
 
 interface SpectrumData {
   frequencies: number[]
@@ -151,7 +154,14 @@ const addWaterfallLine = (imageData: ImageData, width: number, magnitudes: numbe
   }
 }
 
-export const SpectrumAnalyzer: FC = () => {
+// Inner content component that can be rendered in main window or popout
+interface SpectrumContentProps {
+  isPoppedOut: boolean
+  onPopout?: () => void
+  onPopIn?: () => void
+}
+
+const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPopIn }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const waterfallCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -159,40 +169,44 @@ export const SpectrumAnalyzer: FC = () => {
   const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 800, height: 200 })
   const waterfallDataRef = useRef<ImageData | null>(null)
 
+  // Track previous size to detect significant changes
+  const prevSizeRef = useRef<CanvasSize>({ width: 800, height: 200 })
+
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
-    const resizeObserver = new ResizeObserver((entries) => {
+    const handleResize = (entries: ResizeObserverEntry[]) => {
       const entry = entries[0]
-      if (entry) {
-        const containerWidth = Math.floor(entry.contentRect.width)
-        const containerHeight = Math.floor(entry.contentRect.height)
-        if (containerWidth > 0 && containerHeight > 0) {
-          const panelWidth = Math.floor((containerWidth - 24) / 2)
-          const panelHeight = Math.max(300, containerHeight - 80)
-          const newSize = { width: panelWidth, height: panelHeight }
+      if (!entry) return
 
-          // Only reset waterfall if size actually changed significantly
-          if (
-            Math.abs(canvasSize.width - newSize.width) > 10 ||
-            Math.abs(canvasSize.height - newSize.height) > 10
-          ) {
-            setCanvasSize(newSize)
-            waterfallDataRef.current = null
-            // Clear global history on significant resize
-            waterfallHistory.data = null
-          } else if (canvasSize.width === 800 && canvasSize.height === 200) {
-            // Initial size, update it
-            setCanvasSize(newSize)
-          }
+      const containerWidth = Math.floor(entry.contentRect.width)
+      const containerHeight = Math.floor(entry.contentRect.height)
+      if (containerWidth <= 0 || containerHeight <= 0) return
+
+      const panelWidth = Math.floor((containerWidth - 24) / 2)
+      const panelHeight = Math.max(300, containerHeight - 80)
+      const newSize = { width: panelWidth, height: panelHeight }
+      const prev = prevSizeRef.current
+
+      const significantChange =
+        Math.abs(prev.width - newSize.width) > 10 || Math.abs(prev.height - newSize.height) > 10
+      const isInitialSize = prev.width === 800 && prev.height === 200
+
+      if (significantChange || isInitialSize) {
+        prevSizeRef.current = newSize
+        setCanvasSize(newSize)
+        if (significantChange) {
+          waterfallDataRef.current = null
+          waterfallHistory.data = null
         }
       }
-    })
+    }
 
+    const resizeObserver = new ResizeObserver(handleResize)
     resizeObserver.observe(container)
     return () => resizeObserver.disconnect()
-  }, [canvasSize.width, canvasSize.height])
+  }, [])
 
   const drawSpectrum = useCallback((data: SpectrumData) => {
     const canvas = canvasRef.current
@@ -267,8 +281,7 @@ export const SpectrumAnalyzer: FC = () => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const width = canvas.width
-    const height = canvas.height
+    const { width, height } = canvasSize
 
     // Restore from global history if available and dimensions match
     if (
@@ -325,12 +338,33 @@ export const SpectrumAnalyzer: FC = () => {
   return (
     <div className="flex flex-col h-full" ref={containerRef}>
       <div className="flex justify-between items-center mb-4">
-        <h4 className="text-lg font-semibold text-slate-100">📡 Spectrum Analyzer</h4>
-        <span
-          className={`px-3 py-1 rounded-md text-sm font-semibold ${connected ? 'bg-green-500 text-slate-900' : 'bg-red-500 text-slate-900'}`}
-        >
-          {connected ? '⚡ Live' : '❌ Disconnected'}
-        </span>
+        <h4 className="text-lg font-semibold text-slate-100">Spectrum Analyzer</h4>
+        <div className="flex items-center gap-2">
+          <span
+            className={`px-3 py-1 rounded-md text-sm font-semibold ${connected ? 'bg-green-500 text-slate-900' : 'bg-red-500 text-slate-900'}`}
+          >
+            {connected ? 'Live' : 'Disconnected'}
+          </span>
+          {isPoppedOut ? (
+            <button
+              type="button"
+              onClick={onPopIn}
+              className="px-3 py-1 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
+              title="Return to main window"
+            >
+              Pop In
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onPopout}
+              className="px-3 py-1 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
+              title="Open in new window"
+            >
+              Pop Out
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-6 flex-1 min-h-0">
@@ -365,4 +399,46 @@ export const SpectrumAnalyzer: FC = () => {
       )}
     </div>
   )
+}
+
+// Main exported component that handles the popout state
+export const SpectrumAnalyzer: FC = () => {
+  const dispatch = useAppDispatch()
+  const isPoppedOut = useAppSelector((state) => state.ui.spectrumPoppedOut)
+
+  const handlePopout = useCallback(() => {
+    dispatch(setSpectrumPoppedOut(true))
+  }, [dispatch])
+
+  const handlePopIn = useCallback(() => {
+    dispatch(setSpectrumPoppedOut(false))
+  }, [dispatch])
+
+  // When popped out, show a placeholder in the main panel
+  if (isPoppedOut) {
+    return (
+      <>
+        <div className="flex flex-col h-full items-center justify-center text-slate-400">
+          <p className="text-lg mb-4">Spectrum Analyzer is open in a separate window</p>
+          <button
+            type="button"
+            onClick={handlePopIn}
+            className="px-4 py-2 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
+          >
+            Return to Main Window
+          </button>
+        </div>
+        <WindowPortal
+          title="APRS Spectrum Analyzer"
+          width={1200}
+          height={600}
+          onClose={handlePopIn}
+        >
+          <SpectrumContent isPoppedOut onPopIn={handlePopIn} />
+        </WindowPortal>
+      </>
+    )
+  }
+
+  return <SpectrumContent isPoppedOut={false} onPopout={handlePopout} />
 }

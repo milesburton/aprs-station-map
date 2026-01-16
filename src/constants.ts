@@ -23,6 +23,7 @@ export const DEFAULT_FILTER_STATE: FilterState = {
   trailMaxAgeHours: 24,
   stationMaxAgeHours: 24,
   rfOnly: true,
+  directOnly: false,
 }
 
 export const EARTH_RADIUS_KM = 6371
@@ -90,6 +91,25 @@ export const APRS_SYMBOLS: Record<string, AprsSymbolInfo> = {
   '\\': { name: 'Triangle', emoji: '▲', color: '#757575', category: 'other' },
   '[': { name: 'Human', emoji: '🚶', color: '#8D6E63', category: 'other' },
   ';': { name: 'Person', emoji: '👤', color: '#A1887F', category: 'other' },
+
+  // Numbered overlay symbols (0-9) - typically portable/mobile stations
+  '0': { name: 'Circle 0', emoji: '⓪', color: '#607D8B', category: 'other' },
+  '1': { name: 'Circle 1', emoji: '①', color: '#607D8B', category: 'other' },
+  '2': { name: 'Circle 2', emoji: '②', color: '#607D8B', category: 'other' },
+  '3': { name: 'Circle 3', emoji: '③', color: '#607D8B', category: 'other' },
+  '4': { name: 'Circle 4', emoji: '④', color: '#607D8B', category: 'other' },
+  '5': { name: 'Circle 5', emoji: '⑤', color: '#607D8B', category: 'other' },
+  '6': { name: 'Circle 6', emoji: '⑥', color: '#607D8B', category: 'other' },
+  '7': { name: 'Circle 7', emoji: '⑦', color: '#607D8B', category: 'other' },
+  '8': { name: 'Circle 8', emoji: '⑧', color: '#607D8B', category: 'other' },
+  '9': { name: 'Circle 9', emoji: '⑨', color: '#607D8B', category: 'other' },
+
+  // Additional common symbols
+  '=': { name: 'Train', emoji: '🚆', color: '#795548', category: 'vehicle' },
+  l: { name: 'Laptop', emoji: '💻', color: '#607D8B', category: 'infrastructure' },
+  y: { name: 'House (Yagi)', emoji: '🏠', color: '#8BC34A', category: 'infrastructure' },
+  '*': { name: 'Star', emoji: '⭐', color: '#FFC107', category: 'other' },
+  '.': { name: 'Reserved', emoji: '·', color: '#9E9E9E', category: 'other' },
 }
 
 export const MAP_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'

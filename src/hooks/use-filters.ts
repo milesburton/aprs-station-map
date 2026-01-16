@@ -1,22 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { DEFAULT_FILTER_STATE } from '../constants'
+import { useCallback, useMemo } from 'react'
 import { filterStations } from '../services'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import {
+  resetFilters as resetFiltersAction,
+  setDirectOnly as setDirectOnlyAction,
+  setMaxDistance as setMaxDistanceAction,
+  setRfOnly as setRfOnlyAction,
+  setSearch as setSearchAction,
+  setSort as setSortAction,
+  setStationMaxAge as setStationMaxAgeAction,
+  setSymbolFilter as setSymbolFilterAction,
+  setTrailMaxAge as setTrailMaxAgeAction,
+} from '../store/slices/filterSlice'
 import type { FilterState, SortDirection, SortField, Station } from '../types'
-
-const FILTER_STORAGE_KEY = 'aprs-filter-state'
-
-const loadFilterState = (): FilterState => {
-  try {
-    const saved = localStorage.getItem(FILTER_STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved) as Partial<FilterState>
-      return { ...DEFAULT_FILTER_STATE, ...parsed }
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return DEFAULT_FILTER_STATE
-}
 
 interface UseFiltersResult {
   filter: FilterState
@@ -28,51 +24,51 @@ interface UseFiltersResult {
   setTrailMaxAge: (hours: number) => void
   setStationMaxAge: (hours: number) => void
   setRfOnly: (rfOnly: boolean) => void
+  setDirectOnly: (directOnly: boolean) => void
   resetFilters: () => void
 }
 
 export const useFilters = (stations: Station[]): UseFiltersResult => {
-  const [filter, setFilter] = useState<FilterState>(loadFilterState)
+  const dispatch = useAppDispatch()
+  const filter = useAppSelector((state) => state.filters)
 
   const filteredStations = useMemo(() => filterStations(stations, filter), [stations, filter])
 
-  // Persist filter state to localStorage (exclude search to avoid stale queries)
-  useEffect(() => {
-    const { search: _, ...filterToSave } = filter
-    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filterToSave))
-  }, [filter])
-
-  const setSearch = useCallback((search: string) => setFilter((prev) => ({ ...prev, search })), [])
+  const setSearch = useCallback((search: string) => dispatch(setSearchAction(search)), [dispatch])
 
   const setMaxDistance = useCallback(
-    (maxDistance: number) => setFilter((prev) => ({ ...prev, maxDistance })),
-    []
+    (maxDistance: number) => dispatch(setMaxDistanceAction(maxDistance)),
+    [dispatch]
   )
 
   const setSymbolFilter = useCallback(
-    (symbolFilter: string | null) => setFilter((prev) => ({ ...prev, symbolFilter })),
-    []
+    (symbolFilter: string | null) => dispatch(setSymbolFilterAction(symbolFilter)),
+    [dispatch]
   )
 
   const setSort = useCallback(
-    (sortBy: SortField, sortDirection: SortDirection) =>
-      setFilter((prev) => ({ ...prev, sortBy, sortDirection })),
-    []
+    (field: SortField, direction: SortDirection) => dispatch(setSortAction({ field, direction })),
+    [dispatch]
   )
 
   const setTrailMaxAge = useCallback(
-    (trailMaxAgeHours: number) => setFilter((prev) => ({ ...prev, trailMaxAgeHours })),
-    []
+    (hours: number) => dispatch(setTrailMaxAgeAction(hours)),
+    [dispatch]
   )
 
   const setStationMaxAge = useCallback(
-    (stationMaxAgeHours: number) => setFilter((prev) => ({ ...prev, stationMaxAgeHours })),
-    []
+    (hours: number) => dispatch(setStationMaxAgeAction(hours)),
+    [dispatch]
   )
 
-  const setRfOnly = useCallback((rfOnly: boolean) => setFilter((prev) => ({ ...prev, rfOnly })), [])
+  const setRfOnly = useCallback((rfOnly: boolean) => dispatch(setRfOnlyAction(rfOnly)), [dispatch])
 
-  const resetFilters = useCallback(() => setFilter(DEFAULT_FILTER_STATE), [])
+  const setDirectOnly = useCallback(
+    (directOnly: boolean) => dispatch(setDirectOnlyAction(directOnly)),
+    [dispatch]
+  )
+
+  const resetFilters = useCallback(() => dispatch(resetFiltersAction()), [dispatch])
 
   return {
     filter,
@@ -84,6 +80,7 @@ export const useFilters = (stations: Station[]): UseFiltersResult => {
     setTrailMaxAge,
     setStationMaxAge,
     setRfOnly,
+    setDirectOnly,
     resetFilters,
   }
 }

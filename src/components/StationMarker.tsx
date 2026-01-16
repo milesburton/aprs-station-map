@@ -1,6 +1,6 @@
 import L from 'leaflet'
 import type { FC } from 'react'
-import { memo, useEffect, useRef } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import { Marker, Popup } from 'react-leaflet'
 import { APRS_SYMBOLS } from '../constants'
 import type { AprsPacket, Station } from '../types'
@@ -10,32 +10,45 @@ import { StationTrail } from './StationTrail'
 interface StationMarkerProps {
   station: Station
   isSelected: boolean
+  isFollowed: boolean
   onSelect: (callsign: string) => void
+  onFollow: (callsign: string | null) => void
   history: AprsPacket[]
   trailMaxAgeHours: number
 }
 
-const createIcon = (symbol: string, isSelected: boolean): L.DivIcon => {
+// Cache for memoized icons - keyed by symbol+selected+followed
+const iconCache = new Map<string, L.DivIcon>()
+
+const getOrCreateIcon = (symbol: string, isSelected: boolean, isFollowed: boolean): L.DivIcon => {
+  const cacheKey = `${symbol}-${isSelected}-${isFollowed}`
+  const cached = iconCache.get(cacheKey)
+  if (cached) return cached
+
   const symbolInfo = APRS_SYMBOLS[symbol] ?? {
     name: 'Unknown',
-    emoji: symbol,
+    emoji: '📍',
     color: '#757575',
     category: 'other' as const,
   }
 
   const backgroundColor = isSelected ? symbolInfo.color : `${symbolInfo.color}dd`
-  const borderColor = isSelected ? '#ffffff' : symbolInfo.color
+  const borderColor = isFollowed ? '#22c55e' : isSelected ? '#ffffff' : symbolInfo.color
+  const borderWidth = isFollowed ? '3px' : '2px'
 
-  return L.divIcon({
-    className: `station-marker ${isSelected ? 'selected' : ''} category-${symbolInfo.category}`,
+  const icon = L.divIcon({
+    className: `station-marker ${isSelected ? 'selected' : ''} ${isFollowed ? 'followed' : ''} category-${symbolInfo.category}`,
     html: `
-      <div class="marker-icon" style="background-color: ${backgroundColor}; border-color: ${borderColor};">
+      <div class="marker-icon" style="background-color: ${backgroundColor}; border-color: ${borderColor}; border-width: ${borderWidth};">
         <span class="marker-emoji">${symbolInfo.emoji}</span>
       </div>
     `,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
   })
+
+  iconCache.set(cacheKey, icon)
+  return icon
 }
 
 const formatUtcTime = (date: Date | string) => {
@@ -43,27 +56,45 @@ const formatUtcTime = (date: Date | string) => {
   return `${d.toISOString().slice(11, 19)} UTC`
 }
 
+// Sanitize comment by removing non-printable characters and replacement chars
+const sanitizeComment = (comment: string): string => {
+  // Remove replacement characters (U+FFFD) and non-printable chars except common whitespace
+  return comment
+    .replace(/\uFFFD/g, '') // Remove replacement character
+    .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '') // Keep only printable ASCII and Latin-1
+    .trim()
+}
+
 const StationMarkerInner: FC<StationMarkerProps> = ({
   station,
   isSelected,
+  isFollowed,
   onSelect,
+  onFollow,
   history,
   trailMaxAgeHours,
 }) => {
   const markerRef = useRef<L.Marker>(null)
 
-  // Open popup when station is selected
   useEffect(() => {
     if (isSelected && markerRef.current) {
       markerRef.current.openPopup()
     }
   }, [isSelected])
 
+  const icon = useMemo(
+    () => getOrCreateIcon(station.symbol, isSelected, isFollowed),
+    [station.symbol, isSelected, isFollowed]
+  )
+
   if (!station.coordinates) return null
 
-  const icon = createIcon(station.symbol, isSelected)
   const symbolInfo = APRS_SYMBOLS[station.symbol]
   const symbolName = symbolInfo?.name ?? 'Unknown'
+
+  const handleFollowClick = () => {
+    onFollow(isFollowed ? null : station.callsign)
+  }
 
   return (
     <>
@@ -76,13 +107,25 @@ const StationMarkerInner: FC<StationMarkerProps> = ({
           click: () => onSelect(station.callsign),
         }}
       >
-        <Popup maxHeight={300} maxWidth={350}>
+        <Popup maxHeight={280} maxWidth={280}>
           <div className="station-popup">
-            <h3>{station.callsign}</h3>
+            <div className="popup-header">
+              <h3>{station.callsign}</h3>
+              <button
+                type="button"
+                onClick={handleFollowClick}
+                className={`follow-btn ${isFollowed ? 'following' : ''}`}
+                title={isFollowed ? 'Stop following' : 'Follow this station'}
+              >
+                {isFollowed ? 'Following' : 'Follow'}
+              </button>
+            </div>
             <p className="symbol">
-              {symbolInfo?.emoji ?? station.symbol} {symbolName}
+              {symbolInfo?.emoji ?? '📍'} {symbolName}
             </p>
-            {station.comment && <p className="comment">{station.comment}</p>}
+            {station.comment && sanitizeComment(station.comment) && (
+              <p className="comment">{sanitizeComment(station.comment)}</p>
+            )}
 
             {station.coordinates && (
               <div className="coordinates">
@@ -145,15 +188,12 @@ const StationMarkerInner: FC<StationMarkerProps> = ({
   )
 }
 
-// Memoize to prevent re-renders when other stations update
-// Only re-render when this specific station's data changes
 export const StationMarker = memo(StationMarkerInner, (prevProps, nextProps) => {
-  // Return true if props are equal (no re-render needed)
   if (prevProps.isSelected !== nextProps.isSelected) return false
+  if (prevProps.isFollowed !== nextProps.isFollowed) return false
   if (prevProps.trailMaxAgeHours !== nextProps.trailMaxAgeHours) return false
   if (prevProps.history.length !== nextProps.history.length) return false
 
-  // Deep compare station - only check fields that affect rendering
   const prevStation = prevProps.station
   const nextStation = nextProps.station
   if (prevStation.callsign !== nextStation.callsign) return false

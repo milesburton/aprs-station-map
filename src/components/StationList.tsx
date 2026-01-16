@@ -6,20 +6,29 @@ import { formatBearing, formatDistance, formatRelativeTime } from '../utils'
 interface StationListProps {
   stations: Station[]
   selectedStation: string | null
+  followedStation: string | null
   onSelectStation: (callsign: string) => void
 }
 
 interface StationItemProps {
   station: Station
   isSelected: boolean
+  isFollowed: boolean
   onSelect: () => void
 }
 
-const StationItem: FC<StationItemProps> = ({ station, isSelected, onSelect }) => (
-  <li className={`station-item ${isSelected ? 'selected' : ''}`}>
+const StationItem: FC<StationItemProps> = ({ station, isSelected, isFollowed, onSelect }) => (
+  <li className={`station-item ${isSelected ? 'selected' : ''} ${isFollowed ? 'followed' : ''}`}>
     <button type="button" onClick={onSelect} className="station-button">
       <div className="station-header">
-        <span className="callsign">{station.callsign}</span>
+        <span className="callsign">
+          {isFollowed && (
+            <span className="follow-indicator" title="Following">
+              ●
+            </span>
+          )}
+          {station.callsign}
+        </span>
         <span className="symbol" title={APRS_SYMBOLS[station.symbol]?.name ?? 'Unknown'}>
           {station.symbol}
         </span>
@@ -40,16 +49,21 @@ const StationItem: FC<StationItemProps> = ({ station, isSelected, onSelect }) =>
 export const StationList: FC<StationListProps> = ({
   stations,
   selectedStation,
+  followedStation,
   onSelectStation,
 }) => (
   <div className="station-list">
-    <div className="station-count">{stations.length} stations</div>
+    <div className="station-count">
+      {stations.length} stations
+      {followedStation && <span className="following-label"> · Following: {followedStation}</span>}
+    </div>
     <ul>
       {stations.map((station) => (
         <StationItem
           key={station.callsign}
           station={station}
           isSelected={station.callsign === selectedStation}
+          isFollowed={station.callsign === followedStation}
           onSelect={() => onSelectStation(station.callsign)}
         />
       ))}

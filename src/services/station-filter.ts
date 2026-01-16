@@ -35,6 +35,11 @@ const isRfOnly = (station: Station): boolean => {
   )
 }
 
+// Direct RF means no digipeaters - the packet was received directly from the station
+const isDirectRf = (station: Station): boolean => {
+  return !station.via || station.via.length === 0
+}
+
 const compare = <T>(a: T, b: T, direction: SortDirection): number => {
   const modifier = direction === 'asc' ? 1 : -1
   return a < b ? -1 * modifier : a > b ? 1 * modifier : 0
@@ -69,7 +74,8 @@ export const filterStations = (stations: Station[], filter: FilterState): Statio
       matchesSymbol(station, filter.symbolFilter) &&
       matchesDistance(station, filter.maxDistance) &&
       matchesStationAge(station, filter.stationMaxAgeHours) &&
-      (!filter.rfOnly || isRfOnly(station))
+      (!filter.rfOnly || isRfOnly(station)) &&
+      (!filter.directOnly || isDirectRf(station))
   )
 
   return sortStations(filtered, filter.sortBy, filter.sortDirection)

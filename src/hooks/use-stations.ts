@@ -9,6 +9,7 @@ interface UseStationsResult {
   loading: boolean
   error: string | null
   connected: boolean
+  kissConnected: boolean
   lastUpdated: Date | null
   packets: AprsPacket[]
   stationHistory: Map<string, AprsPacket[]>
@@ -49,6 +50,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [connected, setConnected] = useState(false)
+  const [kissConnected, setKissConnected] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [packets, setPackets] = useState<AprsPacket[]>([])
   const [stationHistory, setStationHistory] = useState<Map<string, AprsPacket[]>>(new Map())
@@ -115,6 +117,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
               }
               if (message.stats) {
                 setStats(message.stats)
+                setKissConnected(message.stats.kissConnected)
               }
               break
             case 'station_update':
@@ -135,13 +138,17 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
             case 'stats_update':
               if (message.stats) {
                 setStats(message.stats)
+                // Note: kissConnected is NOT updated here - it's only set from
+                // init, kiss_connected, and kiss_disconnected events
               }
               break
             case 'kiss_connected':
               logger.info('KISS TNC connected')
+              setKissConnected(true)
               break
             case 'kiss_disconnected':
               logger.warn('KISS TNC disconnected')
+              setKissConnected(false)
               break
             case 'aprs_packet':
               if (message.packet) {
@@ -200,6 +207,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
     loading,
     error,
     connected,
+    kissConnected,
     lastUpdated,
     packets,
     stationHistory,
