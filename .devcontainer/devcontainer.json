@@ -25,7 +25,7 @@
     "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind"
   ],
   "forwardPorts": [3000, 3001],
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "npm install && npx playwright install --with-deps chromium",
   "postStartCommand": "sudo chown -R node:node /workspace && npm install",
   "remoteUser": "node"
 }
