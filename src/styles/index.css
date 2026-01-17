@@ -464,7 +464,8 @@ body {
 
 .leaflet-popup-content {
   margin: 0;
-  width: auto !important;
+  width: 260px !important;
+  max-width: 260px !important;
 }
 
 /* Move close button to not overlap content */
