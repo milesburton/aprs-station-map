@@ -464,8 +464,9 @@ body {
 
 .leaflet-popup-content {
   margin: 0;
-  width: 260px !important;
-  max-width: 260px !important;
+  min-width: 240px !important;
+  width: fit-content !important;
+  max-width: 320px !important;
 }
 
 /* Move close button to not overlap content */
@@ -484,8 +485,8 @@ body {
 }
 
 .station-popup {
-  min-width: 180px;
-  max-width: 260px;
+  min-width: 240px;
+  max-width: 320px;
   padding: 10px 12px;
   padding-top: 24px; /* Space for close button */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
