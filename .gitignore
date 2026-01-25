@@ -185,3 +185,6 @@ playwright/.cache/
 
 # Private deploy scripts (home-lab-deploy)
 deploy/
+
+# Generated version file (created during build/deploy)
+public/version.json

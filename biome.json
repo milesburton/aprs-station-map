@@ -98,11 +98,25 @@
       }
     },
     {
-      "includes": ["src/server/aprs-parser.ts", "src/hooks/useStations.ts"],
+      "includes": [
+        "src/server/aprs-parser.ts",
+        "src/hooks/use-stations.ts",
+        "src/components/SpectrumAnalyzer.tsx"
+      ],
       "linter": {
         "rules": {
           "complexity": {
             "noExcessiveCognitiveComplexity": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/styles/**/*.css"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
           }
         }
       }
