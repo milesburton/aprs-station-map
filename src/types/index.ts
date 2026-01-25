@@ -103,4 +103,5 @@ export interface WebSocketMessage {
   stats?: Stats
   isNew?: boolean
   packet?: AprsPacket
+  stationHistory?: Record<string, AprsPacket[]>
 }

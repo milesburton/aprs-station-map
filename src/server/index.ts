@@ -8,6 +8,7 @@ import {
   cleanupOldHistory,
   closeDatabase,
   type DbStation,
+  getAllStationHistories,
   getAllStations,
   getStationByCallsign,
   getStationHistory,
@@ -307,6 +308,27 @@ export const startServer = async (): Promise<void> => {
     try {
       const stations = getAllStations().map(toApiStation)
       const stats = getStats()
+
+      // Get station histories for vehicle tracking trails
+      const rawHistories = getAllStationHistories(24, 50)
+      const stationHistory: Record<
+        string,
+        Array<{
+          source: string
+          timestamp: string
+          position: { latitude: number; longitude: number } | null
+        }>
+      > = {}
+
+      for (const [callsign, packets] of Object.entries(rawHistories)) {
+        stationHistory[callsign] = packets.map((p) => ({
+          source: callsign,
+          timestamp: new Date(p.received_at).toISOString(),
+          position:
+            p.latitude && p.longitude ? { latitude: p.latitude, longitude: p.longitude } : null,
+        }))
+      }
+
       const initMessage = JSON.stringify({
         type: 'init',
         stations,
@@ -314,6 +336,7 @@ export const startServer = async (): Promise<void> => {
           ...stats,
           kissConnected: stateManager.isKissConnected(),
         },
+        stationHistory,
       })
       ws.send(initMessage)
     } catch (err) {

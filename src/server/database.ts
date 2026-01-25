@@ -229,6 +229,58 @@ export const getStationHistory = (stationId: number, limit = 100): DbPacketHisto
   return stmt.all(stationId, limit) as DbPacketHistory[]
 }
 
+// Get all station histories with positions (for vehicle tracking trails)
+export const getAllStationHistories = (
+  maxAgeHours = 24,
+  limit = 50
+): Record<string, DbPacketHistory[]> => {
+  const database = getDatabase()
+  const cutoff = Date.now() - maxAgeHours * 60 * 60 * 1000
+
+  // Get stations that have at least one packet with position data
+  const stmt = database.prepare(`
+    SELECT s.id, s.callsign, ph.id as packet_id, ph.raw_packet, ph.latitude, ph.longitude, ph.path, ph.received_at
+    FROM stations s
+    INNER JOIN packet_history ph ON s.id = ph.station_id
+    WHERE ph.latitude IS NOT NULL
+      AND ph.longitude IS NOT NULL
+      AND ph.received_at > ?
+    ORDER BY s.callsign, ph.received_at DESC
+  `)
+
+  const rows = stmt.all(cutoff) as Array<{
+    id: number
+    callsign: string
+    packet_id: number
+    raw_packet: string
+    latitude: number
+    longitude: number
+    path: string
+    received_at: number
+  }>
+
+  // Group by callsign and limit per station
+  const result: Record<string, DbPacketHistory[]> = {}
+  for (const row of rows) {
+    if (!result[row.callsign]) {
+      result[row.callsign] = []
+    }
+    if ((result[row.callsign]?.length ?? 0) < limit) {
+      result[row.callsign]?.push({
+        id: row.packet_id,
+        station_id: row.id,
+        raw_packet: row.raw_packet,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        path: row.path,
+        received_at: row.received_at,
+      })
+    }
+  }
+
+  return result
+}
+
 export const getStats = (): {
   totalStations: number
   stationsWithPosition: number

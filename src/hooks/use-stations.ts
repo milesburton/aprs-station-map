@@ -119,6 +119,20 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
                 setStats(message.stats)
                 setKissConnected(message.stats.kissConnected)
               }
+              // Load historical station data for vehicle tracking trails
+              if (message.stationHistory) {
+                const historyMap = new Map<string, AprsPacket[]>()
+                for (const [callsign, packets] of Object.entries(
+                  message.stationHistory as Record<string, AprsPacket[]>
+                )) {
+                  historyMap.set(callsign, packets)
+                }
+                setStationHistory(historyMap)
+                logger.info(
+                  { stationsWithHistory: historyMap.size },
+                  'Station history loaded for trails'
+                )
+              }
               break
             case 'station_update':
               if (message.station) {

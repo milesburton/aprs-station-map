@@ -341,7 +341,7 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
         <h4 className="text-lg font-semibold text-slate-100">Spectrum Analyzer</h4>
         <div className="flex items-center gap-2">
           <span
-            className={`px-3 py-1 rounded-md text-sm font-semibold ${connected ? 'bg-green-500 text-slate-900' : 'bg-red-500 text-slate-900'}`}
+            className={`px-4 py-1.5 rounded-md text-sm font-semibold ${connected ? 'bg-green-500 text-slate-900' : 'bg-red-500 text-slate-900'}`}
           >
             {connected ? 'Live' : 'Disconnected'}
           </span>
@@ -349,7 +349,7 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
             <button
               type="button"
               onClick={onPopIn}
-              className="px-3 py-1 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
+              className="px-4 py-1.5 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
               title="Return to main window"
             >
               Pop In
@@ -358,7 +358,7 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
             <button
               type="button"
               onClick={onPopout}
-              className="px-3 py-1 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
+              className="px-4 py-1.5 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
               title="Open in new window"
             >
               Pop Out
@@ -423,7 +423,7 @@ export const SpectrumAnalyzer: FC = () => {
           <button
             type="button"
             onClick={handlePopIn}
-            className="px-4 py-2 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
+            className="px-5 py-2.5 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
           >
             Return to Main Window
           </button>
