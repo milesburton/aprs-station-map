@@ -182,3 +182,6 @@ data/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Private deploy scripts (home-lab-deploy)
+deploy/

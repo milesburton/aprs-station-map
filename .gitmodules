@@ -1,3 +1,0 @@
-[submodule "deploy"]
-	path = deploy
-	url = git@github.com:milesburton/home-lab-deploy.git
