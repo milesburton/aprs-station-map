@@ -314,7 +314,9 @@ export const startServer = async (): Promise<void> => {
       const stationHistory: Record<
         string,
         Array<{
+          raw: string
           source: string
+          destination: string
           timestamp: string
           position: { latitude: number; longitude: number } | null
         }>
@@ -322,7 +324,9 @@ export const startServer = async (): Promise<void> => {
 
       for (const [callsign, packets] of Object.entries(rawHistories)) {
         stationHistory[callsign] = packets.map((p) => ({
+          raw: p.raw_packet,
           source: callsign,
+          destination: '',
           timestamp: new Date(p.received_at).toISOString(),
           position:
             p.latitude && p.longitude ? { latitude: p.latitude, longitude: p.longitude } : null,

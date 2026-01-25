@@ -76,6 +76,9 @@ export class SpectrumAnalyzer extends EventEmitter {
   private pipeStream: fs.ReadStream | null = null
   private updateInterval: ReturnType<typeof setInterval> | null = null
   private useMockData = false
+  // Averaging buffer for smoother display
+  private avgMagnitudes: number[] | null = null
+  private readonly avgAlpha = 0.3 // Smoothing factor (0-1, lower = smoother)
 
   constructor(centerFreq: number) {
     super()
@@ -144,13 +147,12 @@ export class SpectrumAnalyzer extends EventEmitter {
   }
 
   private processAudioData(chunk: Buffer): void {
-    // Convert 16-bit signed PCM to float samples
-    for (let i = 0; i < chunk.length - 1; i += 2) {
-      const sample = chunk.readInt16LE(i) / 32768.0
+    for (let i = 0; i < chunk.length; i++) {
+      // biome-ignore lint/style/noNonNullAssertion: loop index within chunk bounds
+      const sample = (chunk[i]! - 128) / 128.0
       this.audioBuffer.push(sample)
     }
 
-    // Keep buffer at reasonable size
     const maxBufferSize = this.fftSize * 4
     if (this.audioBuffer.length > maxBufferSize) {
       this.audioBuffer = this.audioBuffer.slice(-maxBufferSize)
@@ -194,9 +196,22 @@ export class SpectrumAnalyzer extends EventEmitter {
       magnitudes.push(magDb)
     }
 
+    // Apply exponential moving average for smoother display
+    if (!this.avgMagnitudes || this.avgMagnitudes.length !== magnitudes.length) {
+      this.avgMagnitudes = [...magnitudes]
+    } else {
+      for (let i = 0; i < magnitudes.length; i++) {
+        const newVal = magnitudes[i]
+        const oldVal = this.avgMagnitudes[i]
+        if (newVal !== undefined && oldVal !== undefined) {
+          this.avgMagnitudes[i] = this.avgAlpha * newVal + (1 - this.avgAlpha) * oldVal
+        }
+      }
+    }
+
     const data: SpectrumData = {
       frequencies,
-      magnitudes,
+      magnitudes: this.avgMagnitudes,
       centerFreq: this.centerFreq,
       sampleRate: this.sampleRate,
       timestamp: Date.now(),

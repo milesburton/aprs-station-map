@@ -143,7 +143,9 @@ const addWaterfallLine = (imageData: ImageData, width: number, magnitudes: numbe
   for (let x = 0; x < width; x++) {
     const idx = Math.floor((x / width) * magnitudes.length)
     const magnitude = magnitudes[idx] ?? -100
-    const normalized = Math.max(0, Math.min(1, (magnitude + 100) / 60))
+    // Map -90dB to 0 (black/blue) and -30dB to 1 (red/yellow)
+    // This gives better contrast for typical signal levels
+    const normalized = Math.max(0, Math.min(1, (magnitude + 90) / 60))
     const color = magnitudeToColor(normalized)
 
     const pixelIdx = x * 4
