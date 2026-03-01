@@ -119,11 +119,10 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
   const pathStr = packet.path.join(',')
 
   if (existing) {
-    // Update existing station
     const updateStmt = database.prepare(`
       UPDATE stations SET
-        latitude = COALESCE(?, latitude),
-        longitude = COALESCE(?, longitude),
+        latitude = CASE WHEN ? IS NOT NULL THEN ? ELSE latitude END,
+        longitude = CASE WHEN ? IS NOT NULL THEN ? ELSE longitude END,
         symbol = ?,
         symbol_table = ?,
         comment = CASE WHEN ? != '' THEN ? ELSE comment END,
@@ -136,6 +135,8 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
 
     updateStmt.run(
       packet.position?.latitude ?? null,
+      packet.position?.latitude ?? null,
+      packet.position?.longitude ?? null,
       packet.position?.longitude ?? null,
       packet.symbol,
       packet.symbolTable,

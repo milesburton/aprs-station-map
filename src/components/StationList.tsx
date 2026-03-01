@@ -1,4 +1,5 @@
 import type { FC } from 'react'
+import { memo } from 'react'
 import { APRS_SYMBOLS } from '../constants'
 import type { Station } from '../types'
 import { formatBearing, formatDistance, formatRelativeTime } from '../utils'
@@ -46,7 +47,7 @@ const StationItem: FC<StationItemProps> = ({ station, isSelected, isFollowed, on
   </li>
 )
 
-export const StationList: FC<StationListProps> = ({
+const StationListInner: FC<StationListProps> = ({
   stations,
   selectedStation,
   followedStation,
@@ -69,4 +70,21 @@ export const StationList: FC<StationListProps> = ({
       ))}
     </ul>
   </div>
+)
+
+export const StationList: FC<StationListProps> = memo(
+  StationListInner,
+  (prevProps, nextProps) => {
+    if (prevProps.stations.length !== nextProps.stations.length) return false
+    if (prevProps.stations !== nextProps.stations) {
+      for (let i = 0; i < Math.min(5, prevProps.stations.length); i++) {
+        const prev = prevProps.stations[i]
+        const next = nextProps.stations[i]
+        if (prev?.callsign !== next?.callsign) return false
+        if (prev?.lastHeard !== next?.lastHeard) return false
+        if (prev?.packetCount !== next?.packetCount) return false
+      }
+    }
+    return true
+  }
 )

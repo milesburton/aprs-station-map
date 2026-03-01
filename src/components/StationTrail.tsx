@@ -65,9 +65,11 @@ const StationTrailInner: FC<StationTrailProps> = ({ history, maxAgeHours = 24 })
 export const StationTrail = memo(StationTrailInner, (prevProps, nextProps) => {
   if (prevProps.maxAgeHours !== nextProps.maxAgeHours) return false
   if (prevProps.history.length !== nextProps.history.length) return false
-  // Check if the last packet changed (most common update)
   const prevLast = prevProps.history[prevProps.history.length - 1]
   const nextLast = nextProps.history[nextProps.history.length - 1]
   if (prevLast?.timestamp !== nextLast?.timestamp) return false
+  const prevFirst = prevProps.history[0]
+  const nextFirst = nextProps.history[0]
+  if (prevFirst?.timestamp !== nextFirst?.timestamp) return false
   return true
 })

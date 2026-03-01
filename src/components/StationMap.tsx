@@ -1,4 +1,5 @@
-import type { FC } from 'react'
+import type { FC, ReactNode } from 'react'
+import { memo, useMemo } from 'react'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMapEvents } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { BEXLEY_LOCATION, DEFAULT_CONFIG, MAP_ATTRIBUTION, MAP_TILE_URL } from '../constants'
@@ -31,9 +32,11 @@ const MapEventHandler: FC<{
   return null
 }
 
+const EMPTY_HISTORY: AprsPacket[] = []
+
 const distanceRings = [50, 100, 200, 300, 400, 500]
 
-export const StationMap: FC<StationMapProps> = ({
+const StationMapInner: FC<StationMapProps> = ({
   stations,
   selectedStation,
   followedStation,
@@ -44,7 +47,7 @@ export const StationMap: FC<StationMapProps> = ({
   onMapMove,
   stationHistory,
   trailMaxAgeHours,
-}) => (
+}): ReactNode => (
   <MapContainer
     center={[centre.latitude, centre.longitude]}
     zoom={zoom}
@@ -122,10 +125,32 @@ export const StationMap: FC<StationMapProps> = ({
           isFollowed={station.callsign === followedStation}
           onSelect={onSelectStation}
           onFollow={onFollowStation}
-          history={stationHistory.get(station.callsign) ?? []}
+          history={stationHistory.get(station.callsign) ?? EMPTY_HISTORY}
           trailMaxAgeHours={trailMaxAgeHours}
         />
       ))}
     </MarkerClusterGroup>
   </MapContainer>
+)
+
+export const StationMap: FC<StationMapProps> = memo(
+  StationMapInner,
+  (prevProps, nextProps) => {
+    if (prevProps.centre.latitude !== nextProps.centre.latitude) return false
+    if (prevProps.centre.longitude !== nextProps.centre.longitude) return false
+    if (prevProps.zoom !== nextProps.zoom) return false
+    if (prevProps.trailMaxAgeHours !== nextProps.trailMaxAgeHours) return false
+    if (prevProps.stations.length !== nextProps.stations.length) return false
+    if (prevProps.stations !== nextProps.stations) {
+      for (let i = 0; i < Math.min(5, prevProps.stations.length); i++) {
+        const prev = prevProps.stations[i]
+        const next = nextProps.stations[i]
+        if (prev?.callsign !== next?.callsign) return false
+        if (prev?.coordinates?.latitude !== next?.coordinates?.latitude) return false
+        if (prev?.coordinates?.longitude !== next?.coordinates?.longitude) return false
+        if (prev?.lastHeard !== next?.lastHeard) return false
+      }
+    }
+    return true
+  }
 )

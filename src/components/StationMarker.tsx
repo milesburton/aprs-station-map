@@ -193,7 +193,6 @@ export const StationMarker = memo(StationMarkerInner, (prevProps, nextProps) => 
   if (prevProps.isFollowed !== nextProps.isFollowed) return false
   if (prevProps.trailMaxAgeHours !== nextProps.trailMaxAgeHours) return false
   if (prevProps.history.length !== nextProps.history.length) return false
-
   const prevStation = prevProps.station
   const nextStation = nextProps.station
   if (prevStation.callsign !== nextStation.callsign) return false
@@ -201,8 +200,12 @@ export const StationMarker = memo(StationMarkerInner, (prevProps, nextProps) => 
   if (prevStation.packetCount !== nextStation.packetCount) return false
   if (prevStation.comment !== nextStation.comment) return false
   if (prevStation.symbol !== nextStation.symbol) return false
-  if (prevStation.coordinates?.latitude !== nextStation.coordinates?.latitude) return false
-  if (prevStation.coordinates?.longitude !== nextStation.coordinates?.longitude) return false
-
+  const prevCoords = prevStation.coordinates
+  const nextCoords = nextStation.coordinates
+  if ((prevCoords === null) !== (nextCoords === null)) return false
+  if (prevCoords !== null && nextCoords !== null) {
+    if (prevCoords.latitude !== nextCoords.latitude) return false
+    if (prevCoords.longitude !== nextCoords.longitude) return false
+  }
   return true
 })
