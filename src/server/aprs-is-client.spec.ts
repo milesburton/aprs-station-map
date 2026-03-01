@@ -32,7 +32,7 @@ describe('AprsIsClient', () => {
       filter: 'r/51.5/-0.1/200',
       appVersion: 'test',
       reconnectIntervalMs: 60000,
-      socketFactory: () => socket,
+      socketFactory: () => socket as unknown as import('node:net').Socket,
     })
   })
 
