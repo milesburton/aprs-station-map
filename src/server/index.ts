@@ -30,13 +30,18 @@ const clients = new Set<WebSocketWithId>()
 
 // Read version from package.json
 let APP_VERSION = '1.0.0' // fallback
-try {
-  // In production (Docker), package.json is at /app/package.json
-  const packageJson = JSON.parse(readFileSync('/app/package.json', 'utf-8'))
-  APP_VERSION = packageJson.version as string
-  console.log(`[Version] Loaded version ${APP_VERSION}`)
-} catch (error) {
-  console.error('[Version] Failed to load version from package.json, using fallback:', error)
+for (const candidate of [
+  '/app/package.json',
+  new URL('../../package.json', import.meta.url).pathname,
+]) {
+  try {
+    const packageJson = JSON.parse(readFileSync(candidate, 'utf-8'))
+    APP_VERSION = packageJson.version as string
+    console.log(`[Version] Loaded version ${APP_VERSION}`)
+    break
+  } catch {
+    // try next candidate
+  }
 }
 
 // Convert DB station to API station format

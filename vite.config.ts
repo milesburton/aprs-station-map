@@ -16,6 +16,11 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      '/api': 'http://localhost:3001',
+      '/ws': { target: 'ws://localhost:3001', ws: true },
+      '/ws/spectrum': { target: 'ws://localhost:3001', ws: true },
+    },
   },
   build: {
     outDir: 'dist',

@@ -151,7 +151,9 @@ test.describe('Diagnostics Panel Visual Tests', () => {
     await page.getByRole('tab', { name: 'About' }).click()
     await page.waitForTimeout(300)
 
-    await expect(panel).toHaveScreenshot('about-tab.png')
+    await expect(panel).toHaveScreenshot('about-tab.png', {
+      mask: [page.getByText(/^\d{1,2}\/\d{1,2}\/\d{4},\s\d{1,2}:\d{2}:\d{2}/)],
+    })
   })
 
   test('Panel collapsed state visual snapshot', async ({ page }) => {
