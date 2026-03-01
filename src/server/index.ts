@@ -174,7 +174,8 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
     if (path === '/version' && req.method === 'GET') {
       sendJson(res, {
         version: APP_VERSION,
-        buildDate: new Date().toISOString(),
+        buildTime:
+          typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : new Date().toISOString(),
       })
       return
     }

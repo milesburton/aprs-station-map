@@ -25,7 +25,8 @@ RUN npx esbuild src/server/index.ts \
     --format=esm \
     --outfile=dist-server/index.js \
     --external:better-sqlite3 \
-    --external:ws
+    --external:ws \
+    --define:__BUILD_TIME__="\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\""
 
 # Stage 2: Runtime with Node.js + nginx + Direwolf
 FROM node:22-slim

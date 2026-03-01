@@ -15,7 +15,7 @@ let initialBuildTime: string | null = null
 export const checkVersion = async (): Promise<boolean> => {
   try {
     // Add cache-busting query param to avoid browser caching
-    const response = await fetch(`/version.json?t=${Date.now()}`)
+    const response = await fetch(`/api/version?t=${Date.now()}`)
     if (!response.ok) return true // Assume match if fetch fails
 
     const serverVersion: VersionInfo = await response.json()

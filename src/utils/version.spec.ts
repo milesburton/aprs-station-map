@@ -36,7 +36,7 @@ describe('version', () => {
 
       const result = await check()
       expect(result).toBe(true)
-      expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/version\.json\?t=\d+$/))
+      expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/version\?t=\d+$/))
     })
 
     it('should return true when build times match', async () => {
