@@ -1,5 +1,5 @@
 import type { FC, ReactNode } from 'react'
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMapEvents } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { BEXLEY_LOCATION, DEFAULT_CONFIG, MAP_ATTRIBUTION, MAP_TILE_URL } from '../constants'
