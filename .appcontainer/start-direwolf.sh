@@ -8,6 +8,23 @@ export AUDIO_SOURCE="${AUDIO_SOURCE:-null}"
 export RTL_FREQ="${RTL_FREQ:-144.8M}"
 export RTL_GAIN="${RTL_GAIN:-40}"
 export RTL_PPM="${RTL_PPM:-0}"
+export APRS_IS_SERVER="${APRS_IS_SERVER:-rotate.aprs2.net}"
+export APRS_IS_PORT="${APRS_IS_PORT:-14580}"
+export APRS_IS_PASSCODE="${APRS_IS_PASSCODE:-}"
+
+generate_direwolf_config() {
+  envsubst < /app/direwolf.conf.template > /app/direwolf.conf
+
+  if [ -n "$APRS_IS_PASSCODE" ] && [ "$STATION_CALLSIGN" != "NOCALL" ]; then
+    {
+      echo "IGSERVER $APRS_IS_SERVER $APRS_IS_PORT"
+      echo "IGLOGIN $STATION_CALLSIGN $APRS_IS_PASSCODE"
+    } >> /app/direwolf.conf
+    echo "APRS-IS relay enabled: $APRS_IS_SERVER:$APRS_IS_PORT as $STATION_CALLSIGN"
+  else
+    echo "APRS-IS relay disabled: set STATION_CALLSIGN and APRS_IS_PASSCODE to enable internet gating"
+  fi
+}
 
 # Create named pipe for spectrum analyzer if it doesn't exist
 AUDIO_PIPE="/tmp/aprs-audio-pipe"
@@ -21,7 +38,7 @@ fi
 case "$AUDIO_SOURCE" in
   rtl-sdr)
     export AUDIO_DEVICE="null null"
-    envsubst < /app/direwolf.conf.template > /app/direwolf.conf
+    generate_direwolf_config
     echo "Starting RTL-SDR -> Direwolf pipeline with spectrum tap"
     echo "Frequency: $RTL_FREQ, Gain: $RTL_GAIN, PPM: $RTL_PPM"
     echo "Audio pipe: $AUDIO_PIPE"
@@ -36,13 +53,13 @@ case "$AUDIO_SOURCE" in
     ;;
   soundcard)
     export AUDIO_DEVICE="plughw:0,0"
-    envsubst < /app/direwolf.conf.template > /app/direwolf.conf
+    generate_direwolf_config
     echo "Starting Direwolf with sound card input: $AUDIO_DEVICE"
     exec direwolf -c /app/direwolf.conf
     ;;
   *)
     export AUDIO_DEVICE="null"
-    envsubst < /app/direwolf.conf.template > /app/direwolf.conf
+    generate_direwolf_config
     echo "Starting Direwolf with null audio device (awaiting stdin or network)"
     exec direwolf -c /app/direwolf.conf
     ;;

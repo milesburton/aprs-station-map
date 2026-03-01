@@ -248,11 +248,6 @@ const AboutTab: FC = () => {
       <AboutItem label="Version" value={CLIENT_VERSION} />
       {buildTime && <AboutItem label="Built" value={buildTime.toLocaleString()} />}
       <AboutItem label="Frequency" value="144.800 MHz" />
-      <AboutItem label="Protocol" value="APRS (AX.25)" />
-      <div className="diag-about-divider" />
-      <AboutItem label="TNC" value="Direwolf" />
-      <AboutItem label="Frontend" value="React + Leaflet" />
-      <AboutItem label="Backend" value="Node.js + WebSocket" />
     </div>
   )
 }
