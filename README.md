@@ -19,13 +19,29 @@ Create a `.env` file:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `STATION_CALLSIGN` | Your callsign | required |
-| `STATION_LATITUDE` | Station latitude | required |
-| `STATION_LONGITUDE` | Station longitude | required |
-| `AUDIO_SOURCE` | rtl-sdr, soundcard, or null | rtl-sdr |
-| `RTL_FREQ` | RTL-SDR frequency | 144.8M |
-| `RTL_GAIN` | RTL-SDR gain | 40 |
-| `RTL_PPM` | RTL-SDR PPM correction | 0 |
+| `STATION_CALLSIGN` | Your callsign (e.g. `YOURCALL-10`) | required |
+| `STATION_LATITUDE` | Station latitude (decimal degrees) | required |
+| `STATION_LONGITUDE` | Station longitude (decimal degrees) | required |
+| `AUDIO_SOURCE` | `rtl-sdr`, `soundcard`, or `null` | `rtl-sdr` |
+| `RTL_FREQ` | RTL-SDR frequency | `144.8M` |
+| `RTL_GAIN` | RTL-SDR gain (dB) — start low (~25–30) and adjust | `30` |
+| `RTL_PPM` | RTL-SDR PPM frequency correction | `0` |
+| `APRS_IS_SERVER` | APRS-IS server for internet gating | `rotate.aprs2.net` |
+| `APRS_IS_PORT` | APRS-IS server port | `14580` |
+| `APRS_IS_PASSCODE` | APRS-IS passcode — leave empty to disable igating | _(disabled)_ |
+
+### APRS-IS Internet Gating
+
+To relay received RF packets to the APRS-IS network (igating), set your callsign and passcode:
+
+```env
+STATION_CALLSIGN=YOURCALL-10
+APRS_IS_PASSCODE=12345
+```
+
+Generate your passcode from your base callsign (no SSID) at https://apps.magicbug.co.uk/passcode/
+
+When `APRS_IS_PASSCODE` is set and `STATION_CALLSIGN` is not `NOCALL`, Direwolf will connect to `rotate.aprs2.net` and relay received packets automatically.
 
 ## Rebuild
 

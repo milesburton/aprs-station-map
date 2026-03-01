@@ -2,7 +2,7 @@ import type { FC, ReactNode } from 'react'
 import { memo } from 'react'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMapEvents } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
-import { BEXLEY_LOCATION, DEFAULT_CONFIG, MAP_ATTRIBUTION, MAP_TILE_URL } from '../constants'
+import { DEFAULT_CONFIG, DEFAULT_LOCATION, MAP_ATTRIBUTION, MAP_TILE_URL } from '../constants'
 import type { AprsPacket, Coordinates, Station } from '../types'
 import { StationMarker } from './StationMarker'
 
@@ -61,7 +61,7 @@ const StationMapInner: FC<StationMapProps> = ({
     {distanceRings.map((radius) => (
       <Circle
         key={radius}
-        center={[BEXLEY_LOCATION.latitude, BEXLEY_LOCATION.longitude]}
+        center={[DEFAULT_LOCATION.latitude, DEFAULT_LOCATION.longitude]}
         radius={radius * 1000}
         pathOptions={{
           color: '#3388ff',
@@ -73,7 +73,7 @@ const StationMapInner: FC<StationMapProps> = ({
     ))}
 
     <Circle
-      center={[BEXLEY_LOCATION.latitude, BEXLEY_LOCATION.longitude]}
+      center={[DEFAULT_LOCATION.latitude, DEFAULT_LOCATION.longitude]}
       radius={DEFAULT_CONFIG.maxDistanceKm * 1000}
       pathOptions={{
         color: '#ff3333',
@@ -85,7 +85,7 @@ const StationMapInner: FC<StationMapProps> = ({
     />
 
     <CircleMarker
-      center={[BEXLEY_LOCATION.latitude, BEXLEY_LOCATION.longitude]}
+      center={[DEFAULT_LOCATION.latitude, DEFAULT_LOCATION.longitude]}
       radius={12}
       pathOptions={{
         color: '#ff0000',
@@ -99,11 +99,8 @@ const StationMapInner: FC<StationMapProps> = ({
         <div>
           <h3>🏠 Receiving Station</h3>
           <p>
-            <strong>Location:</strong> Bexley, London
-          </p>
-          <p>
-            <strong>Coordinates:</strong> {BEXLEY_LOCATION.latitude.toFixed(4)}°,{' '}
-            {BEXLEY_LOCATION.longitude.toFixed(4)}°
+            <strong>Coordinates:</strong> {DEFAULT_LOCATION.latitude.toFixed(4)}°,{' '}
+            {DEFAULT_LOCATION.longitude.toFixed(4)}°
           </p>
           <p>This is the QTH (location) of the receiving station with KISS TNC</p>
         </div>

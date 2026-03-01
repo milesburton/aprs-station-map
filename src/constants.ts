@@ -1,6 +1,6 @@
 import type { AppConfig, Coordinates, FilterState } from './types'
 
-export const BEXLEY_LOCATION: Coordinates = {
+export const DEFAULT_LOCATION: Coordinates = {
   latitude: 51.4416,
   longitude: 0.15,
 }
@@ -8,7 +8,7 @@ export const BEXLEY_LOCATION: Coordinates = {
 export const DEFAULT_CONFIG: AppConfig = {
   apiUrl: '/api',
   wsUrl: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`,
-  stationLocation: BEXLEY_LOCATION,
+  stationLocation: DEFAULT_LOCATION,
   maxDistanceKm: 600,
   defaultZoom: 9,
 }

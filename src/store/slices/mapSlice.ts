@@ -1,9 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import { BEXLEY_LOCATION, DEFAULT_CONFIG } from '../../constants'
+import { DEFAULT_CONFIG, DEFAULT_LOCATION } from '../../constants'
 import type { Coordinates, MapState } from '../../types'
 
 const initialState: MapState = {
-  centre: BEXLEY_LOCATION,
+  centre: DEFAULT_LOCATION,
   zoom: DEFAULT_CONFIG.defaultZoom,
   selectedStation: null,
   followedStation: null,
