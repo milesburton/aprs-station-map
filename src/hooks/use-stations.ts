@@ -175,7 +175,10 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
                   const callsign = packet.source
                   const existing = prev.get(callsign) ?? []
                   const updated = [...existing, packet].slice(-MAX_STATION_HISTORY)
-                  if (existing.length === 0 || existing[existing.length - 1]?.timestamp !== packet.timestamp) {
+                  if (
+                    existing.length === 0 ||
+                    existing[existing.length - 1]?.timestamp !== packet.timestamp
+                  ) {
                     const newMap = new Map(prev)
                     newMap.set(callsign, updated)
                     return newMap

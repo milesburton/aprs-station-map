@@ -1,9 +1,6 @@
 #!/bin/bash
 
-# Auto-update script for APRS Station Map Docker container
-# This script periodically checks for updates and rebuilds the container if changes are detected
-
-set -e
+set -euo pipefail
 
 REPO_DIR="${REPO_DIR:-/home/miles/aprs-station-map}"
 CHECK_INTERVAL="${CHECK_INTERVAL:-3600}" # Default: 1 hour
@@ -11,6 +8,12 @@ BRANCH="${BRANCH:-main}"
 
 log() {
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
+}
+
+run_logged() {
+  "$@" 2>&1 | while read -r line; do
+    log "$line"
+  done
 }
 
 cd "$REPO_DIR" || exit 1
@@ -21,7 +24,7 @@ while true; do
   log "Checking for updates..."
 
   # Fetch latest changes
-  git fetch origin "$BRANCH" 2>&1 | while read -r line; do log "$line"; done
+  run_logged git fetch origin "$BRANCH"
 
   # Check if local is behind remote
   LOCAL=$(git rev-parse HEAD)
@@ -31,12 +34,21 @@ while true; do
     log "Updates found! Local: ${LOCAL:0:7}, Remote: ${REMOTE:0:7}"
     log "Pulling latest changes..."
 
-    git pull origin "$BRANCH" 2>&1 | while read -r line; do log "$line"; done
+    if [[ -n "$(git status --porcelain)" ]]; then
+      log "Working tree is dirty; skipping update to avoid merge conflicts"
+      log "Sleeping for ${CHECK_INTERVAL}s..."
+      sleep "$CHECK_INTERVAL"
+      continue
+    fi
+
+    run_logged git pull origin "$BRANCH"
 
     log "Rebuilding and restarting container..."
-    docker compose -f .appcontainer/compose.yaml up -d --build 2>&1 | while read -r line; do log "$line"; done
-
-    log "Container updated successfully!"
+    if run_logged docker compose -f .appcontainer/compose.yaml up -d --build; then
+      log "Container updated successfully!"
+    else
+      log "Container update failed"
+    fi
   else
     log "Already up to date (${LOCAL:0:7})"
   fi
