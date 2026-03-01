@@ -16,16 +16,6 @@ services:
     environment:
       - KISS_HOST=${KISS_HOST:-127.0.0.1}
       - KISS_PORT=${KISS_PORT:-8001}
-      - STATION_LATITUDE
-      - STATION_LONGITUDE
-      - STATION_CALLSIGN
-      - APRS_IS_SERVER
-      - APRS_IS_PORT
-      - APRS_IS_PASSCODE
-      - AUDIO_SOURCE
-      - RTL_FREQ
-      - RTL_GAIN
-      - RTL_PPM
       - LOG_LEVEL=${LOG_LEVEL:-info}
     env_file:
       - ../.env
