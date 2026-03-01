@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# When using APRS-IS as the data source, Direwolf is not needed
+if [ "${DATA_SOURCE:-kiss}" = "aprs-is" ]; then
+  echo "DATA_SOURCE=aprs-is: Direwolf not required, skipping"
+  exit 0
+fi
+
 export STATION_CALLSIGN="${STATION_CALLSIGN:-NOCALL}"
 export STATION_LATITUDE="${STATION_LATITUDE:-0.0000}"
 export STATION_LONGITUDE="${STATION_LONGITUDE:-0.0000}"

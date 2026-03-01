@@ -245,21 +245,22 @@ function extractSymbolAndComment(info: string): {
   return { symbol, symbolTable, comment }
 }
 
-export const parseAprsPacket = (ax25Packet: Uint8Array): AprsPacket | null => {
-  const header = parseAx25Header(ax25Packet)
-  if (!header) return null
-  const infoBytes = ax25Packet.slice(header.infoStart)
-  const info = new TextDecoder().decode(infoBytes)
-  if (info.length === 0) return null
+// Parse the APRS info field (the payload after the AX.25 header or after the ':' in APRS-IS).
+// Returns a partial AprsPacket without source/destination/path/raw — caller fills those in.
+export const parseAprsInfo = (
+  info: string,
+  destination: string
+): Omit<AprsPacket, 'source' | 'destination' | 'path' | 'raw'> => {
   const dataType = getDataType(info[0])
   let position: AprsPosition | undefined
   let symbol = '-'
   let symbolTable = '/'
   let comment = ''
+
   if (dataType === 'position') {
     const firstChar = info[0]
     if (firstChar === '`' || firstChar === "'") {
-      position = parseMicEPosition(header.destination, info) ?? undefined
+      position = parseMicEPosition(destination, info) ?? undefined
       if (info.length > 8) {
         symbol = info[7] ?? '-'
         symbolTable = info[8] ?? '/'
@@ -275,17 +276,23 @@ export const parseAprsPacket = (ax25Packet: Uint8Array): AprsPacket | null => {
   } else {
     comment = info.slice(1).trim()
   }
+
+  return { type: dataType, position, symbol, symbolTable, comment, timestamp: new Date() }
+}
+
+export const parseAprsPacket = (ax25Packet: Uint8Array): AprsPacket | null => {
+  const header = parseAx25Header(ax25Packet)
+  if (!header) return null
+  const infoBytes = ax25Packet.slice(header.infoStart)
+  const info = new TextDecoder().decode(infoBytes)
+  if (info.length === 0) return null
+  const parsed = parseAprsInfo(info, header.destination)
   return {
     source: header.source,
     destination: header.destination,
     path: header.path,
-    type: dataType,
-    position,
-    symbol,
-    symbolTable,
-    comment,
     raw: info,
-    timestamp: new Date(),
+    ...parsed,
   }
 }
 

@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { WebSocket, WebSocketServer } from 'ws'
+import { closeAprsIsClient, getAprsIsClient } from './aprs-is-client'
+import { parseAprsIsPacket } from './aprs-is-parser'
 import { bytesToHex, parseAprsPacket } from './aprs-parser'
 import { config } from './config'
 import {
@@ -192,54 +194,84 @@ export const startServer = async (): Promise<void> => {
   // Initialize database
   initializeDatabase()
 
-  // Start KISS client
-  const kissClient = getKissClient()
+  // Helper: process a parsed APRS packet from any source
+  const handleAprsPacket = (parsed: ReturnType<typeof parseAprsPacket>) => {
+    if (!parsed) return
+    console.log(
+      `[APRS] ${parsed.source} > ${parsed.destination}: ${parsed.comment || parsed.raw.slice(0, 50)}`
+    )
+    stateManager.emitAprsPacket({
+      raw: parsed.raw,
+      source: parsed.source,
+      destination: parsed.destination,
+      path: parsed.path.join(','),
+      comment: parsed.comment,
+      timestamp: new Date().toISOString(),
+    })
+    const existingStation = getStationByCallsign(parsed.source)
+    const isNew = !existingStation
+    const station = upsertStation(parsed)
+    stateManager.emitStationUpdate(station, isNew)
+  }
 
-  kissClient.on('connected', () => {
-    stateManager.emitKissConnected()
-  })
+  if (config.dataSource === 'aprs-is') {
+    // APRS-IS mode: receive packets directly from the internet network
+    console.log(`[Server] Data source: APRS-IS (${config.aprsIs.server}:${config.aprsIs.port})`)
+    const aprsIsClient = getAprsIsClient()
 
-  kissClient.on('disconnected', () => {
-    stateManager.emitKissDisconnected()
-  })
+    aprsIsClient.on('connected', () => {
+      stateManager.emitKissConnected()
+    })
 
-  kissClient.on('packet', (packet: Uint8Array) => {
-    try {
-      const parsed = parseAprsPacket(packet)
-      if (parsed) {
-        console.log(
-          `[APRS] ${parsed.source} > ${parsed.destination}: ${parsed.comment || parsed.raw.slice(0, 50)}`
-        )
+    aprsIsClient.on('disconnected', () => {
+      stateManager.emitKissDisconnected()
+    })
 
-        // Emit raw packet for diagnostics
-        stateManager.emitAprsPacket({
-          raw: parsed.raw,
-          source: parsed.source,
-          destination: parsed.destination,
-          path: parsed.path.join(','),
-          comment: parsed.comment,
-          timestamp: new Date().toISOString(),
-        })
-
-        const existingStation = getStationByCallsign(parsed.source)
-        const isNew = !existingStation
-        const station = upsertStation(parsed)
-
-        stateManager.emitStationUpdate(station, isNew)
+    aprsIsClient.on('packet', (line: string) => {
+      try {
+        const parsed = parseAprsIsPacket(line)
+        handleAprsPacket(parsed)
+      } catch (error) {
+        console.error('[APRS-IS] Parse error:', error, line)
       }
-    } catch (error) {
-      console.error('[APRS] Parse error:', error, bytesToHex(packet))
-    }
-  })
+    })
 
-  kissClient.on('error', (error) => {
-    console.error('[KISS] Error:', error.message)
-  })
+    aprsIsClient.on('error', (error: Error) => {
+      console.error('[APRS-IS] Error:', error.message)
+    })
 
-  // Connect to KISS TNC (don't await - allow server to start independently)
-  kissClient.connect().catch((error) => {
-    console.error('[KISS] Initial connection failed:', error.message)
-  })
+    aprsIsClient.connect()
+  } else {
+    // KISS mode: receive packets from a local Direwolf/TNC via KISS TCP
+    console.log(`[Server] Data source: KISS TNC (${config.kiss.host}:${config.kiss.port})`)
+    const kissClient = getKissClient()
+
+    kissClient.on('connected', () => {
+      stateManager.emitKissConnected()
+    })
+
+    kissClient.on('disconnected', () => {
+      stateManager.emitKissDisconnected()
+    })
+
+    kissClient.on('packet', (packet: Uint8Array) => {
+      try {
+        const parsed = parseAprsPacket(packet)
+        handleAprsPacket(parsed)
+      } catch (error) {
+        console.error('[APRS] Parse error:', error, bytesToHex(packet))
+      }
+    })
+
+    kissClient.on('error', (error: Error) => {
+      console.error('[KISS] Error:', error.message)
+    })
+
+    // Connect to KISS TNC (don't await - allow server to start independently)
+    kissClient.connect().catch((error: Error) => {
+      console.error('[KISS] Initial connection failed:', error.message)
+    })
+  }
 
   // Schedule periodic cleanup
   setInterval(
@@ -425,6 +457,7 @@ export const startServer = async (): Promise<void> => {
   const shutdown = () => {
     console.log('\n[Server] Shutting down...')
     closeKissClient()
+    closeAprsIsClient()
     closeDatabase()
     server.close()
     process.exit(0)
