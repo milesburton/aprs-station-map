@@ -90,10 +90,10 @@ describe('station filtering', () => {
       expect(result[3]?.distance).toBe(5)
     })
 
-    test('filters RF-only stations (no via path)', () => {
+    test('filters RF-only stations (no internet gateway markers)', () => {
       const stationsWithVia = [
         createStation({ callsign: 'RF-DIRECT', via: [] }),
-        createStation({ callsign: 'RF-DIGI', via: ['MB7USE', 'WIDE1-1'] }),
+        createStation({ callsign: 'RF-DIGI', via: ['MB7USE*', 'WIDE1-1'] }),
         createStation({ callsign: 'INET-GATED', via: ['TCPIP', 'qAR'] }),
         createStation({ callsign: 'INET-MIXED', via: ['MB7UUE', 'TCPIP*'] }),
       ]
@@ -131,6 +131,7 @@ describe('station filtering', () => {
         createStation({ callsign: 'QAX', via: ['qAX'] }),
         createStation({ callsign: 'QAI', via: ['qAI'] }),
         createStation({ callsign: 'QAZ', via: ['qAZ'] }),
+        // WIDE1-1 without * means digi was requested but not yet used — still RF-only
         createStation({ callsign: 'RF-ONLY', via: ['WIDE1-1'] }),
       ]
       const filter = { ...defaultFilter, rfOnly: true }
@@ -139,24 +140,29 @@ describe('station filtering', () => {
       expect(result[0]?.callsign).toBe('RF-ONLY')
     })
 
-    test('filters direct-only stations (no digipeaters)', () => {
+    test('filters direct-only stations (no path entry with * — no digi has relayed it)', () => {
       const stationsWithVia = [
         createStation({ callsign: 'DIRECT', via: [] }),
         createStation({ callsign: 'DIRECT-NO-VIA' }), // no via field
-        createStation({ callsign: 'DIGIPEATED', via: ['MB7USE', 'WIDE1-1'] }),
-        createStation({ callsign: 'INET-GATED', via: ['TCPIP', 'qAR'] }),
+        // Path requested but not yet relayed — still counts as direct
+        createStation({ callsign: 'DIRECT-REQUESTED', via: ['WIDE1-1', 'WIDE2-1'] }),
+        // Actually relayed by MB7USE (H-bit set → '*' suffix)
+        createStation({ callsign: 'DIGIPEATED', via: ['MB7USE*', 'WIDE1-1'] }),
+        // Internet-gated: no '*' in path but rfOnly would catch it; directOnly alone does not filter it
       ]
       const filter = { ...defaultFilter, directOnly: true }
       const result = filterStations(stationsWithVia, filter)
-      expect(result).toHaveLength(2)
+      expect(result).toHaveLength(3)
       expect(result.map((s) => s.callsign)).toContain('DIRECT')
       expect(result.map((s) => s.callsign)).toContain('DIRECT-NO-VIA')
+      expect(result.map((s) => s.callsign)).toContain('DIRECT-REQUESTED')
+      expect(result.map((s) => s.callsign)).not.toContain('DIGIPEATED')
     })
 
     test('includes digipeated stations when directOnly is false', () => {
       const stationsWithVia = [
         createStation({ callsign: 'DIRECT', via: [] }),
-        createStation({ callsign: 'DIGIPEATED', via: ['MB7USE'] }),
+        createStation({ callsign: 'DIGIPEATED', via: ['MB7USE*'] }),
       ]
       const filter = { ...defaultFilter, directOnly: false }
       const result = filterStations(stationsWithVia, filter)
@@ -166,14 +172,18 @@ describe('station filtering', () => {
     test('combines rfOnly and directOnly filters', () => {
       const stationsWithVia = [
         createStation({ callsign: 'DIRECT-RF', via: [] }),
-        createStation({ callsign: 'DIGI-RF', via: ['WIDE1-1'] }),
+        // Requested but not relayed — still direct, still RF
+        createStation({ callsign: 'DIRECT-RF-WIDE', via: ['WIDE1-1'] }),
+        // Relayed by digi — not direct
+        createStation({ callsign: 'DIGI-RF', via: ['MB7USE*', 'WIDE1-1'] }),
         createStation({ callsign: 'INET-GATED', via: ['qAR'] }),
       ]
-      // rfOnly=true, directOnly=true: only direct RF stations
+      // rfOnly=true, directOnly=true: only heard directly (no relayed hops) and no internet
       const filter = { ...defaultFilter, rfOnly: true, directOnly: true }
       const result = filterStations(stationsWithVia, filter)
-      expect(result).toHaveLength(1)
-      expect(result[0]?.callsign).toBe('DIRECT-RF')
+      expect(result).toHaveLength(2)
+      expect(result.map((s) => s.callsign)).toContain('DIRECT-RF')
+      expect(result.map((s) => s.callsign)).toContain('DIRECT-RF-WIDE')
     })
   })
 

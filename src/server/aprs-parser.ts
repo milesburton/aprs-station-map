@@ -27,7 +27,7 @@ const AX25_PID_NO_LAYER3 = 0xf0 // No layer 3 protocol
 const decodeCallsign = (
   bytes: Uint8Array,
   offset: number
-): { callsign: string; ssid: number; isLast: boolean } => {
+): { callsign: string; ssid: number; isLast: boolean; hasBeenRepeated: boolean } => {
   let callsign = ''
   for (let i = 0; i < 6; i++) {
     const byte = bytes[offset + i]
@@ -42,11 +42,13 @@ const decodeCallsign = (
   const ssidByte = bytes[offset + 6] ?? 0
   const ssid = (ssidByte >> 1) & 0x0f
   const isLast = (ssidByte & 0x01) === 1
+  const hasBeenRepeated = (ssidByte & 0x80) !== 0 // H-bit: set when digi has relayed the packet
 
   return {
     callsign: ssid > 0 ? `${callsign.trim()}-${ssid}` : callsign.trim(),
     ssid,
     isLast,
+    hasBeenRepeated,
   }
 }
 
@@ -63,9 +65,11 @@ const parseAx25Header = (
   let lastAddress = source.isLast
 
   // Parse digipeater path
+  // Append '*' to callsigns where the H-bit is set (has-been-repeated),
+  // matching the conventional APRS text representation and allowing RF/direct filters to work.
   while (!lastAddress && offset + AX25_ADDR_LEN <= packet.length) {
     const digi = decodeCallsign(packet, offset)
-    path.push(digi.callsign)
+    path.push(digi.hasBeenRepeated ? `${digi.callsign}*` : digi.callsign)
     lastAddress = digi.isLast
     offset += AX25_ADDR_LEN
   }

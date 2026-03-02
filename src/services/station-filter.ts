@@ -35,9 +35,12 @@ const isRfOnly = (station: Station): boolean => {
   )
 }
 
-// Direct RF means no digipeaters - the packet was received directly from the station
+// Direct RF means no digipeater has actually relayed the packet.
+// A path entry with '*' suffix means that digi relayed it; entries without '*' are
+// only path requests that haven't been used yet (e.g. WIDE1-1 before any digi picks it up).
 const isDirectRf = (station: Station): boolean => {
-  return !station.via || station.via.length === 0
+  if (!station.via || station.via.length === 0) return true
+  return !station.via.some((hop) => hop.endsWith('*'))
 }
 
 const compare = <T>(a: T, b: T, direction: SortDirection): number => {
