@@ -55,8 +55,8 @@ const drawGrid = (
   ctx.strokeStyle = '#333'
   ctx.lineWidth = 1
 
-  for (let db = -100; db <= 0; db += 10) {
-    const y = height - ((db + 100) / 100) * height
+  for (let db = -50; db <= 0; db += 10) {
+    const y = height - ((db + 50) / 50) * height
     ctx.beginPath()
     ctx.moveTo(0, y)
     ctx.lineTo(width, y)
@@ -94,8 +94,8 @@ const drawSpectrumLine = (
 
   for (let i = 0; i < magnitudes.length; i++) {
     const x = (i / magnitudes.length) * width
-    const magnitude = magnitudes[i] ?? -100
-    const y = height - ((magnitude + 100) / 100) * height
+    const magnitude = magnitudes[i] ?? -50
+    const y = height - Math.max(0, Math.min(1, (magnitude + 50) / 50)) * height
 
     if (i === 0) {
       ctx.moveTo(x, y)
@@ -143,10 +143,10 @@ const addWaterfallLine = (imageData: ImageData, width: number, magnitudes: numbe
   for (let x = 0; x < width; x++) {
     const idx = Math.floor((x / width) * magnitudes.length)
     const magnitude = magnitudes[idx] ?? -100
-    // Map -120dB → 0 (black/blue) and -40dB → 1 (red/yellow).
-    // 80 dB window keeps the noise floor in the blue/cyan range while
-    // real signals (typically -60 to -40 dB) show as green/yellow/red.
-    const normalized = Math.max(0, Math.min(1, (magnitude + 120) / 80))
+    // Map -50dB → 0 (black/blue) and 0dB → 1 (red/yellow).
+    // Input is 8-bit unsigned PCM → (byte-128)/128 → FFT normalised by numBins.
+    // Full-scale tone ≈ 0 dB; RTL-SDR noise floor typically -50 to -30 dB.
+    const normalized = Math.max(0, Math.min(1, (magnitude + 50) / 50))
     const color = magnitudeToColor(normalized)
 
     const pixelIdx = x * 4

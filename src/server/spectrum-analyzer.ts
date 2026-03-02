@@ -189,11 +189,15 @@ export class SpectrumAnalyzer extends EventEmitter {
       const freq = this.centerFreq - this.sampleRate / 2 + (i * this.sampleRate) / this.fftSize
       frequencies.push(freq)
 
-      // Compute magnitude in dB
+      // Compute magnitude in dB, normalised to full-scale 8-bit PCM range.
+      // Input samples are (byte - 128) / 128 → range [-1, 1].
+      // After windowed FFT + /numBins, full-scale sine = 0 dB; noise floor ≈ -50 to -30 dB.
       // biome-ignore lint/style/noNonNullAssertion: loop index within FFT output bounds
       const mag = Math.sqrt(real[i]! * real[i]! + imag[i]! * imag[i]!)
+      // Normalise by numBins so a full-scale tone = 0 dB
       const magDb = 20 * Math.log10(Math.max(mag / numBins, 1e-10))
-      magnitudes.push(magDb)
+      // Subtract 6 dB to account for Hann window power loss
+      magnitudes.push(magDb - 6)
     }
 
     // Apply exponential moving average for smoother display
