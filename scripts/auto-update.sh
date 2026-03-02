@@ -43,8 +43,11 @@ while true; do
 
     run_logged git pull origin "$BRANCH"
 
-    log "Rebuilding and restarting container..."
-    if run_logged docker compose -f .appcontainer/compose.yaml up -d --build --remove-orphans; then
+    log "Pulling latest image from GHCR..."
+    run_logged docker compose -f .appcontainer/compose.yaml pull
+
+    log "Restarting container..."
+    if run_logged docker compose -f .appcontainer/compose.yaml up -d --remove-orphans; then
       log "Container updated successfully!"
     else
       log "Container update failed"

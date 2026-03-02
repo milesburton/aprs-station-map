@@ -3,9 +3,7 @@
 
 services:
   aprs-map:
-    build:
-      context: ..
-      dockerfile: .appcontainer/Dockerfile
+    image: ghcr.io/milesburton/aprs-station-map:latest
     container_name: aprs-station-map
     network_mode: host  # Bypass Docker networking - nginx on :80, backend on :3001
     volumes:
