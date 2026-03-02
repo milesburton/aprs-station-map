@@ -88,7 +88,19 @@ docker compose -f .appcontainer/compose.yaml logs -f
 docker compose -f .appcontainer/compose.yaml down
 ```
 
-Data persists in the `aprs-data` Docker volume.
+## Data Persistence
+
+Stations and packet history are stored in a SQLite database inside the `aprs-data` Docker volume. Data survives container restarts and upgrades automatically.
+
+History is retained for **7 days** and cleaned up automatically overnight.
+
+To wipe all recorded stations and start fresh (e.g. after changing location):
+
+```bash
+docker compose -f .appcontainer/compose.yaml down
+docker volume rm aprs-data
+docker compose -f .appcontainer/compose.yaml up -d
+```
 
 ## Development
 
