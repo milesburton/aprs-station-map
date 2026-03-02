@@ -8,7 +8,7 @@ Type=simple
 User=miles
 WorkingDirectory=/home/miles/aprs-station-map
 Environment="REPO_DIR=/home/miles/aprs-station-map"
-Environment="CHECK_INTERVAL=3600"
+Environment="CHECK_INTERVAL=300"
 Environment="BRANCH=main"
 ExecStart=/home/miles/aprs-station-map/scripts/auto-update.sh
 Restart=always

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO_DIR="${REPO_DIR:-/home/miles/aprs-station-map}"
-CHECK_INTERVAL="${CHECK_INTERVAL:-3600}" # Default: 1 hour
+CHECK_INTERVAL="${CHECK_INTERVAL:-300}" # Default: 5 minutes
 BRANCH="${BRANCH:-main}"
 
 log() {
@@ -44,7 +44,7 @@ while true; do
     run_logged git pull origin "$BRANCH"
 
     log "Rebuilding and restarting container..."
-    if run_logged docker compose -f .appcontainer/compose.yaml up -d --build; then
+    if run_logged docker compose -f .appcontainer/compose.yaml up -d --build --remove-orphans; then
       log "Container updated successfully!"
     else
       log "Container update failed"
