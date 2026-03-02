@@ -143,9 +143,10 @@ const addWaterfallLine = (imageData: ImageData, width: number, magnitudes: numbe
   for (let x = 0; x < width; x++) {
     const idx = Math.floor((x / width) * magnitudes.length)
     const magnitude = magnitudes[idx] ?? -100
-    // Map -90dB to 0 (black/blue) and -30dB to 1 (red/yellow)
-    // This gives better contrast for typical signal levels
-    const normalized = Math.max(0, Math.min(1, (magnitude + 90) / 60))
+    // Map -120dB → 0 (black/blue) and -40dB → 1 (red/yellow).
+    // 80 dB window keeps the noise floor in the blue/cyan range while
+    // real signals (typically -60 to -40 dB) show as green/yellow/red.
+    const normalized = Math.max(0, Math.min(1, (magnitude + 120) / 80))
     const color = magnitudeToColor(normalized)
 
     const pixelIdx = x * 4
@@ -351,7 +352,7 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
             <button
               type="button"
               onClick={onPopIn}
-              className="px-4 py-1.5 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
+              className="diag-btn diag-btn-primary"
               title="Return to main window"
             >
               Pop In
@@ -360,7 +361,7 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
             <button
               type="button"
               onClick={onPopout}
-              className="px-4 py-1.5 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
+              className="diag-btn diag-btn-primary"
               title="Open in new window"
             >
               Pop Out
@@ -422,11 +423,7 @@ export const SpectrumAnalyzer: FC = () => {
       <>
         <div className="flex flex-col h-full items-center justify-center text-slate-400">
           <p className="text-lg mb-4">Spectrum Analyzer is open in a separate window</p>
-          <button
-            type="button"
-            onClick={handlePopIn}
-            className="px-5 py-2.5 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
-          >
+          <button type="button" onClick={handlePopIn} className="diag-btn diag-btn-primary">
             Return to Main Window
           </button>
         </div>

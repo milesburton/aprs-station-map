@@ -23,7 +23,10 @@ export default defineConfig({
         'src/**/index.ts', // Barrel exports
         'src/components/**', // React components (tested via integration)
         'src/hooks/**', // React hooks (tested via components)
-        'src/server/**', // Backend code (tested separately)
+        'src/server/index.ts', // Server entry point (integration tested)
+        'src/server/kiss-client.ts', // Requires live TNC connection
+        'src/server/state-manager.ts', // Thin EventEmitter wrapper
+        'src/server/spectrum-analyzer.ts', // Requires RTL-SDR hardware
         'src/utils/logger.ts', // Logging utility (no business logic)
       ],
       thresholds: {

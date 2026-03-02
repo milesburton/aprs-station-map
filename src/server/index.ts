@@ -19,6 +19,7 @@ import {
   upsertStation,
 } from './database'
 import { calculateBearing, calculateDistance } from './geo'
+import { handleGraphQL } from './graphql'
 import { closeKissClient, getKissClient } from './kiss-client'
 import { SpectrumAnalyzer } from './spectrum-analyzer'
 import { type StateEvent, stateManager } from './state-manager'
@@ -296,6 +297,16 @@ export const startServer = async (): Promise<void> => {
     // API routes
     if (url.pathname.startsWith('/api')) {
       handleApiRequest(req, res, url.pathname)
+      return
+    }
+
+    // GraphQL endpoint
+    if (url.pathname === '/graphql') {
+      handleGraphQL(req, res).catch((err) => {
+        console.error('[GraphQL] Unhandled error:', err)
+        res.writeHead(500)
+        res.end('Internal server error')
+      })
       return
     }
 

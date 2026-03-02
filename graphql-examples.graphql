@@ -1,0 +1,184 @@
+# APRS Station Map — GraphQL API Examples
+#
+# Endpoint: GET/POST http://localhost:3001/graphql
+#
+# GET example (curl):
+#   curl "http://localhost:3001/graphql?query={stats{totalStations,totalPackets}}"
+#
+# POST example (curl):
+#   curl -X POST http://localhost:3001/graphql \
+#     -H "Content-Type: application/json" \
+#     -d '{"query":"{ stats { totalStations stationsWithPosition totalPackets kissConnected } }"}'
+
+# ─── Stats & Health ──────────────────────────────────────────────────────────
+
+# Basic aggregate statistics
+query GetStats {
+  stats {
+    totalStations
+    stationsWithPosition
+    totalPackets
+    kissConnected
+  }
+}
+
+# Server health check
+query GetHealth {
+  health {
+    status
+    kissConnected
+  }
+}
+
+# ─── Stations ────────────────────────────────────────────────────────────────
+
+# All stations with distance/bearing from base
+query GetAllStations {
+  stations {
+    callsign
+    latitude
+    longitude
+    symbol
+    comment
+    lastHeard
+    packetCount
+    distanceKm
+    bearingDeg
+    via
+  }
+}
+
+# Only stations that have a known position
+query GetStationsWithPosition {
+  stations(withPositionOnly: true) {
+    callsign
+    latitude
+    longitude
+    distanceKm
+    bearingDeg
+    lastHeard
+  }
+}
+
+# Search by callsign prefix (case-insensitive)
+query SearchByCallsign {
+  stations(search: "G4") {
+    callsign
+    comment
+    distanceKm
+    lastHeard
+  }
+}
+
+# Most recent 10 stations heard
+query GetRecentStations {
+  stations(limit: 10) {
+    callsign
+    lastHeard
+    packetCount
+    distanceKm
+  }
+}
+
+# Nearest 5 stations with position
+query GetNearestStations {
+  stations(withPositionOnly: true, limit: 5) {
+    callsign
+    distanceKm
+    bearingDeg
+    latitude
+    longitude
+  }
+}
+
+# ─── Single Station ───────────────────────────────────────────────────────────
+
+# Fetch one station by callsign
+query GetStation {
+  station(callsign: "M0ABC-9") {
+    callsign
+    latitude
+    longitude
+    symbol
+    symbolTable
+    comment
+    lastHeard
+    packetCount
+    lastPath
+    distanceKm
+    bearingDeg
+    via
+  }
+}
+
+# ─── Packet History ───────────────────────────────────────────────────────────
+
+# Last 20 packets for a station (includes raw APRS string)
+query GetStationHistory {
+  stationHistory(callsign: "M0ABC-9", limit: 20) {
+    id
+    rawPacket
+    latitude
+    longitude
+    path
+    receivedAt
+  }
+}
+
+# ─── Trails (position history for map rendering) ─────────────────────────────
+
+# All position trails from the last 24 hours, max 50 points per station
+query GetAllTrails {
+  trails {
+    callsign
+    points {
+      latitude
+      longitude
+      receivedAt
+    }
+  }
+}
+
+# Trails from the last 6 hours, 20 points per station (lighter payload)
+query GetRecentTrails {
+  trails(maxAgeHours: 6, limitPerStation: 20) {
+    callsign
+    points {
+      latitude
+      longitude
+      receivedAt
+    }
+  }
+}
+
+# ─── Combined query (single round-trip) ──────────────────────────────────────
+
+# Everything needed to bootstrap the map view
+query BootstrapMap {
+  stations(withPositionOnly: true) {
+    callsign
+    latitude
+    longitude
+    symbol
+    symbolTable
+    comment
+    lastHeard
+    distanceKm
+    bearingDeg
+    via
+  }
+  trails(maxAgeHours: 24, limitPerStation: 50) {
+    callsign
+    points {
+      latitude
+      longitude
+      receivedAt
+    }
+  }
+  stats {
+    totalStations
+    stationsWithPosition
+    totalPackets
+    kissConnected
+  }
+}
