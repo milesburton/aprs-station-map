@@ -130,21 +130,4 @@ const StationMapInner: FC<StationMapProps> = ({
   </MapContainer>
 )
 
-export const StationMap: FC<StationMapProps> = memo(StationMapInner, (prevProps, nextProps) => {
-  if (prevProps.centre.latitude !== nextProps.centre.latitude) return false
-  if (prevProps.centre.longitude !== nextProps.centre.longitude) return false
-  if (prevProps.zoom !== nextProps.zoom) return false
-  if (prevProps.trailMaxAgeHours !== nextProps.trailMaxAgeHours) return false
-  if (prevProps.stations.length !== nextProps.stations.length) return false
-  if (prevProps.stations !== nextProps.stations) {
-    for (let i = 0; i < Math.min(5, prevProps.stations.length); i++) {
-      const prev = prevProps.stations[i]
-      const next = nextProps.stations[i]
-      if (prev?.callsign !== next?.callsign) return false
-      if (prev?.coordinates?.latitude !== next?.coordinates?.latitude) return false
-      if (prev?.coordinates?.longitude !== next?.coordinates?.longitude) return false
-      if (prev?.lastHeard !== next?.lastHeard) return false
-    }
-  }
-  return true
-})
+export const StationMap: FC<StationMapProps> = memo(StationMapInner)
