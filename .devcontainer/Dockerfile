@@ -59,4 +59,8 @@ RUN mkdir -p /home/node/.ssh \
     && chown node:node /home/node/.ssh \
     && chmod 700 /home/node/.ssh
 
+RUN mkdir -p /home/node/.config/fish \
+    && chown -R node:node /home/node/.config \
+    && chmod 700 /home/node/.config/fish
+
 USER node

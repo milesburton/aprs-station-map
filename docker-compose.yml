@@ -20,6 +20,7 @@ services:
     container_name: aprs-station-map
     volumes:
       - aprs-data:/app/data
+      - fly-data:/home/node/.fly
     devices:
       - /dev/bus/usb:/dev/bus/usb
     privileged: true
@@ -29,6 +30,7 @@ services:
 
 volumes:
   aprs-data:
+  fly-data:
 
 networks:
   nginx-proxy:
