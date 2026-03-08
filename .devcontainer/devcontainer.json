@@ -43,7 +43,7 @@
     "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.fly,target=/home/node/.fly,type=bind,consistency=cached"
+    "source=aprs-station-map-fly-config,target=/home/node/.fly,type=volume"
   ],
   "postCreateCommand": "npm install && npx playwright install --with-deps chromium",
   "postStartCommand": "sudo chown -R node:node /workspace && npm install",
