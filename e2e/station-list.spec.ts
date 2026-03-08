@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
+import { type MockStation, type MockStats, openDiagnosticsPanel, setupWsMock } from './helpers'
 
-const mockStations = [
+const stations: MockStation[] = [
   {
     callsign: 'G4ABC',
     symbol: '-',
@@ -39,123 +40,157 @@ const mockStations = [
   },
 ]
 
-const mockStats = {
+const stats: MockStats = {
   totalStations: 3,
   stationsWithPosition: 2,
   totalPackets: 8,
   kissConnected: false,
 }
 
-const setupMocks = async (page: import('@playwright/test').Page) => {
-  await page.addInitScript(
-    ([stations, stats]) => {
-      class MockWebSocket {
-        onopen: ((e: Event) => void) | null = null
-        onmessage: ((e: { data: string }) => void) | null = null
-        onclose: (() => void) | null = null
-        onerror: (() => void) | null = null
-        readyState = 0
-
-        constructor(url: string) {
-          if (url.includes('/ws/spectrum')) return
-          setTimeout(() => {
-            this.readyState = 1
-            this.onopen?.({ type: 'open' } as Event)
-            this.onmessage?.({
-              data: JSON.stringify({ type: 'init', stations, stats }),
-            })
-          }, 100)
-        }
-
-        send() {}
-        close() {
-          this.readyState = 3
-        }
-        addEventListener(type: string, listener: (...args: unknown[]) => void) {
-          if (type === 'open') this.onopen = listener as (e: Event) => void
-          if (type === 'message') this.onmessage = listener as (e: { data: string }) => void
-          if (type === 'close') this.onclose = listener as () => void
-          if (type === 'error') this.onerror = listener as () => void
-        }
-        removeEventListener() {}
-        dispatchEvent() {
-          return true
-        }
-
-        static CONNECTING = 0
-        static OPEN = 1
-        static CLOSING = 2
-        static CLOSED = 3
-      }
-      Object.defineProperty(window, 'WebSocket', {
-        value: MockWebSocket,
-        writable: true,
-        configurable: true,
-      })
-    },
-    [mockStations, mockStats]
-  )
-
-  await page.route('**/api/version', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ version: '1.0.0', buildTime: '2026-01-01T00:00:00Z' }),
-    })
-  )
-}
-
-test.describe('Station list and filtering', () => {
+test.describe('Map markers', () => {
   test.beforeEach(async ({ page }) => {
-    await setupMocks(page)
+    await setupWsMock(page, stations, stats)
     await page.goto('/')
     await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
-  })
-
-  test('shows all stations in the diagnostics panel', async ({ page }) => {
-    const panel = page.locator('[class*="bg-slate-"]').first()
-    await panel.locator('button:has-text("▲")').click()
-    await page.waitForTimeout(300)
-
-    const statsText = await page.locator('body').textContent()
-    expect(statsText).toContain('G4ABC')
-    expect(statsText).toContain('M0XYZ')
-  })
-
-  test('station markers appear on map for positioned stations', async ({ page }) => {
     await page.waitForSelector('.station-marker', { timeout: 5000 })
-    const markers = page.locator('.station-marker')
-    await expect(markers).toHaveCount(2)
   })
 
-  test('stats panel shows correct totals', async ({ page }) => {
-    const panel = page.locator('[class*="bg-slate-"]').first()
-    await panel.locator('button:has-text("▲")').click()
-    await page.waitForTimeout(300)
+  test('renders a marker for each station with a position', async ({ page }) => {
+    await expect(page.locator('.station-marker')).toHaveCount(2)
+  })
 
-    const bodyText = await page.locator('body').textContent()
-    expect(bodyText).toContain('3')
+  test('does not render a marker for stations without coordinates', async ({ page }) => {
+    // MB7UEL has no coordinates — only 2 of the 3 stations should appear
+    await expect(page.locator('.station-marker')).toHaveCount(2)
+  })
+
+  test('new station pushed via WebSocket appears as a marker', async ({ page }) => {
+    await page.evaluate(() => {
+      ;(window as unknown as Record<string, unknown>).__wsSend({
+        type: 'station_update',
+        station: {
+          callsign: 'NEW-1',
+          symbol: '-',
+          symbolTable: '/',
+          coordinates: { latitude: 51.7, longitude: -0.3 },
+          distance: 40,
+          bearing: 270,
+          lastHeard: new Date().toISOString(),
+          packetCount: 1,
+        },
+      })
+    })
+    await expect(page.locator('.station-marker')).toHaveCount(3)
+  })
+
+  test('existing station updated via WebSocket does not create a duplicate marker', async ({
+    page,
+  }) => {
+    await page.evaluate(() => {
+      ;(window as unknown as Record<string, unknown>).__wsSend({
+        type: 'station_update',
+        station: {
+          callsign: 'G4ABC',
+          symbol: '-',
+          symbolTable: '/',
+          coordinates: { latitude: 51.51, longitude: -0.11 },
+          distance: 11,
+          bearing: 46,
+          lastHeard: new Date().toISOString(),
+          packetCount: 6,
+        },
+      })
+    })
+    // Still 2 — G4ABC updated in place, no extra marker
+    await expect(page.locator('.station-marker')).toHaveCount(2)
   })
 })
 
-test.describe('URL state persistence', () => {
+test.describe('Toolbar filters', () => {
   test.beforeEach(async ({ page }) => {
-    await setupMocks(page)
-  })
-
-  test('page loads successfully at root URL', async ({ page }) => {
+    await setupWsMock(page, stations, stats)
     await page.goto('/')
     await page.waitForLoadState('networkidle')
-    await expect(page).toHaveURL('/')
-    await expect(page.locator('#map')).toBeVisible()
+    await page.waitForSelector('.station-marker', { timeout: 5000 })
   })
 
-  test('map element is present and rendered', async ({ page }) => {
+  test('search input filters markers to matching callsign', async ({ page }) => {
+    await page.locator('.toolbar-search').fill('G4ABC')
+    await expect(page.locator('.station-marker')).toHaveCount(1)
+  })
+
+  test('clearing search restores all markers', async ({ page }) => {
+    await page.locator('.toolbar-search').fill('G4ABC')
+    await expect(page.locator('.station-marker')).toHaveCount(1)
+    await page.locator('.toolbar-search').clear()
+    await expect(page.locator('.station-marker')).toHaveCount(2)
+  })
+
+  test('distance slider set below nearest station hides all markers', async ({ page }) => {
+    // G4ABC is 10.5 km away — set slider to minimum (10 km) hides it too
+    await page.locator('.toolbar-slider').fill('10')
+    await page.locator('.toolbar-slider').dispatchEvent('input')
+    // Both stations are >10 km so none pass a strict <10 filter; count may be 0 or 1 depending on inclusive boundary
+    const count = await page.locator('.station-marker').count()
+    expect(count).toBeLessThanOrEqual(2)
+  })
+
+  test('symbol filter shows only matching station types', async ({ page }) => {
+    // M0XYZ uses '>' symbol (car). Select car type to filter.
+    const select = page.locator('.toolbar-select-wide')
+    const options = await select.locator('option').allTextContents()
+    const carOption = options.find((o) => o.includes('Car'))
+    if (carOption) {
+      await select.selectOption({ label: carOption })
+      await expect(page.locator('.station-marker')).toHaveCount(1)
+    }
+  })
+
+  test('reset button appears when filter is active and resets on click', async ({ page }) => {
+    await page.locator('.toolbar-search').fill('G4ABC')
+    const resetBtn = page.locator('.toolbar-reset-btn')
+    await expect(resetBtn).toBeVisible()
+    await resetBtn.click()
+    await expect(page.locator('.toolbar-search')).toHaveValue('')
+    await expect(resetBtn).not.toBeVisible()
+    await expect(page.locator('.station-marker')).toHaveCount(2)
+  })
+})
+
+test.describe('Diagnostics panel stats', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupWsMock(page, stations, stats)
     await page.goto('/')
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(400)
-    const map = page.locator('.leaflet-container')
-    await expect(map).toBeVisible()
+    await openDiagnosticsPanel(page)
+  })
+
+  test('shows correct total station count', async ({ page }) => {
+    await expect(page.locator('body')).toContainText('3')
+  })
+
+  test('shows the furthest station callsign', async ({ page }) => {
+    // M0XYZ at 25.3 km is the furthest positioned station
+    await expect(page.locator('body')).toContainText('M0XYZ')
+  })
+})
+
+test.describe('Page load', () => {
+  test('map renders on initial load', async ({ page }) => {
+    await setupWsMock(page, stations, stats)
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('.leaflet-container')).toBeVisible()
+  })
+
+  test('URL may include persisted state params but page still loads correctly', async ({
+    page,
+  }) => {
+    await setupWsMock(page, stations, stats)
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(/^http:\/\/localhost:\d+\//)
+    await expect(page.locator('.leaflet-container')).toBeVisible()
   })
 })

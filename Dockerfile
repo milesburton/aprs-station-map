@@ -27,23 +27,8 @@ RUN npx esbuild src/server/index.ts \
     --external:better-sqlite3 \
     --external:ws
 
-# Stage 2: Runtime with Node.js + nginx + Direwolf
-FROM node:22-slim
-
-RUN apt-get update && apt-get install -y \
-    nginx \
-    supervisor \
-    curl \
-    python3 \
-    make \
-    g++ \
-    direwolf \
-    alsa-utils \
-    rtl-sdr \
-    sox \
-    gettext-base \
-    procps \
-    && rm -rf /var/lib/apt/lists/*
+# Stage 2: Runtime — built on pre-baked base image (OS + system deps)
+FROM ghcr.io/milesburton/aprs-station-map-base:latest
 
 WORKDIR /app
 
