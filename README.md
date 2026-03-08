@@ -1,8 +1,12 @@
 # APRS Station Map
 
-[![CI](https://github.com/milesburton/aprs-station-map/actions/workflows/ci.yml/badge.svg)](https://github.com/milesburton/aprs-station-map/actions/workflows/ci.yml)
+[![CI](https://github.com/milesburton/aprs-station-map/actions/workflows/ci.yml/badge.svg?label=tests)](https://github.com/milesburton/aprs-station-map/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/milesburton/aprs-station-map/actions/workflows/docker-build.yml/badge.svg)](https://github.com/milesburton/aprs-station-map/actions/workflows/docker-build.yml)
 [![Deploy](https://github.com/milesburton/aprs-station-map/actions/workflows/deploy.yml/badge.svg)](https://github.com/milesburton/aprs-station-map/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node 22](https://img.shields.io/badge/node-22-green.svg)](https://nodejs.org)
+
+**Live:** https://aprs-station-map.fly.dev
 
 Real-time APRS station map. Operates in two modes:
 
