@@ -93,6 +93,8 @@ describe('handleGraphQL', () => {
       totalStations: 0,
       stationsWithPosition: 0,
       totalPackets: 0,
+      totalVessels: 0,
+      vesselsWithPosition: 0,
     })
     vi.mocked(stateManager.isKissConnected).mockReturnValue(false)
   })
@@ -153,6 +155,8 @@ describe('handleGraphQL', () => {
       totalStations: 5,
       stationsWithPosition: 3,
       totalPackets: 42,
+      totalVessels: 0,
+      vesselsWithPosition: 0,
     })
     vi.mocked(stateManager.isKissConnected).mockReturnValue(true)
     const req = makeReq(
@@ -244,6 +248,8 @@ describe('handleGraphQL', () => {
       totalStations: 1,
       stationsWithPosition: 1,
       totalPackets: 10,
+      totalVessels: 0,
+      vesselsWithPosition: 0,
     })
     const body = JSON.stringify({ query: '{ stats { totalStations } }' })
     const req = makeReq('POST', '/graphql', body)

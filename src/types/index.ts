@@ -69,6 +69,9 @@ export interface Stats {
   stationsWithPosition: number
   totalPackets: number
   kissConnected: boolean
+  totalVessels?: number
+  vesselsWithPosition?: number
+  aisConnected?: boolean
 }
 
 export interface AprsPacket {
@@ -90,6 +93,21 @@ export interface AprsPacket {
   }
 }
 
+export interface Vessel {
+  mmsi: string
+  callsign: string
+  shipName: string
+  coordinates: Coordinates | null
+  course?: number
+  speed?: number
+  heading?: number
+  shipType?: string
+  lastHeard: Date | string
+  distance: number | null
+  bearing: number | null
+  packetCount: number
+}
+
 export interface WebSocketMessage {
   type:
     | 'init'
@@ -98,8 +116,13 @@ export interface WebSocketMessage {
     | 'kiss_connected'
     | 'kiss_disconnected'
     | 'aprs_packet'
+    | 'vessel_update'
+    | 'ais_connected'
+    | 'ais_disconnected'
   stations?: Station[]
   station?: Station
+  vessels?: Vessel[]
+  vessel?: Vessel
   stats?: Stats
   isNew?: boolean
   packet?: AprsPacket

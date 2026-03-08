@@ -187,4 +187,5 @@ playwright/.cache/
 deploy/
 
 # Public directory (favicon and generated files)
-public/
+public/*
+!public/robots.txt

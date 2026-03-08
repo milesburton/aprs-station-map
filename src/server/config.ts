@@ -1,4 +1,5 @@
 export type DataSource = 'kiss' | 'aprs-is'
+export type AisSource = 'kiss' | 'http' | 'none'
 
 export interface ServerConfig {
   dataSource: DataSource
@@ -13,6 +14,19 @@ export interface ServerConfig {
     passcode: string
     filter: string
     reconnectIntervalMs: number
+  }
+  ais: {
+    source: AisSource
+    kiss: {
+      host: string
+      port: number
+      reconnectIntervalMs: number
+    }
+    http: {
+      enabled: boolean
+      apiUrl: string
+      updateIntervalMs: number
+    }
   }
   database: {
     path: string
@@ -49,6 +63,19 @@ export const loadConfig = (): ServerConfig => ({
     passcode: process.env.APRS_IS_PASSCODE ?? '-1',
     filter: process.env.APRS_IS_FILTER ?? '',
     reconnectIntervalMs: parseNumber(process.env.APRS_IS_RECONNECT_MS, 30000),
+  },
+  ais: {
+    source: (process.env.AIS_SOURCE as AisSource) ?? 'none',
+    kiss: {
+      host: process.env.AIS_KISS_HOST ?? 'localhost',
+      port: parseNumber(process.env.AIS_KISS_PORT, 8002),
+      reconnectIntervalMs: parseNumber(process.env.AIS_KISS_RECONNECT_MS, 5000),
+    },
+    http: {
+      enabled: process.env.AIS_HTTP_ENABLED === 'true',
+      apiUrl: process.env.AIS_HTTP_API_URL ?? 'https://api.maritimetraffic.com',
+      updateIntervalMs: parseNumber(process.env.AIS_HTTP_UPDATE_MS, 30000),
+    },
   },
   database: {
     path: process.env.DATABASE_PATH ?? './data/stations.db',

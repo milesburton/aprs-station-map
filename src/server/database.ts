@@ -1,6 +1,7 @@
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import Database from 'better-sqlite3'
+import type { ParsedAisMessage } from './ais-parser'
 import type { AprsPacket } from './aprs-parser'
 import { config } from './config'
 
@@ -27,6 +28,23 @@ export interface DbPacketHistory {
   longitude: number | null
   path: string
   received_at: number
+}
+
+export interface DbVessel {
+  id: number
+  mmsi: string
+  callsign: string | null
+  ship_name: string | null
+  latitude: number | null
+  longitude: number | null
+  course: number | null
+  speed: number | null
+  heading: number | null
+  ship_type: number | null
+  last_heard: number
+  packet_count: number
+  created_at: number
+  updated_at: number
 }
 
 let db: Database.Database | null = null
@@ -57,10 +75,29 @@ const SCHEMA = `
     received_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS vessels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mmsi TEXT UNIQUE NOT NULL,
+    callsign TEXT,
+    ship_name TEXT,
+    latitude REAL,
+    longitude REAL,
+    course REAL,
+    speed REAL,
+    heading INTEGER,
+    ship_type INTEGER,
+    last_heard INTEGER NOT NULL,
+    packet_count INTEGER DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_stations_callsign ON stations(callsign);
   CREATE INDEX IF NOT EXISTS idx_stations_last_heard ON stations(last_heard DESC);
   CREATE INDEX IF NOT EXISTS idx_history_station ON packet_history(station_id);
   CREATE INDEX IF NOT EXISTS idx_history_received ON packet_history(received_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_vessels_mmsi ON vessels(mmsi);
+  CREATE INDEX IF NOT EXISTS idx_vessels_last_heard ON vessels(last_heard DESC);
 `
 
 export const initializeDatabase = (path: string = config.database.path): Database.Database => {
@@ -286,6 +323,8 @@ export const getStats = (): {
   totalStations: number
   stationsWithPosition: number
   totalPackets: number
+  totalVessels: number
+  vesselsWithPosition: number
 } => {
   const database = getDatabase()
 
@@ -306,7 +345,20 @@ export const getStats = (): {
     (database.prepare('SELECT COUNT(*) as count FROM packet_history').get() as { count: number })
       ?.count ?? 0
 
-  return { totalStations, stationsWithPosition, totalPackets }
+  const totalVessels =
+    (database.prepare('SELECT COUNT(*) as count FROM vessels').get() as { count: number })?.count ??
+    0
+
+  const vesselsWithPosition =
+    (
+      database
+        .prepare(
+          'SELECT COUNT(*) as count FROM vessels WHERE latitude IS NOT NULL AND longitude IS NOT NULL'
+        )
+        .get() as { count: number }
+    )?.count ?? 0
+
+  return { totalStations, stationsWithPosition, totalPackets, totalVessels, vesselsWithPosition }
 }
 
 // Cleanup old history (keep last N days)
@@ -316,4 +368,107 @@ export const cleanupOldHistory = (daysToKeep = 7): number => {
   const stmt = database.prepare('DELETE FROM packet_history WHERE received_at < ?')
   const result = stmt.run(cutoff)
   return result.changes
+}
+
+// Vessel management functions
+export const upsertVessel = (aisMsg: ParsedAisMessage): DbVessel => {
+  const database = getDatabase()
+  const now = Date.now()
+
+  const existingStmt = database.prepare('SELECT * FROM vessels WHERE mmsi = ?')
+  const existing = existingStmt.get(aisMsg.mmsi) as DbVessel | undefined
+
+  if (existing && aisMsg.latitude !== 0 && aisMsg.longitude !== 0) {
+    const updateStmt = database.prepare(`
+      UPDATE vessels SET
+        callsign = COALESCE(?, callsign),
+        ship_name = COALESCE(?, ship_name),
+        latitude = COALESCE(?, latitude),
+        longitude = COALESCE(?, longitude),
+        course = COALESCE(?, course),
+        speed = COALESCE(?, speed),
+        heading = COALESCE(?, heading),
+        ship_type = COALESCE(?, ship_type),
+        last_heard = ?,
+        packet_count = packet_count + 1,
+        updated_at = ?
+      WHERE mmsi = ?
+    `)
+
+    updateStmt.run(
+      aisMsg.callsign ?? null,
+      aisMsg.shipName ?? null,
+      aisMsg.latitude,
+      aisMsg.longitude,
+      aisMsg.course ?? null,
+      aisMsg.speed ?? null,
+      aisMsg.heading ?? null,
+      aisMsg.shipType ?? null,
+      now,
+      now,
+      aisMsg.mmsi
+    )
+
+    return {
+      ...existing,
+      callsign: aisMsg.callsign ?? existing.callsign,
+      ship_name: aisMsg.shipName ?? existing.ship_name,
+      latitude: aisMsg.latitude !== 0 ? aisMsg.latitude : existing.latitude,
+      longitude: aisMsg.longitude !== 0 ? aisMsg.longitude : existing.longitude,
+      course: aisMsg.course ?? existing.course,
+      speed: aisMsg.speed ?? existing.speed,
+      heading: aisMsg.heading ?? existing.heading,
+      ship_type: aisMsg.shipType ?? existing.ship_type,
+      last_heard: now,
+      packet_count: existing.packet_count + 1,
+      updated_at: now,
+    }
+  }
+
+  // Insert new vessel
+  if (aisMsg.latitude !== 0 && aisMsg.longitude !== 0) {
+    const insertStmt = database.prepare(`
+      INSERT INTO vessels (mmsi, callsign, ship_name, latitude, longitude, course, speed, heading, ship_type, last_heard, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+
+    insertStmt.run(
+      aisMsg.mmsi,
+      aisMsg.callsign ?? null,
+      aisMsg.shipName ?? null,
+      aisMsg.latitude,
+      aisMsg.longitude,
+      aisMsg.course ?? null,
+      aisMsg.speed ?? null,
+      aisMsg.heading ?? null,
+      aisMsg.shipType ?? null,
+      now,
+      now,
+      now
+    )
+
+    const newVessel = existingStmt.get(aisMsg.mmsi) as DbVessel | undefined
+    if (newVessel) {
+      return newVessel
+    }
+  }
+
+  // Return existing if we couldn't insert (e.g., ship name only update)
+  if (existing) {
+    return existing
+  }
+
+  throw new Error(`Failed to insert or retrieve vessel: ${aisMsg.mmsi}`)
+}
+
+export const getAllVessels = (): DbVessel[] => {
+  const database = getDatabase()
+  const stmt = database.prepare('SELECT * FROM vessels ORDER BY last_heard DESC')
+  return stmt.all() as DbVessel[]
+}
+
+export const getVesselByMmsi = (mmsi: string): DbVessel | null => {
+  const database = getDatabase()
+  const stmt = database.prepare('SELECT * FROM vessels WHERE mmsi = ?')
+  return (stmt.get(mmsi) as DbVessel | undefined) ?? null
 }

@@ -1,9 +1,15 @@
 import { EventEmitter } from 'node:events'
-import type { DbStation } from './database'
+import type { DbStation, DbVessel } from './database'
 
 export interface StationUpdateEvent {
   type: 'station_update'
   station: DbStation
+  isNew: boolean
+}
+
+export interface VesselUpdateEvent {
+  type: 'vessel_update'
+  vessel: DbVessel
   isNew: boolean
 }
 
@@ -17,7 +23,7 @@ export interface StatsUpdateEvent {
 }
 
 export interface ConnectionEvent {
-  type: 'kiss_connected' | 'kiss_disconnected'
+  type: 'kiss_connected' | 'kiss_disconnected' | 'ais_connected' | 'ais_disconnected'
 }
 
 export interface AprsPacketEvent {
@@ -32,15 +38,30 @@ export interface AprsPacketEvent {
   }
 }
 
-export type StateEvent = StationUpdateEvent | StatsUpdateEvent | ConnectionEvent | AprsPacketEvent
+export type StateEvent =
+  | StationUpdateEvent
+  | VesselUpdateEvent
+  | StatsUpdateEvent
+  | ConnectionEvent
+  | AprsPacketEvent
 
 class StateManager extends EventEmitter {
   private kissConnected = false
+  private aisConnected = false
 
   emitStationUpdate(station: DbStation, isNew: boolean): void {
     const event: StationUpdateEvent = {
       type: 'station_update',
       station,
+      isNew,
+    }
+    this.emit('state', event)
+  }
+
+  emitVesselUpdate(vessel: DbVessel, isNew: boolean): void {
+    const event: VesselUpdateEvent = {
+      type: 'vessel_update',
+      vessel,
       isNew,
     }
     this.emit('state', event)
@@ -66,8 +87,24 @@ class StateManager extends EventEmitter {
     this.emit('state', event)
   }
 
+  emitAisConnected(): void {
+    this.aisConnected = true
+    const event: ConnectionEvent = { type: 'ais_connected' }
+    this.emit('state', event)
+  }
+
+  emitAisDisconnected(): void {
+    this.aisConnected = false
+    const event: ConnectionEvent = { type: 'ais_disconnected' }
+    this.emit('state', event)
+  }
+
   isKissConnected(): boolean {
     return this.kissConnected
+  }
+
+  isAisConnected(): boolean {
+    return this.aisConnected
   }
 
   emitAprsPacket(packet: AprsPacketEvent['packet']): void {

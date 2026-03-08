@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { WebSocket, WebSocketServer } from 'ws'
+import { closeAisClient, getAisClient } from './ais-client'
 import { closeAprsIsClient, getAprsIsClient } from './aprs-is-client'
 import { parseAprsIsPacket } from './aprs-is-parser'
 import { bytesToHex, parseAprsPacket } from './aprs-parser'
@@ -10,13 +11,16 @@ import {
   cleanupOldHistory,
   closeDatabase,
   type DbStation,
+  type DbVessel,
   getAllStationHistories,
   getAllStations,
+  getAllVessels,
   getStationByCallsign,
   getStationHistory,
   getStats,
   initializeDatabase,
   upsertStation,
+  upsertVessel,
 } from './database'
 import { calculateBearing, calculateDistance } from './geo'
 import { handleGraphQL } from './graphql'
@@ -73,6 +77,34 @@ const toApiStation = (dbStation: DbStation) => {
   }
 }
 
+// Convert DB vessel to API vessel format
+const toApiVessel = (dbVessel: Awaited<ReturnType<typeof getAllVessels>>[number]) => {
+  const stationLocation = {
+    latitude: config.station.latitude,
+    longitude: config.station.longitude,
+  }
+
+  const coords =
+    dbVessel.latitude && dbVessel.longitude
+      ? { latitude: dbVessel.latitude, longitude: dbVessel.longitude }
+      : null
+
+  return {
+    mmsi: dbVessel.mmsi,
+    callsign: dbVessel.callsign || '',
+    shipName: dbVessel.ship_name || '',
+    coordinates: coords,
+    course: dbVessel.course ?? undefined,
+    speed: dbVessel.speed ?? undefined,
+    heading: dbVessel.heading ?? undefined,
+    shipType: dbVessel.ship_type ?? undefined,
+    lastHeard: new Date(dbVessel.last_heard).toISOString(),
+    distance: coords ? calculateDistance(stationLocation, coords) : null,
+    bearing: coords ? calculateBearing(stationLocation, coords) : null,
+    packetCount: dbVessel.packet_count,
+  }
+}
+
 // Broadcast to all connected clients
 const broadcast = (event: StateEvent): void => {
   const message = JSON.stringify(event)
@@ -94,6 +126,11 @@ stateManager.on('state', (event: StateEvent) => {
     broadcast({
       ...event,
       station: toApiStation(event.station) as unknown as DbStation,
+    })
+  } else if (event.type === 'vessel_update') {
+    broadcast({
+      ...event,
+      vessel: toApiVessel(event.vessel) as unknown as DbVessel,
     })
   } else {
     broadcast(event)
@@ -148,6 +185,11 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
     const stationMatch = path.match(/^\/stations\/([^/]+)$/)
     if (stationMatch && req.method === 'GET') {
       handleStationDetail(res, decodeURIComponent(stationMatch[1] ?? ''))
+      return
+    }
+
+    if (path === '/vessels' && req.method === 'GET') {
+      sendJson(res, { vessels: getAllVessels().map(toApiVessel) })
       return
     }
 
@@ -265,6 +307,38 @@ export const startServer = async (): Promise<void> => {
     })
   }
 
+  // Initialize AIS client
+  if (config.ais.source !== 'none') {
+    console.log(`[Server] AIS source: ${config.ais.source}`)
+    const aisClient = getAisClient({
+      source: config.ais.source,
+      kissHost: config.ais.kiss.host,
+      kissPort: config.ais.kiss.port,
+      kissReconnectIntervalMs: config.ais.kiss.reconnectIntervalMs,
+      httpApiUrl: config.ais.http.apiUrl,
+      httpUpdateIntervalMs: config.ais.http.updateIntervalMs,
+    })
+
+    aisClient.on('vessel', (vesselData) => {
+      const vessel = upsertVessel(vesselData)
+      stateManager.emitVesselUpdate(vessel, false)
+    })
+
+    aisClient.on('connected', () => {
+      stateManager.emitAisConnected()
+    })
+
+    aisClient.on('disconnected', () => {
+      stateManager.emitAisDisconnected()
+    })
+
+    aisClient.on('error', (error: Error) => {
+      console.error('[AIS] Error:', error.message)
+    })
+
+    aisClient.connect()
+  }
+
   // Schedule periodic cleanup
   setInterval(
     () => {
@@ -347,6 +421,7 @@ export const startServer = async (): Promise<void> => {
     // Send initial state immediately as a single text frame
     try {
       const stations = getAllStations().map(toApiStation)
+      const vessels = getAllVessels().map(toApiVessel)
       const stats = getStats()
 
       // Get station histories for vehicle tracking trails
@@ -376,9 +451,11 @@ export const startServer = async (): Promise<void> => {
       const initMessage = JSON.stringify({
         type: 'init',
         stations,
+        vessels,
         stats: {
           ...stats,
           kissConnected: stateManager.isKissConnected(),
+          aisConnected: config.ais.source !== 'none',
         },
         stationHistory,
       })
@@ -460,6 +537,7 @@ export const startServer = async (): Promise<void> => {
     console.log('\n[Server] Shutting down...')
     closeKissClient()
     closeAprsIsClient()
+    closeAisClient()
     closeDatabase()
     server.close()
     process.exit(0)
