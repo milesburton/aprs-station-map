@@ -21,11 +21,9 @@ export const WindowPortal: FC<WindowPortalProps> = ({
   const windowRef = useRef<Window | null>(null)
 
   useEffect(() => {
-    // Calculate center position
     const left = window.screenX + (window.outerWidth - width) / 2
     const top = window.screenY + (window.outerHeight - height) / 2
 
-    // Open new window
     const newWindow = window.open(
       '',
       '',
@@ -39,36 +37,28 @@ export const WindowPortal: FC<WindowPortalProps> = ({
     }
 
     windowRef.current = newWindow
-
-    // Set up the new window's document
     newWindow.document.title = title
 
-    // Copy styles from parent window
-    const styleSheets = Array.from(document.styleSheets)
-    for (const sheet of styleSheets) {
+    for (const sheet of Array.from(document.styleSheets)) {
       try {
         if (sheet.href) {
-          // External stylesheet
           const link = newWindow.document.createElement('link')
           link.rel = 'stylesheet'
           link.href = sheet.href
           newWindow.document.head.appendChild(link)
         } else if (sheet.cssRules) {
-          // Inline styles
           const style = newWindow.document.createElement('style')
-          const rules = Array.from(sheet.cssRules)
+          style.textContent = Array.from(sheet.cssRules)
             .map((rule) => rule.cssText)
             .join('\n')
-          style.textContent = rules
           newWindow.document.head.appendChild(style)
         }
       } catch (e) {
-        // Cross-origin stylesheets will throw, skip them
+        // Cross-origin stylesheets are inaccessible by design; skip them
         console.warn('[WindowPortal] Could not copy stylesheet:', e)
       }
     }
 
-    // Add base styles for the popup
     const baseStyle = newWindow.document.createElement('style')
     baseStyle.textContent = `
       html, body {
@@ -88,21 +78,15 @@ export const WindowPortal: FC<WindowPortalProps> = ({
     `
     newWindow.document.head.appendChild(baseStyle)
 
-    // Create container for React portal
     const containerDiv = newWindow.document.createElement('div')
     containerDiv.id = 'portal-root'
     newWindow.document.body.appendChild(containerDiv)
 
     setContainer(containerDiv)
 
-    // Handle window close
-    const handleUnload = () => {
-      onClose()
-    }
-
+    const handleUnload = () => onClose()
     newWindow.addEventListener('beforeunload', handleUnload)
 
-    // Cleanup on unmount
     return () => {
       newWindow.removeEventListener('beforeunload', handleUnload)
       newWindow.close()
@@ -110,7 +94,6 @@ export const WindowPortal: FC<WindowPortalProps> = ({
     }
   }, [title, width, height, onClose])
 
-  // Portal children into the new window
   if (!container) {
     return null
   }

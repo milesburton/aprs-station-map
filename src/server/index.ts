@@ -111,11 +111,28 @@ const sendJson = (res: ServerResponse, data: unknown, status = 200): void => {
   res.end(JSON.stringify(data))
 }
 
-// API route handlers
+const handleStationDetail = (res: ServerResponse, callsign: string): void => {
+  const station = getStationByCallsign(callsign)
+  if (!station) {
+    sendJson(res, { error: 'Station not found' }, 404)
+    return
+  }
+  const history = getStationHistory(station.id)
+  sendJson(res, {
+    station: toApiStation(station),
+    history: history.map((h) => ({
+      raw: h.raw_packet,
+      latitude: h.latitude,
+      longitude: h.longitude,
+      path: h.path,
+      receivedAt: new Date(h.received_at).toISOString(),
+    })),
+  })
+}
+
 const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: string): void => {
   const path = pathname.replace('/api', '')
 
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, corsHeaders)
     res.end()
@@ -123,47 +140,22 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
   }
 
   try {
-    // GET /api/stations
     if (path === '/stations' && req.method === 'GET') {
-      const stations = getAllStations().map(toApiStation)
-      sendJson(res, { stations })
+      sendJson(res, { stations: getAllStations().map(toApiStation) })
       return
     }
 
-    // GET /api/stations/:callsign
     const stationMatch = path.match(/^\/stations\/([^/]+)$/)
     if (stationMatch && req.method === 'GET') {
-      const callsign = decodeURIComponent(stationMatch[1] ?? '')
-      const station = getStationByCallsign(callsign)
-      if (!station) {
-        sendJson(res, { error: 'Station not found' }, 404)
-        return
-      }
-      const history = getStationHistory(station.id)
-      sendJson(res, {
-        station: toApiStation(station),
-        history: history.map((h) => ({
-          raw: h.raw_packet,
-          latitude: h.latitude,
-          longitude: h.longitude,
-          path: h.path,
-          receivedAt: new Date(h.received_at).toISOString(),
-        })),
-      })
+      handleStationDetail(res, decodeURIComponent(stationMatch[1] ?? ''))
       return
     }
 
-    // GET /api/stats
     if (path === '/stats' && req.method === 'GET') {
-      const stats = getStats()
-      sendJson(res, {
-        ...stats,
-        kissConnected: stateManager.isKissConnected(),
-      })
+      sendJson(res, { ...getStats(), kissConnected: stateManager.isKissConnected() })
       return
     }
 
-    // GET /api/health
     if (path === '/health' && req.method === 'GET') {
       sendJson(res, {
         status: 'ok',
@@ -173,7 +165,6 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
       return
     }
 
-    // GET /api/version
     if (path === '/version' && req.method === 'GET') {
       sendJson(res, {
         version: APP_VERSION,

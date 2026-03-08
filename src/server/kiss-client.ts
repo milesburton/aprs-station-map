@@ -2,12 +2,11 @@ import { EventEmitter } from 'node:events'
 import { Socket } from 'node:net'
 import { config } from './config'
 
-// KISS frame constants
-const KISS_FEND = 0xc0 // Frame End
-const KISS_FESC = 0xdb // Frame Escape
-const KISS_TFEND = 0xdc // Transposed Frame End
-const KISS_TFESC = 0xdd // Transposed Frame Escape
-const KISS_DATA_FRAME = 0x00 // Data frame command
+const KISS_FEND = 0xc0
+const KISS_FESC = 0xdb
+const KISS_TFEND = 0xdc
+const KISS_TFESC = 0xdd
+const KISS_DATA_FRAME = 0x00
 
 export interface KissClientEvents {
   packet: (packet: Uint8Array) => void
@@ -123,7 +122,7 @@ export class KissClient extends EventEmitter {
       } else if (byte === KISS_TFESC) {
         this.buffer.push(KISS_FESC)
       } else {
-        // Invalid escape sequence, push both bytes
+        // Invalid escape sequence per KISS spec: preserve both bytes
         this.buffer.push(KISS_FESC, byte)
       }
       return
@@ -146,11 +145,9 @@ export class KissClient extends EventEmitter {
     const command = firstByte & 0x0f
 
     if (command !== KISS_DATA_FRAME) {
-      // Not a data frame, ignore
       return
     }
 
-    // Extract AX.25 packet (skip KISS command byte)
     const ax25Packet = frame.slice(1)
     if (ax25Packet.length > 0) {
       this.emit('packet', ax25Packet)
@@ -162,7 +159,6 @@ export class KissClient extends EventEmitter {
   }
 }
 
-// Singleton instance
 let kissClient: KissClient | null = null
 
 export const getKissClient = (): KissClient => {

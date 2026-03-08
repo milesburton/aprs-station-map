@@ -188,6 +188,16 @@ const StationMarkerInner: FC<StationMarkerProps> = ({
   )
 }
 
+type Coords = { latitude: number; longitude: number } | null
+
+const coordsEqual = (a: Coords, b: Coords): boolean => {
+  if ((a === null) !== (b === null)) return false
+  if (a !== null && b !== null) {
+    return a.latitude === b.latitude && a.longitude === b.longitude
+  }
+  return true
+}
+
 export const StationMarker = memo(StationMarkerInner, (prevProps, nextProps) => {
   if (prevProps.isSelected !== nextProps.isSelected) return false
   if (prevProps.isFollowed !== nextProps.isFollowed) return false
@@ -200,12 +210,5 @@ export const StationMarker = memo(StationMarkerInner, (prevProps, nextProps) => 
   if (prevStation.packetCount !== nextStation.packetCount) return false
   if (prevStation.comment !== nextStation.comment) return false
   if (prevStation.symbol !== nextStation.symbol) return false
-  const prevCoords = prevStation.coordinates
-  const nextCoords = nextStation.coordinates
-  if ((prevCoords === null) !== (nextCoords === null)) return false
-  if (prevCoords !== null && nextCoords !== null) {
-    if (prevCoords.latitude !== nextCoords.latitude) return false
-    if (prevCoords.longitude !== nextCoords.longitude) return false
-  }
-  return true
+  return coordsEqual(prevStation.coordinates, nextStation.coordinates)
 })
