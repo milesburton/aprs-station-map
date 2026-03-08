@@ -4,27 +4,47 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
+  "forwardPorts": [3000, 3001],
+  "portsAttributes": {
+    "3000": { "label": "Vite Dev Server", "onAutoForward": "notify", "protocol": "http" },
+    "3001": { "label": "Backend API", "onAutoForward": "notify", "protocol": "http" }
+  },
   "customizations": {
     "vscode": {
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.defaultProfile.linux": "fish",
         "editor.formatOnSave": true,
-        "editor.defaultFormatter": "biomejs.biome"
+        "editor.defaultFormatter": "biomejs.biome",
+        "security.workspace.trust.startupPrompt": "never",
+        "extensions.autoUpdate": true,
+        "extensions.autoCheckUpdates": true
       },
       "extensions": [
         "biomejs.biome",
         "eamodio.gitlens",
         "dbaeumer.vscode-eslint",
         "anthropic.claude-code",
-        "continue.continue"
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "ms-azuretools.vscode-docker",
+        "ms-playwright.playwright",
+        "redhat.vscode-yaml",
+        "yzhang.markdown-all-in-one",
+        "skyapps.fish-vscode",
+        "humao.rest-client",
+        "rangav.vscode-thunder-client",
+        "yoavbls.pretty-ts-errors",
+        "usernamehw.errorlens"
       ]
     }
   },
   "mounts": [
-    "source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,type=bind,readonly",
-    "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind"
+    "source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.fly,target=/home/node/.fly,type=bind,consistency=cached"
   ],
-  "forwardPorts": [3000, 3001],
   "postCreateCommand": "npm install && npx playwright install --with-deps chromium",
   "postStartCommand": "sudo chown -R node:node /workspace && npm install",
   "remoteUser": "node"

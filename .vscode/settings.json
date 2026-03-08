@@ -1,0 +1,17 @@
+{
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "terminal.integrated.defaultProfile.linux": "fish",
+  "errorLens.enabledDiagnosticLevels": ["error", "warning"],
+  "security.workspace.trust.startupPrompt": "never",
+  "extensions.autoUpdate": true
+}

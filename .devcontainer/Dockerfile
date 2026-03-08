@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     iputils-ping \
     openssh-client \
     gh \
+    fish \
     # Playwright dependencies \
     libnss3 \
     libnspr4 \
@@ -46,6 +47,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g nodemon typescript ts-node
+
+# Install flyctl
+RUN curl -L https://fly.io/install.sh | FLYCTL_INSTALL=/usr/local sh
 
 RUN echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/node \
     && chmod 0440 /etc/sudoers.d/node \

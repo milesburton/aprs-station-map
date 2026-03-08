@@ -1,0 +1,35 @@
+# Fly.io configuration for APRS Station Map
+# Deploy with: flyctl deploy
+
+app = "aprs-station-map"
+primary_region = "lhr"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_start_machines = true
+  auto_stop_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "30s"
+    timeout = "10s"
+    type = "http"
+    method = "GET"
+    path = "/api/health"
+
+[mounts]
+  source = "aprs_data"
+  destination = "/app/data"
+  initial_size = "1gb"
+
+[[vm]]
+  memory = "256mb"
+  cpus = 1
