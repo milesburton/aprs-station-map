@@ -11,6 +11,7 @@ primary_region = "lhr"
   NODE_ENV = "production"
   DATA_SOURCE = "aprs-is"
   APRS_IS_PORT = "10152"
+  AIS_SOURCE = "kiss"
 
 [http_service]
   internal_port = 80
