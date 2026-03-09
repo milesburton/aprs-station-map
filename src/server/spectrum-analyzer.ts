@@ -135,15 +135,23 @@ export class SpectrumAnalyzer extends EventEmitter {
 
   private fallbackToMock(): void {
     if (this.useMockData) return
-    this.useMockData = true
 
     if (this.pipeStream) {
       this.pipeStream.destroy()
       this.pipeStream = null
     }
 
-    console.log('[Spectrum] Starting mock spectrum analyzer')
-    this.startMockAnalyzer()
+    // Only use mock data in test/development mode
+    const isTestMode = process.env.NODE_ENV === 'test' || process.env.SPECTRUM_MOCK === 'true'
+
+    if (isTestMode) {
+      console.log('[Spectrum] Starting mock spectrum analyzer (test mode)')
+      this.useMockData = true
+      this.startMockAnalyzer()
+    } else {
+      console.log('[Spectrum] No radio hardware detected, spectrum analyzer disabled')
+      // Don't emit any data - clients will see disconnected state
+    }
   }
 
   private processAudioData(chunk: Buffer): void {
