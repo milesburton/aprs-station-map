@@ -34,6 +34,7 @@ interface WebSocketWithId extends WebSocket {
 
 // Track connected WebSocket clients
 const clients = new Set<WebSocketWithId>()
+let aprsIsConnected = false
 
 // Read version from package.json
 let APP_VERSION = '1.0.0' // fallback
@@ -199,9 +200,27 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
     }
 
     if (path === '/health' && req.method === 'GET') {
+      const stats = getStats()
+      const lastPacketAt = stateManager.getLastAprsPacketAt()
+      const secondsSinceLastPacket =
+        lastPacketAt === null ? null : Math.floor((Date.now() - lastPacketAt) / 1000)
+      const sourceConnected =
+        config.dataSource === 'aprs-is' ? aprsIsConnected : stateManager.isKissConnected()
+      const receivingPackets = secondsSinceLastPacket !== null && secondsSinceLastPacket <= 180
+      const healthy = sourceConnected && receivingPackets && stats.totalStations > 0
+
       sendJson(res, {
-        status: 'ok',
+        status: healthy ? 'ok' : 'degraded',
+        healthy,
+        dataSource: config.dataSource,
+        sourceConnected,
         kissConnected: stateManager.isKissConnected(),
+        aprsIsConnected,
+        receivingPackets,
+        lastPacketAt: lastPacketAt === null ? null : new Date(lastPacketAt).toISOString(),
+        secondsSinceLastPacket,
+        totalStations: stats.totalStations,
+        totalPackets: stats.totalPackets,
         connectedClients: clients.size,
       })
       return
@@ -254,11 +273,11 @@ export const startServer = async (): Promise<void> => {
     const aprsIsClient = getAprsIsClient()
 
     aprsIsClient.on('connected', () => {
-      stateManager.emitKissConnected()
+      aprsIsConnected = true
     })
 
     aprsIsClient.on('disconnected', () => {
-      stateManager.emitKissDisconnected()
+      aprsIsConnected = false
     })
 
     aprsIsClient.on('packet', (line: string) => {

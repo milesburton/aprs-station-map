@@ -15,6 +15,7 @@ export const App: FC = () => {
   const {
     stations,
     stats,
+    health,
     loading,
     error,
     connected,
@@ -37,7 +38,7 @@ export const App: FC = () => {
     setRfOnly,
     setDirectOnly,
     resetFilters,
-  } = useFilters(stations)
+  } = useFilters(stations, kissConnected)
   const { mapState, setCentre, setZoom, selectStation, followStation, flyTo } = useMapState()
 
   const availableSymbols = useMemo(() => getUniqueSymbols(stations), [stations])
@@ -94,6 +95,7 @@ export const App: FC = () => {
         filter={filter}
         availableSymbols={availableSymbols}
         kissConnected={kissConnected}
+        health={health}
         onSearchChange={setSearch}
         onDistanceChange={setMaxDistance}
         onSymbolChange={setSymbolFilter}

@@ -1,11 +1,12 @@
 import type { FC } from 'react'
 import { APRS_SYMBOLS, DEFAULT_CONFIG } from '../constants'
-import type { FilterState, SortDirection, SortField } from '../types'
+import type { FilterState, HealthStatus, SortDirection, SortField } from '../types'
 
 interface ToolbarProps {
   filter: FilterState
   availableSymbols: string[]
   kissConnected: boolean
+  health: HealthStatus | null
   onSearchChange: (search: string) => void
   onDistanceChange: (distance: number) => void
   onSymbolChange: (symbol: string | null) => void
@@ -37,6 +38,7 @@ export const Toolbar: FC<ToolbarProps> = ({
   filter,
   availableSymbols,
   kissConnected,
+  health,
   onSearchChange,
   onDistanceChange,
   onSymbolChange,
@@ -63,9 +65,30 @@ export const Toolbar: FC<ToolbarProps> = ({
     filter.stationMaxAgeHours !== 24 ||
     !filter.rfOnly
 
+  const healthLabel = !health
+    ? 'Checking'
+    : health.healthy
+      ? 'Healthy'
+      : health.sourceConnected
+        ? 'No Data'
+        : 'Source Down'
+
+  const healthClass = !health
+    ? 'toolbar-health-checking'
+    : health.healthy
+      ? 'toolbar-health-healthy'
+      : 'toolbar-health-unhealthy'
+
   return (
     <div className="toolbar">
       {/* Search */}
+      <div className="toolbar-group">
+        <span className="toolbar-label">Health</span>
+        <span className={`toolbar-health ${healthClass}`}>{healthLabel}</span>
+      </div>
+
+      <div className="toolbar-divider" />
+
       <div className="toolbar-group">
         <input
           type="text"

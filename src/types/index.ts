@@ -74,6 +74,21 @@ export interface Stats {
   aisConnected?: boolean
 }
 
+export interface HealthStatus {
+  status: 'ok' | 'degraded'
+  healthy: boolean
+  dataSource: 'kiss' | 'aprs-is'
+  sourceConnected: boolean
+  kissConnected: boolean
+  aprsIsConnected: boolean
+  receivingPackets: boolean
+  lastPacketAt: string | null
+  secondsSinceLastPacket: number | null
+  totalStations: number
+  totalPackets: number
+  connectedClients: number
+}
+
 export interface AprsPacket {
   raw: string
   source: string

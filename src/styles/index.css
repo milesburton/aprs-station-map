@@ -748,6 +748,32 @@ body {
   font-size: 10px;
 }
 
+.toolbar-health {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.toolbar-health-checking {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.toolbar-health-healthy {
+  background: #14532d;
+  color: #bbf7d0;
+}
+
+.toolbar-health-unhealthy {
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
 .toolbar-value {
   color: #e2e8f0;
   font-weight: 500;

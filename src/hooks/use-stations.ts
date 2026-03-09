@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_CONFIG } from '../constants'
-import type { AprsPacket, Station, Stats, WebSocketMessage } from '../types'
+import type { AprsPacket, HealthStatus, Station, Stats, WebSocketMessage } from '../types'
 import { logger } from '../utils'
 
 interface UseStationsResult {
   stations: Station[]
   stats: Stats | null
+  health: HealthStatus | null
   loading: boolean
   error: string | null
   connected: boolean
@@ -47,6 +48,7 @@ const deduplicateStations = (stations: Station[]): Station[] => {
 export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsResult => {
   const [stations, setStations] = useState<Station[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
+  const [health, setHealth] = useState<HealthStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [connected, setConnected] = useState(false)
@@ -57,7 +59,41 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const healthTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    const fetchHealth = async () => {
+      try {
+        const response = await fetch(`${DEFAULT_CONFIG.apiUrl}/health`)
+        if (!response.ok) return
+        const data = (await response.json()) as HealthStatus
+        if (mountedRef.current) {
+          setHealth(data)
+        }
+      } catch {
+        // Health endpoint is best-effort only
+      }
+    }
+
+    const poll = async () => {
+      await fetchHealth()
+      if (mountedRef.current) {
+        healthTimeout.current = setTimeout(poll, 15000)
+      }
+    }
+
+    poll()
+
+    return () => {
+      mountedRef.current = false
+      if (healthTimeout.current) {
+        clearTimeout(healthTimeout.current)
+      }
+    }
+  }, [])
 
   // Single effect that manages the entire WebSocket lifecycle
   useEffect(() => {
@@ -224,6 +260,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
   return {
     stations,
     stats,
+    health,
     loading,
     error,
     connected,

@@ -48,6 +48,7 @@ export type StateEvent =
 class StateManager extends EventEmitter {
   private kissConnected = false
   private aisConnected = false
+  private lastAprsPacketAt: number | null = null
 
   emitStationUpdate(station: DbStation, isNew: boolean): void {
     const event: StationUpdateEvent = {
@@ -108,11 +109,16 @@ class StateManager extends EventEmitter {
   }
 
   emitAprsPacket(packet: AprsPacketEvent['packet']): void {
+    this.lastAprsPacketAt = Date.now()
     const event: AprsPacketEvent = {
       type: 'aprs_packet',
       packet,
     }
     this.emit('state', event)
+  }
+
+  getLastAprsPacketAt(): number | null {
+    return this.lastAprsPacketAt
   }
 }
 

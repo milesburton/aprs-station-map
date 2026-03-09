@@ -28,11 +28,20 @@ interface UseFiltersResult {
   resetFilters: () => void
 }
 
-export const useFilters = (stations: Station[]): UseFiltersResult => {
+export const useFilters = (stations: Station[], rfFiltersEnabled = true): UseFiltersResult => {
   const dispatch = useAppDispatch()
   const filter = useAppSelector((state) => state.filters)
 
-  const filteredStations = useMemo(() => filterStations(stations, filter), [stations, filter])
+  const filteredStations = useMemo(() => {
+    const effectiveFilter = rfFiltersEnabled
+      ? filter
+      : {
+          ...filter,
+          rfOnly: false,
+          directOnly: false,
+        }
+    return filterStations(stations, effectiveFilter)
+  }, [stations, filter, rfFiltersEnabled])
 
   const setSearch = useCallback((search: string) => dispatch(setSearchAction(search)), [dispatch])
 

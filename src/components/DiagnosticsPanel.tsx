@@ -342,6 +342,12 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
     }
   }, [packets])
 
+  useEffect(() => {
+    if (!kissConnected && (activeTab === 'spectrum' || activeTab === 'status')) {
+      dispatch(setActiveTab('stats'))
+    }
+  }, [kissConnected, activeTab, dispatch])
+
   const handleTabChange = useCallback(
     (tabId: TabId) => {
       dispatch(setActiveTab(tabId))
@@ -397,7 +403,7 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
     { id: 'stats', label: 'Stats' },
     { id: 'packets', label: 'Packets' },
     ...(kissConnected ? [{ id: 'spectrum' as TabId, label: 'Spectrum' }] : []),
-    { id: 'status', label: 'Status' },
+    ...(kissConnected ? [{ id: 'status' as TabId, label: 'Status' }] : []),
     { id: 'about', label: 'About' },
   ]
 
