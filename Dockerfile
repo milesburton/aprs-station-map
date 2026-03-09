@@ -60,11 +60,12 @@ RUN mkdir -p /app/data /app/data/logs && chown -R node:node /app
 RUN mkdir -p /etc/supervisor/conf.d
 COPY .appcontainer/services.conf /etc/supervisor/conf.d/services.conf
 
+# Copy entrypoint script
+COPY .appcontainer/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 VOLUME /app/data
 
 EXPOSE 80
-
-# Create entrypoint script to fix permissions at runtime
-RUN echo '#!/bin/sh\nchown -R node:node /app/data\nexec supervisord -c /etc/supervisor/supervisord.conf' > /entrypoint.sh && chmod +x /entrypoint.sh
 
 CMD ["/entrypoint.sh"]
