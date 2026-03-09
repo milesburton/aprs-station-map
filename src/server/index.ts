@@ -179,8 +179,8 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
 
   try {
     if (path === '/stations' && req.method === 'GET') {
-      // Limit to 10000 most recent stations to prevent timeout on large datasets
-      sendJson(res, { stations: getAllStations(10000).map(toApiStation) })
+      // Limit to 5000 most recent stations to prevent timeout on large datasets
+      sendJson(res, { stations: getAllStations(5000).map(toApiStation) })
       return
     }
 
@@ -439,14 +439,14 @@ export const startServer = async (): Promise<void> => {
     console.log(`[WS] Client connected (${clients.size} total)`)
 
     // Send initial state immediately as a single text frame
-    // Limit to 10000 most recent stations to avoid exceeding WebSocket message size limits
+    // Limit to 5000 most recent stations to avoid oversized WebSocket init payloads
     try {
-      const stations = getAllStations(10000).map(toApiStation)
+      const stations = getAllStations(5000).map(toApiStation)
       const vessels = getAllVessels().map(toApiVessel)
       const stats = getStats()
 
-      // Get station histories for vehicle tracking trails
-      const rawHistories = getAllStationHistories(24, 50)
+      // Get a capped amount of history to keep init payload fast and reliable
+      const rawHistories = getAllStationHistories(6, 10, 500)
       const stationHistory: Record<
         string,
         Array<{

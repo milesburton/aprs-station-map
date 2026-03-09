@@ -273,7 +273,8 @@ export const getStationHistory = (stationId: number, limit = 100): DbPacketHisto
 // Get all station histories with positions (for vehicle tracking trails)
 export const getAllStationHistories = (
   maxAgeHours = 24,
-  limit = 50
+  limit = 50,
+  maxStations?: number
 ): Record<string, DbPacketHistory[]> => {
   const database = getDatabase()
   const cutoff = Date.now() - maxAgeHours * 60 * 60 * 1000
@@ -286,7 +287,7 @@ export const getAllStationHistories = (
     WHERE ph.latitude IS NOT NULL
       AND ph.longitude IS NOT NULL
       AND ph.received_at > ?
-    ORDER BY s.callsign, ph.received_at DESC
+    ORDER BY ph.received_at DESC
   `)
 
   const rows = stmt.all(cutoff) as Array<{
@@ -302,9 +303,14 @@ export const getAllStationHistories = (
 
   // Group by callsign and limit per station
   const result: Record<string, DbPacketHistory[]> = {}
+  let stationCount = 0
   for (const row of rows) {
     if (!result[row.callsign]) {
+      if (maxStations && stationCount >= maxStations) {
+        continue
+      }
       result[row.callsign] = []
+      stationCount += 1
     }
     if ((result[row.callsign]?.length ?? 0) < limit) {
       result[row.callsign]?.push({
