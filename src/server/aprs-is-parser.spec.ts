@@ -72,4 +72,22 @@ describe('parseAprsIsPacket', () => {
     // but if one slips through it should return null (no '>' in header)
     expect(parseAprsIsPacket('# aprsc 2.1.14 server comment')).toBeNull()
   })
+
+  it('parses object reports as position packets', () => {
+    const result = parseAprsIsPacket(
+      'TEST01>APRS,TCPIP*:;OBJTEST  *111111z5126.50N/00009.10W-Test object'
+    )
+    expect(result).not.toBeNull()
+    expect(result?.type).toBe('position')
+    expect(result?.position?.latitude).toBeCloseTo(51.4417, 2)
+    expect(result?.position?.longitude).toBeCloseTo(-0.1517, 2)
+  })
+
+  it('parses item reports as position packets', () => {
+    const result = parseAprsIsPacket('TEST01>APRS,TCPIP*:)ITEM!5126.50N/00009.10W-Test item')
+    expect(result).not.toBeNull()
+    expect(result?.type).toBe('position')
+    expect(result?.position?.latitude).toBeCloseTo(51.4417, 2)
+    expect(result?.position?.longitude).toBeCloseTo(-0.1517, 2)
+  })
 })

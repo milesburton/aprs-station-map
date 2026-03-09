@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getStationStats } from '../services'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import {
+  resetUserResize,
   setActiveTab,
   setDiagnosticsHeight,
   TAB_HEIGHT_CONSTRAINTS,
@@ -351,6 +352,7 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
   const handleTabChange = useCallback(
     (tabId: TabId) => {
       dispatch(setActiveTab(tabId))
+      dispatch(resetUserResize())
     },
     [dispatch]
   )
@@ -359,6 +361,15 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
     e.preventDefault()
     setIsResizing(true)
   }, [])
+
+  const handleHeaderToggle = useCallback(
+    (e: React.MouseEvent | React.KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('button,[role="tab"],a,input,select,label')) return
+      onToggle()
+    },
+    [onToggle]
+  )
 
   useEffect(() => {
     if (!isResizing) return
@@ -420,10 +431,9 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
       )}
 
       {/* Combined header + tab bar */}
-      <div
-        className="diag-header-bar"
-        {...(!isOpen && { onClick: onToggle, style: { cursor: 'pointer' } })}
-      >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: header bar is intentionally clickable */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard toggle is available via explicit button */}
+      <div className="diag-header-bar" onClick={handleHeaderToggle} style={{ cursor: 'pointer' }}>
         <span className="diag-status-indicator">{getStatusIndicator()}</span>
         {isOpen ? (
           <>

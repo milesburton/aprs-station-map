@@ -215,6 +215,9 @@ const getDataType = (char: string | undefined): AprsPacket['type'] => {
     case '`':
     case "'":
       return 'position' // Mic-E
+    case ';':
+    case ')':
+      return 'position' // Object / Item reports
     case '>':
       return 'status'
     case ':':
