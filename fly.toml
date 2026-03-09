@@ -9,6 +9,7 @@ primary_region = "lhr"
 
 [env]
   NODE_ENV = "production"
+  APRS_IS_PORT = "10152"
 
 [http_service]
   internal_port = 80
