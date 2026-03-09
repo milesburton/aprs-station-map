@@ -247,10 +247,13 @@ const addPacketHistory = (stationId: number, packet: AprsPacket, receivedAt: num
   )
 }
 
-export const getAllStations = (): DbStation[] => {
+export const getAllStations = (limit?: number): DbStation[] => {
   const database = getDatabase()
-  const stmt = database.prepare('SELECT * FROM stations ORDER BY last_heard DESC')
-  return stmt.all() as DbStation[]
+  const query = limit
+    ? 'SELECT * FROM stations ORDER BY last_heard DESC LIMIT ?'
+    : 'SELECT * FROM stations ORDER BY last_heard DESC'
+  const stmt = database.prepare(query)
+  return (limit ? stmt.all(limit) : stmt.all()) as DbStation[]
 }
 
 export const getStationByCallsign = (callsign: string): DbStation | null => {

@@ -179,7 +179,8 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
 
   try {
     if (path === '/stations' && req.method === 'GET') {
-      sendJson(res, { stations: getAllStations().map(toApiStation) })
+      // Limit to 10000 most recent stations to prevent timeout on large datasets
+      sendJson(res, { stations: getAllStations(10000).map(toApiStation) })
       return
     }
 
@@ -438,8 +439,9 @@ export const startServer = async (): Promise<void> => {
     console.log(`[WS] Client connected (${clients.size} total)`)
 
     // Send initial state immediately as a single text frame
+    // Limit to 10000 most recent stations to avoid exceeding WebSocket message size limits
     try {
-      const stations = getAllStations().map(toApiStation)
+      const stations = getAllStations(10000).map(toApiStation)
       const vessels = getAllVessels().map(toApiVessel)
       const stats = getStats()
 

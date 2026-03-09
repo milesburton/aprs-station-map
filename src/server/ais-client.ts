@@ -17,8 +17,10 @@ export class AisClient extends EventEmitter {
   private source: AisSource
   private socket?: Socket
   private reconnectTimer?: NodeJS.Timeout
+  private connectionTimeoutId?: NodeJS.Timeout
   private linked: Map<string, ParsedAisMessage> = new Map()
   private reconnectIntervalMs: number
+  private connectionTimeoutMs: number
   private httpIntervalId?: NodeJS.Timeout
   private isConnected = false
 
@@ -33,6 +35,7 @@ export class AisClient extends EventEmitter {
     this.kissHost = config.kissHost ?? 'localhost'
     this.kissPort = config.kissPort ?? 8002
     this.reconnectIntervalMs = config.kissReconnectIntervalMs ?? 5000
+    this.connectionTimeoutMs = 10000
     this.httpApiUrl = config.httpApiUrl ?? 'https://api.maritimetraffic.com'
   }
 
@@ -57,6 +60,14 @@ export class AisClient extends EventEmitter {
     this.socket = new Socket()
     let buffer = ''
 
+    // Set connection timeout to prevent indefinite hangs
+    this.connectionTimeoutId = setTimeout(() => {
+      if (this.socket && !this.socket.destroyed) {
+        console.error(`[AIS] KISS connection timeout after ${this.connectionTimeoutMs}ms`)
+        this.socket.destroy()
+      }
+    }, this.connectionTimeoutMs)
+
     this.socket.on('data', (data) => {
       buffer += data.toString('utf-8')
       const lines = buffer.split('\n')
@@ -72,12 +83,20 @@ export class AisClient extends EventEmitter {
     })
 
     this.socket.on('connect', () => {
+      if (this.connectionTimeoutId) {
+        clearTimeout(this.connectionTimeoutId)
+        this.connectionTimeoutId = undefined
+      }
       console.log('[AIS] Connected to KISS device')
       this.isConnected = true
       this.emit('connected')
     })
 
     this.socket.on('error', (error) => {
+      if (this.connectionTimeoutId) {
+        clearTimeout(this.connectionTimeoutId)
+        this.connectionTimeoutId = undefined
+      }
       console.error('[AIS] KISS connection error:', error)
       this.isConnected = false
       this.emit('error', error)
@@ -85,6 +104,10 @@ export class AisClient extends EventEmitter {
     })
 
     this.socket.on('close', () => {
+      if (this.connectionTimeoutId) {
+        clearTimeout(this.connectionTimeoutId)
+        this.connectionTimeoutId = undefined
+      }
       console.log('[AIS] KISS connection closed')
       this.isConnected = false
       this.emit('disconnected')
@@ -157,6 +180,11 @@ export class AisClient extends EventEmitter {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = undefined
+    }
+
+    if (this.connectionTimeoutId) {
+      clearTimeout(this.connectionTimeoutId)
+      this.connectionTimeoutId = undefined
     }
 
     if (this.httpIntervalId) {
