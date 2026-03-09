@@ -9,6 +9,7 @@ primary_region = "lhr"
 
 [env]
   NODE_ENV = "production"
+  DATA_SOURCE = "aprs-is"
   APRS_IS_PORT = "10152"
 
 [http_service]
