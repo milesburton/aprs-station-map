@@ -60,7 +60,7 @@ describe('loadConfig', () => {
     expect(aprsIs.server).toBe('rotate.aprs2.net')
     expect(aprsIs.port).toBe(14580)
     expect(aprsIs.passcode).toBe('-1')
-    expect(aprsIs.filter).toBe('')
+    expect(aprsIs.filter).toBe('r/51.4416/0.1500/600')
     expect(aprsIs.reconnectIntervalMs).toBe(30000)
   })
 
@@ -78,9 +78,15 @@ describe('loadConfig', () => {
 
   it('applies default station settings', () => {
     const { station } = loadConfig()
-    expect(station.latitude).toBe(0)
-    expect(station.longitude).toBe(0)
+    expect(station.latitude).toBe(51.4416)
+    expect(station.longitude).toBe(0.15)
     expect(station.callsign).toBe('NOCALL')
+  })
+
+  it('derives APRS-IS filter from station coordinates when APRS_IS_FILTER is unset', () => {
+    process.env.STATION_LATITUDE = '40.7128'
+    process.env.STATION_LONGITUDE = '-74.0060'
+    expect(loadConfig().aprsIs.filter).toBe('r/40.7128/-74.0060/600')
   })
 
   it('reads station settings from environment', () => {
