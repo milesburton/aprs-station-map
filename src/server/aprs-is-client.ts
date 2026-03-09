@@ -10,6 +10,7 @@ export class AprsIsClient extends EventEmitter {
   private lineBuffer = ''
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private keepaliveTimer: ReturnType<typeof setInterval> | null = null
+  private connectionTimeoutId: ReturnType<typeof setTimeout> | null = null
   private shouldReconnect = true
   private readonly host: string
   private readonly port: number
@@ -18,6 +19,7 @@ export class AprsIsClient extends EventEmitter {
   private readonly filter: string
   private readonly appVersion: string
   private readonly reconnectIntervalMs: number
+  private readonly connectionTimeoutMs: number
   private readonly socketFactory: () => Socket
 
   constructor(options?: {
@@ -28,6 +30,7 @@ export class AprsIsClient extends EventEmitter {
     filter?: string
     appVersion?: string
     reconnectIntervalMs?: number
+    connectionTimeoutMs?: number
     socketFactory?: () => Socket
   }) {
     super()
@@ -38,6 +41,7 @@ export class AprsIsClient extends EventEmitter {
     this.filter = options?.filter ?? config.aprsIs.filter
     this.appVersion = options?.appVersion ?? 'aprs-station-map'
     this.reconnectIntervalMs = options?.reconnectIntervalMs ?? config.aprsIs.reconnectIntervalMs
+    this.connectionTimeoutMs = options?.connectionTimeoutMs ?? 30_000
     this.socketFactory = options?.socketFactory ?? (() => new Socket())
   }
 
@@ -50,7 +54,22 @@ export class AprsIsClient extends EventEmitter {
     try {
       this.socket = this.socketFactory()
 
+      // Set up connection timeout
+      this.connectionTimeoutId = setTimeout(() => {
+        if (this.socket && !this.socket.destroyed) {
+          console.error(
+            `[APRS-IS] Connection timeout after ${this.connectionTimeoutMs}ms to ${this.host}:${this.port}`
+          )
+          this.socket.destroy()
+        }
+      }, this.connectionTimeoutMs)
+
       this.socket.on('connect', () => {
+        // Clear connection timeout on successful connect
+        if (this.connectionTimeoutId) {
+          clearTimeout(this.connectionTimeoutId)
+          this.connectionTimeoutId = null
+        }
         console.log(`[APRS-IS] Connected to ${this.host}:${this.port}`)
         this.sendLogin()
       })
@@ -60,6 +79,11 @@ export class AprsIsClient extends EventEmitter {
       })
 
       this.socket.on('close', () => {
+        // Clear timeout on close
+        if (this.connectionTimeoutId) {
+          clearTimeout(this.connectionTimeoutId)
+          this.connectionTimeoutId = null
+        }
         console.log('[APRS-IS] Connection closed')
         this.socket = null
         this.stopKeepalive()
@@ -68,12 +92,22 @@ export class AprsIsClient extends EventEmitter {
       })
 
       this.socket.on('error', (error: Error) => {
+        // Clear timeout on error
+        if (this.connectionTimeoutId) {
+          clearTimeout(this.connectionTimeoutId)
+          this.connectionTimeoutId = null
+        }
         console.error('[APRS-IS] Socket error:', error.message)
         this.emit('error', error)
       })
 
       this.socket.connect(this.port, this.host)
     } catch (error) {
+      // Clear timeout if error occurs during setup
+      if (this.connectionTimeoutId) {
+        clearTimeout(this.connectionTimeoutId)
+        this.connectionTimeoutId = null
+      }
       console.error(`[APRS-IS] Failed to connect to ${this.host}:${this.port}:`, error)
       this.emit('error', error instanceof Error ? error : new Error(String(error)))
       this.scheduleReconnect()
@@ -146,6 +180,10 @@ export class AprsIsClient extends EventEmitter {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
+    }
+    if (this.connectionTimeoutId) {
+      clearTimeout(this.connectionTimeoutId)
+      this.connectionTimeoutId = null
     }
     if (this.socket) {
       this.socket.end()
