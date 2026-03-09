@@ -22,6 +22,11 @@ export default defineConfig({
       '/ws/spectrum': { target: 'ws://localhost:3001', ws: true },
     },
   },
+  preview: {
+    port: 4173,
+    host: true,
+    proxy: {}, // Disable all proxies in preview mode
+  },
   build: {
     outDir: 'dist',
     sourcemap: true,
