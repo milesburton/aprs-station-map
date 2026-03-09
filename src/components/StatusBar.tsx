@@ -24,7 +24,7 @@ export const StatusBar: FC<StatusBarProps> = ({
     <div className="status-bar">
       <div className="status-info">
         <span className="stat">
-          <strong>{total}</strong> stations
+          <strong>{total}</strong> {total === 1 ? 'station' : 'stations'}
         </span>
         {total > 0 && (
           <>

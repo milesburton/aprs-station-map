@@ -93,6 +93,7 @@ export const App: FC = () => {
       <Toolbar
         filter={filter}
         availableSymbols={availableSymbols}
+        kissConnected={kissConnected}
         onSearchChange={setSearch}
         onDistanceChange={setMaxDistance}
         onSymbolChange={setSymbolFilter}

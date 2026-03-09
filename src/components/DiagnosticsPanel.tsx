@@ -396,7 +396,7 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
   const tabs: { id: TabId; label: string }[] = [
     { id: 'stats', label: 'Stats' },
     { id: 'packets', label: 'Packets' },
-    { id: 'spectrum', label: 'Spectrum' },
+    ...(kissConnected ? [{ id: 'spectrum' as TabId, label: 'Spectrum' }] : []),
     { id: 'status', label: 'Status' },
     { id: 'about', label: 'About' },
   ]
@@ -414,7 +414,10 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
       )}
 
       {/* Combined header + tab bar */}
-      <div className="diag-header-bar">
+      <div
+        className="diag-header-bar"
+        {...(!isOpen && { onClick: onToggle, style: { cursor: 'pointer' } })}
+      >
         <span className="diag-status-indicator">{getStatusIndicator()}</span>
         {isOpen ? (
           <>
@@ -430,7 +433,7 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
             </div>
             <div className="diag-header-right">
               <span className="diag-station-count">
-                {stations.length}/{totalStations}
+                {stations.length}/{totalStations} {stations.length === 1 ? 'Station' : 'Stations'}
               </span>
               <button type="button" onClick={onToggle} className="diag-collapse-btn">
                 ▼
@@ -442,9 +445,16 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
             <span className="diag-collapsed-title">Diagnostics</span>
             <span className="diag-collapsed-status">{getStatusText()}</span>
             <span className="diag-station-count">
-              {stations.length}/{totalStations}
+              {stations.length}/{totalStations} {stations.length === 1 ? 'Station' : 'Stations'}
             </span>
-            <button type="button" onClick={onToggle} className="diag-collapse-btn">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggle()
+              }}
+              className="diag-collapse-btn"
+            >
               ▲
             </button>
           </>

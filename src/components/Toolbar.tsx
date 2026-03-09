@@ -5,6 +5,7 @@ import type { FilterState, SortDirection, SortField } from '../types'
 interface ToolbarProps {
   filter: FilterState
   availableSymbols: string[]
+  kissConnected: boolean
   onSearchChange: (search: string) => void
   onDistanceChange: (distance: number) => void
   onSymbolChange: (symbol: string | null) => void
@@ -35,6 +36,7 @@ const TRAIL_AGE_OPTIONS = [
 export const Toolbar: FC<ToolbarProps> = ({
   filter,
   availableSymbols,
+  kissConnected,
   onSearchChange,
   onDistanceChange,
   onSymbolChange,
@@ -143,26 +145,30 @@ export const Toolbar: FC<ToolbarProps> = ({
 
       <div className="toolbar-divider" />
 
-      {/* Checkboxes */}
-      <label className="toolbar-checkbox">
-        <input
-          type="checkbox"
-          checked={filter.rfOnly}
-          onChange={(e) => onRfOnlyChange(e.target.checked)}
-        />
-        <span>RF only</span>
-      </label>
+      {/* Checkboxes - only show RF-related filters when radio is connected */}
+      {kissConnected && (
+        <>
+          <label className="toolbar-checkbox">
+            <input
+              type="checkbox"
+              checked={filter.rfOnly}
+              onChange={(e) => onRfOnlyChange(e.target.checked)}
+            />
+            <span>RF only</span>
+          </label>
 
-      <label className="toolbar-checkbox">
-        <input
-          type="checkbox"
-          checked={filter.directOnly}
-          onChange={(e) => onDirectOnlyChange(e.target.checked)}
-        />
-        <span>Direct</span>
-      </label>
+          <label className="toolbar-checkbox">
+            <input
+              type="checkbox"
+              checked={filter.directOnly}
+              onChange={(e) => onDirectOnlyChange(e.target.checked)}
+            />
+            <span>Direct</span>
+          </label>
 
-      <div className="toolbar-divider" />
+          <div className="toolbar-divider" />
+        </>
+      )}
 
       {/* Sort buttons */}
       <div className="toolbar-sort-group">
