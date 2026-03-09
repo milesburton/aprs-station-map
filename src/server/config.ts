@@ -46,6 +46,7 @@ export interface ServerConfig {
 }
 
 const parseNumber = (value: string | undefined, defaultValue: number): number => {
+  if (value == null || value.trim() === '') return defaultValue
   const parsed = Number(value)
   return Number.isNaN(parsed) ? defaultValue : parsed
 }
@@ -56,9 +57,11 @@ const DEFAULT_STATION_LON = 0.15
 export const loadConfig = (): ServerConfig => {
   const stationLatitude = parseNumber(process.env.STATION_LATITUDE, DEFAULT_STATION_LAT)
   const stationLongitude = parseNumber(process.env.STATION_LONGITUDE, DEFAULT_STATION_LON)
+  const configuredAprsFilter = process.env.APRS_IS_FILTER?.trim()
   const aprsFilter =
-    process.env.APRS_IS_FILTER ??
-    `r/${stationLatitude.toFixed(4)}/${stationLongitude.toFixed(4)}/600`
+    configuredAprsFilter && configuredAprsFilter.length > 0
+      ? configuredAprsFilter
+      : `r/${stationLatitude.toFixed(4)}/${stationLongitude.toFixed(4)}/600`
 
   return {
     dataSource: (process.env.DATA_SOURCE as DataSource) === 'aprs-is' ? 'aprs-is' : 'kiss',

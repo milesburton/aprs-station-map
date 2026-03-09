@@ -89,6 +89,11 @@ describe('loadConfig', () => {
     expect(loadConfig().aprsIs.filter).toBe('r/40.7128/-74.0060/600')
   })
 
+  it('falls back to default APRS-IS filter when APRS_IS_FILTER is empty', () => {
+    process.env.APRS_IS_FILTER = ''
+    expect(loadConfig().aprsIs.filter).toBe('r/51.4416/0.1500/600')
+  })
+
   it('reads station settings from environment', () => {
     process.env.STATION_LATITUDE = '51.5'
     process.env.STATION_LONGITUDE = '-0.1'
@@ -97,6 +102,14 @@ describe('loadConfig', () => {
     expect(station.latitude).toBe(51.5)
     expect(station.longitude).toBe(-0.1)
     expect(station.callsign).toBe('M0LHA-10')
+  })
+
+  it('uses station coordinate defaults when env values are empty strings', () => {
+    process.env.STATION_LATITUDE = ''
+    process.env.STATION_LONGITUDE = ''
+    const { station } = loadConfig()
+    expect(station.latitude).toBe(51.4416)
+    expect(station.longitude).toBe(0.15)
   })
 
   it('applies default web settings', () => {
