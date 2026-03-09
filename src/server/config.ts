@@ -100,7 +100,7 @@ export const loadConfig = (): ServerConfig => {
     station: {
       latitude: stationLatitude,
       longitude: stationLongitude,
-      callsign: process.env.STATION_CALLSIGN ?? 'NOCALL',
+      callsign: process.env.STATION_CALLSIGN ?? 'N0CALL',
     },
     log: {
       level: (process.env.LOG_LEVEL as ServerConfig['log']['level']) ?? 'info',

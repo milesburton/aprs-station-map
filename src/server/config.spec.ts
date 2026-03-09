@@ -80,7 +80,7 @@ describe('loadConfig', () => {
     const { station } = loadConfig()
     expect(station.latitude).toBe(51.4416)
     expect(station.longitude).toBe(0.15)
-    expect(station.callsign).toBe('NOCALL')
+    expect(station.callsign).toBe('N0CALL')
   })
 
   it('derives APRS-IS filter from station coordinates when APRS_IS_FILTER is unset', () => {
