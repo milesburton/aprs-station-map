@@ -6,7 +6,7 @@ import {
   setCentre as setCentreAction,
   setMapPosition,
   setZoom as setZoomAction,
-} from '../store/slices/mapSlice'
+} from '../store/slices/map-slice'
 import type { Coordinates, MapState } from '../types'
 
 interface UseMapStateResult {

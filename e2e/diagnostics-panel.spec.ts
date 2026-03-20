@@ -64,24 +64,23 @@ const packets = [
   },
 ]
 
-test.describe('Diagnostics panel — collapse/expand', () => {
+test.describe('Collapse / expand', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(page, stations, stats, { packets })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
+    await page.waitForSelector('.diag-collapse-btn')
   })
 
   test('panel starts collapsed', async ({ page }) => {
     await expect(page.locator('.diag-collapse-btn')).toContainText('▲')
   })
 
-  test('panel expands when collapse button is clicked', async ({ page }) => {
+  test('panel expands on click', async ({ page }) => {
     await openDiagnosticsPanel(page)
     await expect(page.locator('[role="tablist"]')).toBeVisible()
   })
 
-  test('panel collapses again when button clicked a second time', async ({ page }) => {
+  test('panel collapses again on second click', async ({ page }) => {
     await openDiagnosticsPanel(page)
     await page.locator('.diag-collapse-btn').click()
     await expect(page.locator('[role="tablist"]')).not.toBeVisible()
@@ -92,30 +91,27 @@ test.describe('Diagnostics panel — collapse/expand', () => {
   })
 })
 
-test.describe('Diagnostics panel — status indicator', () => {
-  test('shows green indicator when KISS connected', async ({ page }) => {
+test.describe('Status indicator', () => {
+  test('shows green when KISS connected', async ({ page }) => {
     await setupWsMock(page, stations, { ...stats, kissConnected: true }, { packets })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
+    await page.waitForSelector('.diag-status-indicator')
     await expect(page.locator('.diag-status-indicator')).toContainText('🟢')
   })
 
-  test('shows yellow indicator when KISS disconnected but WS connected', async ({ page }) => {
+  test('shows yellow when KISS disconnected', async ({ page }) => {
     await setupWsMock(page, stations, { ...stats, kissConnected: false }, { packets })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
+    await page.waitForSelector('.diag-status-indicator')
     await expect(page.locator('.diag-status-indicator')).toContainText('🟡')
   })
 })
 
-test.describe('Diagnostics panel — Stats tab', () => {
+test.describe('Stats tab', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(page, stations, stats, { packets })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
+    await page.waitForSelector('.station-marker', { timeout: 5000 })
     await openDiagnosticsPanel(page)
   })
 
@@ -131,47 +127,45 @@ test.describe('Diagnostics panel — Stats tab', () => {
     await expect(page.getByRole('button', { name: /Refresh/i })).toBeVisible()
   })
 
-  test('visual snapshot — Stats tab', async ({ page }) => {
+  test('visual snapshot', async ({ page }) => {
     await expect(page.locator('[role="tabpanel"]')).toHaveScreenshot('stats-tab.png')
   })
 })
 
-test.describe('Diagnostics panel — Packets tab', () => {
+test.describe('Packets tab', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(page, stations, stats, { packets })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
+    await page.waitForSelector('.station-marker', { timeout: 5000 })
     await openDiagnosticsPanel(page)
     await page.getByRole('tab', { name: 'Packets' }).click()
-    await page.waitForTimeout(200)
+    await page.locator('[role="tabpanel"]').waitFor({ state: 'visible' })
   })
 
-  test('shows packet sources in the list', async ({ page }) => {
+  test('shows packet sources', async ({ page }) => {
     await expect(page.locator('[role="tabpanel"]')).toContainText('TEST-1')
     await expect(page.locator('[role="tabpanel"]')).toContainText('TEST-2')
   })
 
-  test('shows raw packet destination', async ({ page }) => {
+  test('shows packet destination', async ({ page }) => {
     await expect(page.locator('[role="tabpanel"]')).toContainText('APRS')
   })
 
-  test('visual snapshot — Packets tab', async ({ page }) => {
+  test('visual snapshot', async ({ page }) => {
     await expect(page.locator('[role="tabpanel"]')).toHaveScreenshot('packets-tab.png', {
       mask: [page.locator('.history-time'), page.getByText(/ago/)],
     })
   })
 })
 
-test.describe('Diagnostics panel — Status tab', () => {
+test.describe('Status tab', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(page, stations, stats, { packets })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
+    await page.waitForSelector('.station-marker', { timeout: 5000 })
     await openDiagnosticsPanel(page)
     await page.getByRole('tab', { name: 'Status' }).click()
-    await page.waitForTimeout(200)
+    await page.locator('[role="tabpanel"]').waitFor({ state: 'visible' })
   })
 
   test('shows WebSocket connected status', async ({ page }) => {
@@ -182,20 +176,19 @@ test.describe('Diagnostics panel — Status tab', () => {
     await expect(page.locator('[role="tabpanel"]')).toContainText('46')
   })
 
-  test('visual snapshot — Status tab', async ({ page }) => {
+  test('visual snapshot', async ({ page }) => {
     await expect(page.locator('[role="tabpanel"]')).toHaveScreenshot('status-tab.png')
   })
 })
 
-test.describe('Diagnostics panel — About tab', () => {
+test.describe('About tab', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(page, stations, stats, { packets })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
+    await page.waitForSelector('.station-marker', { timeout: 5000 })
     await openDiagnosticsPanel(page)
     await page.getByRole('tab', { name: 'About' }).click()
-    await page.waitForTimeout(200)
+    await page.locator('[role="tabpanel"]').waitFor({ state: 'visible' })
   })
 
   test('shows frequency information', async ({ page }) => {
@@ -206,39 +199,37 @@ test.describe('Diagnostics panel — About tab', () => {
     await expect(page.locator('[role="tabpanel"]')).toContainText('1.')
   })
 
-  test('visual snapshot — About tab', async ({ page }) => {
+  test('visual snapshot', async ({ page }) => {
     await expect(page.locator('[role="tabpanel"]')).toHaveScreenshot('about-tab.png', {
       mask: [page.getByText(/^\d{1,2}\/\d{1,2}\/\d{4}/)],
     })
   })
 })
 
-test.describe('Diagnostics panel — Spectrum tab', () => {
+test.describe('Spectrum tab', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(page, stations, stats, { packets })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
+    await page.waitForSelector('.station-marker', { timeout: 5000 })
     await openDiagnosticsPanel(page)
     await page.getByRole('tab', { name: 'Spectrum' }).click()
-    await page.waitForTimeout(200)
+    await page.locator('[role="tabpanel"]').waitFor({ state: 'visible' })
   })
 
-  test('Spectrum tab content is visible', async ({ page }) => {
+  test('tab content is visible', async ({ page }) => {
     await expect(page.locator('[role="tabpanel"]')).toBeVisible()
   })
 
-  test('visual snapshot — Spectrum tab', async ({ page }) => {
+  test('visual snapshot', async ({ page }) => {
     await expect(page.locator('[role="tabpanel"]')).toHaveScreenshot('spectrum-tab.png')
   })
 })
 
-test.describe('Diagnostics panel — collapsed visual', () => {
-  test('visual snapshot — panel collapsed', async ({ page }) => {
+test.describe('Collapsed visual', () => {
+  test('visual snapshot', async ({ page }) => {
     await setupWsMock(page, stations, stats, { packets })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
+    await page.waitForSelector('.diag-collapse-btn')
     const panel = page.locator('[class*="bg-slate-900"][class*="border-t"]').first()
     await expect(panel).toHaveScreenshot('panel-collapsed.png')
   })

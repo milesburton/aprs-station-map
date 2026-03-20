@@ -11,11 +11,11 @@ import {
 } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
 
-import connectionReducer from './slices/connectionSlice'
-import dataReducer from './slices/dataSlice'
-import filterReducer from './slices/filterSlice'
-import mapReducer from './slices/mapSlice'
-import uiReducer from './slices/uiSlice'
+import connectionReducer from './slices/connection-slice'
+import dataReducer from './slices/data-slice'
+import filterReducer from './slices/filter-slice'
+import mapReducer from './slices/map-slice'
+import uiReducer from './slices/ui-slice'
 
 const rootReducer = combineReducers({
   filters: filterReducer,
@@ -25,12 +25,13 @@ const rootReducer = combineReducers({
   connection: connectionReducer,
 })
 
-// Persist config - only persist filters, map, and ui
+// Persist config - only persist filters and map.
+// UI should always start from a known default state on load.
 // Data and connection are ephemeral (WebSocket-driven)
 const persistConfig = {
   key: 'aprs-station-map',
   storage,
-  whitelist: ['filters', 'map', 'ui'],
+  whitelist: ['filters', 'map'],
   // Blacklist search from filters (transient)
   // This is handled at the slice level via transforms if needed
 }

@@ -31,10 +31,9 @@ export interface MockPacket {
 }
 
 /**
- * Injects a mock WebSocket that sends an `init` message followed by optional
- * extra messages via the returned `sendMessage` helper.  A global
- * `window.__wsSend(msg)` is also exposed so tests can push messages from the
- * page context.
+ * Injects a mock WebSocket that fires an `init` message on connect, plus
+ * optional follow-up messages. Stubs /api/version and /api/health so no real
+ * backend is needed.
  */
 export const setupWsMock = async (
   page: Page,
@@ -60,7 +59,6 @@ export const setupWsMock = async (
         }
       }
 
-      // Expose helper so tests can push arbitrary WS messages
       ;(window as unknown as Record<string, unknown>).__wsSend = send
 
       if (triggerStation) {
@@ -133,9 +131,17 @@ export const setupWsMock = async (
       body: JSON.stringify({ version: '1.0.0', buildTime: '2026-01-01T00:00:00Z' }),
     })
   )
+
+  await page.route('**/api/health', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'ok', kissConnected: stats.kissConnected }),
+    })
+  )
 }
 
 export const openDiagnosticsPanel = async (page: Page) => {
   await page.locator('.diag-collapse-btn').click()
-  await page.waitForTimeout(200)
+  await page.locator('[role="tablist"]').waitFor({ state: 'visible' })
 }

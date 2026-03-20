@@ -11,7 +11,7 @@ import {
   setStationMaxAge as setStationMaxAgeAction,
   setSymbolFilter as setSymbolFilterAction,
   setTrailMaxAge as setTrailMaxAgeAction,
-} from '../store/slices/filterSlice'
+} from '../store/slices/filter-slice'
 import type { FilterState, SortDirection, SortField, Station } from '../types'
 
 interface UseFiltersResult {

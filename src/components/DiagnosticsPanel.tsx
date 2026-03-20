@@ -8,7 +8,7 @@ import {
   setDiagnosticsHeight,
   TAB_HEIGHT_CONSTRAINTS,
   type TabId,
-} from '../store/slices/uiSlice'
+} from '../store/slices/ui-slice'
 import type { AprsPacket, Station, Stats } from '../types'
 import { formatDistance, formatRelativeTime } from '../utils'
 import { CLIENT_VERSION } from '../utils/version'

@@ -51,16 +51,10 @@ test.describe('Map markers', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(page, stations, stats)
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
     await page.waitForSelector('.station-marker', { timeout: 5000 })
   })
 
-  test('renders a marker for each station with a position', async ({ page }) => {
-    await expect(page.locator('.station-marker')).toHaveCount(2)
-  })
-
-  test('does not render a marker for stations without coordinates', async ({ page }) => {
-    // MB7UEL has no coordinates — only 2 of the 3 stations should appear
+  test('renders markers only for stations with coordinates', async ({ page }) => {
     await expect(page.locator('.station-marker')).toHaveCount(2)
   })
 
@@ -83,9 +77,7 @@ test.describe('Map markers', () => {
     await expect(page.locator('.station-marker')).toHaveCount(3)
   })
 
-  test('existing station updated via WebSocket does not create a duplicate marker', async ({
-    page,
-  }) => {
+  test('updating an existing station does not create a duplicate marker', async ({ page }) => {
     await page.evaluate(() => {
       ;(window as unknown as Record<string, unknown>).__wsSend({
         type: 'station_update',
@@ -101,7 +93,6 @@ test.describe('Map markers', () => {
         },
       })
     })
-    // Still 2 — G4ABC updated in place, no extra marker
     await expect(page.locator('.station-marker')).toHaveCount(2)
   })
 })
@@ -110,11 +101,10 @@ test.describe('Toolbar filters', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(page, stations, stats)
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
     await page.waitForSelector('.station-marker', { timeout: 5000 })
   })
 
-  test('search input filters markers to matching callsign', async ({ page }) => {
+  test('search filters markers to matching callsign', async ({ page }) => {
     await page.locator('.toolbar-search').fill('G4ABC')
     await expect(page.locator('.station-marker')).toHaveCount(1)
   })
@@ -126,17 +116,7 @@ test.describe('Toolbar filters', () => {
     await expect(page.locator('.station-marker')).toHaveCount(2)
   })
 
-  test('distance slider set below nearest station hides all markers', async ({ page }) => {
-    // G4ABC is 10.5 km away — set slider to minimum (10 km) hides it too
-    await page.locator('.toolbar-slider').fill('10')
-    await page.locator('.toolbar-slider').dispatchEvent('input')
-    // Both stations are >10 km so none pass a strict <10 filter; count may be 0 or 1 depending on inclusive boundary
-    const count = await page.locator('.station-marker').count()
-    expect(count).toBeLessThanOrEqual(2)
-  })
-
   test('symbol filter shows only matching station types', async ({ page }) => {
-    // M0XYZ uses '>' symbol (car). Select car type to filter.
     const select = page.locator('.toolbar-select-wide')
     const options = await select.locator('option').allTextContents()
     const carOption = options.find((o) => o.includes('Car'))
@@ -146,7 +126,7 @@ test.describe('Toolbar filters', () => {
     }
   })
 
-  test('reset button appears when filter is active and resets on click', async ({ page }) => {
+  test('reset button clears active filter and restores markers', async ({ page }) => {
     await page.locator('.toolbar-search').fill('G4ABC')
     const resetBtn = page.locator('.toolbar-reset-btn')
     await expect(resetBtn).toBeVisible()
@@ -161,8 +141,7 @@ test.describe('Diagnostics panel stats', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(page, stations, stats)
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(400)
+    await page.waitForSelector('.station-marker', { timeout: 5000 })
     await openDiagnosticsPanel(page)
   })
 
@@ -171,7 +150,6 @@ test.describe('Diagnostics panel stats', () => {
   })
 
   test('shows the furthest station callsign', async ({ page }) => {
-    // M0XYZ at 25.3 km is the furthest positioned station
     await expect(page.locator('body')).toContainText('M0XYZ')
   })
 })
@@ -180,17 +158,6 @@ test.describe('Page load', () => {
   test('map renders on initial load', async ({ page }) => {
     await setupWsMock(page, stations, stats)
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await expect(page.locator('.leaflet-container')).toBeVisible()
-  })
-
-  test('URL may include persisted state params but page still loads correctly', async ({
-    page,
-  }) => {
-    await setupWsMock(page, stations, stats)
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await expect(page).toHaveURL(/^http:\/\/localhost:\d+\//)
     await expect(page.locator('.leaflet-container')).toBeVisible()
   })
 })

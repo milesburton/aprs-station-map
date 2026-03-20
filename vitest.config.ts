@@ -17,17 +17,18 @@ export default defineConfig({
         'src/**/*.spec.ts',
         'src/**/*.spec.tsx',
         'src/main.tsx',
-        'src/App.tsx', // Main app component (tested via E2E)
+        'src/App.tsx',
         'src/vite-env.d.ts',
         'src/test-setup.ts',
-        'src/**/index.ts', // Barrel exports
-        'src/components/**', // React components (tested via integration)
-        'src/hooks/**', // React hooks (tested via components)
-        'src/server/index.ts', // Server entry point (integration tested)
-        'src/server/kiss-client.ts', // Requires live TNC connection
-        'src/server/state-manager.ts', // Thin EventEmitter wrapper
-        'src/server/spectrum-analyzer.ts', // Requires RTL-SDR hardware
-        'src/utils/logger.ts', // Logging utility (no business logic)
+        'src/**/index.ts',
+        'src/components/**',
+        'src/server/index.ts',
+        'src/server/kiss-client.ts',
+        'src/server/state-manager.ts',
+        'src/server/spectrum-analyzer.ts',
+        'src/utils/logger.ts',
+        'src/lib/**',
+        'src/server/test-factories.ts',
       ],
       thresholds: {
         lines: 97, // Allow some browser-specific code

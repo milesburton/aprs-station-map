@@ -1,7 +1,7 @@
 import type { FC } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { setSpectrumPoppedOut } from '../store/slices/uiSlice'
+import { setSpectrumPoppedOut } from '../store/slices/ui-slice'
 import { WindowPortal } from './WindowPortal'
 
 interface SpectrumData {

@@ -1,22 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { DbStation } from './database'
 import { stateManager } from './state-manager'
-
-const makeDbStation = (overrides: Partial<DbStation> = {}): DbStation => ({
-  id: 1,
-  callsign: 'TEST-1',
-  latitude: 51.5,
-  longitude: -0.1,
-  symbol: '-',
-  symbol_table: '/',
-  comment: 'Test',
-  last_heard: Date.now(),
-  created_at: Date.now() - 1000,
-  updated_at: Date.now(),
-  packet_count: 1,
-  last_path: '',
-  ...overrides,
-})
+import { makeDbStation } from './test-factories'
 
 describe('StateManager', () => {
   beforeEach(() => {

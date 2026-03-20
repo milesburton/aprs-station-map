@@ -41,22 +41,34 @@ const stats: MockStats = {
   kissConnected: true,
 }
 
-// For popup content tests use only TEST-1 so we always click the right marker
+// Helper: open the popup for a specific callsign by clicking markers until found
+const openPopup = async (page: import('@playwright/test').Page, callsign: string) => {
+  const markers = page.locator('.station-marker')
+  const count = await markers.count()
+  for (let i = 0; i < count; i++) {
+    await markers.nth(i).click()
+    const popup = page.locator('.leaflet-popup')
+    try {
+      await popup.waitFor({ state: 'visible', timeout: 1000 })
+      if ((await popup.textContent())?.includes(callsign)) return
+    } catch {
+      // try next marker
+    }
+  }
+  throw new Error(`Could not find popup for ${callsign}`)
+}
+
 test.describe('Station popup — content', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(
       page,
       [stationWithHistory],
       { ...stats, totalStations: 1 },
-      {
-        stationHistory: { 'TEST-1': historyPackets },
-      }
+      { stationHistory: { 'TEST-1': historyPackets } }
     )
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
     await page.waitForSelector('.station-marker', { timeout: 5000 })
-    await page.locator('.station-marker').first().click()
-    await expect(page.locator('.leaflet-popup')).toBeVisible()
+    await openPopup(page, 'TEST-1')
   })
 
   test('shows callsign', async ({ page }) => {
@@ -80,7 +92,7 @@ test.describe('Station popup — content', () => {
     await expect(page.locator('.leaflet-popup')).toContainText('WIDE1-1')
   })
 
-  test('shows recent activity when history is present', async ({ page }) => {
+  test('shows Recent Activity when history is present', async ({ page }) => {
     await expect(page.locator('.leaflet-popup')).toContainText('Recent Activity')
   })
 
@@ -89,7 +101,6 @@ test.describe('Station popup — content', () => {
   })
 })
 
-// For stability tests we need two stations so TEST-2 can trigger an update
 test.describe('Station popup — stability', () => {
   test.beforeEach(async ({ page }) => {
     await setupWsMock(page, [stationWithHistory, stationNoHistory], stats, {
@@ -102,55 +113,26 @@ test.describe('Station popup — stability', () => {
       },
     })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
     await page.waitForSelector('.station-marker', { timeout: 5000 })
-    await page.waitForTimeout(300)
+    await openPopup(page, 'TEST-1')
   })
 
-  test('popup remains open when a different station receives an update', async ({ page }) => {
-    // Click each marker until we find TEST-1's popup
-    const markers = page.locator('.station-marker')
-    const count = await markers.count()
-    let found = false
-    for (let i = 0; i < count; i++) {
-      await markers.nth(i).click()
-      await page.waitForTimeout(150)
-      const text = await page
-        .locator('.leaflet-popup')
-        .textContent()
-        .catch(() => '')
-      if (text?.includes('TEST-1')) {
-        found = true
-        break
-      }
-    }
-    expect(found).toBe(true)
-
+  test('popup stays open when a different station receives an update', async ({ page }) => {
     const popup = page.locator('.leaflet-popup')
+    await expect(popup).toContainText('TEST-1')
+
     await page.evaluate(() => {
       ;(window as unknown as Record<string, unknown>).__triggerUpdate?.()
     })
-    await page.waitForTimeout(200)
 
     await expect(popup).toBeVisible()
     await expect(popup).toContainText('TEST-1')
   })
 
   test('scroll position preserved when another station updates', async ({ page }) => {
-    const markers = page.locator('.station-marker')
-    const count = await markers.count()
-    for (let i = 0; i < count; i++) {
-      await markers.nth(i).click()
-      await page.waitForTimeout(150)
-      const text = await page
-        .locator('.leaflet-popup')
-        .textContent()
-        .catch(() => '')
-      if (text?.includes('TEST-1')) break
-    }
-
     const content = page.locator('.leaflet-popup-content')
     await expect(content).toBeVisible()
+
     const scrollHeight = await content.evaluate((el) => el.scrollHeight)
     const clientHeight = await content.evaluate((el) => el.clientHeight)
 
@@ -163,7 +145,7 @@ test.describe('Station popup — stability', () => {
       await page.evaluate(() => {
         ;(window as unknown as Record<string, unknown>).__triggerUpdate?.()
       })
-      await page.waitForTimeout(200)
+      await page.locator('.leaflet-popup').waitFor({ state: 'visible' })
 
       expect(await content.evaluate((el) => el.scrollTop)).toBe(50)
     }

@@ -4,7 +4,7 @@ import { DiagnosticsPanel, StationMap, Toolbar } from './components'
 import { useFilters, useMapState, useStations } from './hooks'
 import { getUniqueSymbols, updateUrlState } from './services'
 import { useAppDispatch, useAppSelector } from './store/hooks'
-import { toggleDiagnostics } from './store/slices/uiSlice'
+import { toggleDiagnostics } from './store/slices/ui-slice'
 import type { Coordinates } from './types'
 import { setupVersionCheck } from './utils/version'
 

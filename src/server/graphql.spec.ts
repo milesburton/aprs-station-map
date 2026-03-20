@@ -35,22 +35,10 @@ vi.mock('./state-manager', () => ({
 import * as db from './database'
 import { handleGraphQL } from './graphql'
 import { stateManager } from './state-manager'
+import { makeDbStation } from './test-factories'
 
-const makeStation = (overrides = {}): import('./database').DbStation => ({
-  id: 1,
-  callsign: 'G4ABC',
-  latitude: 51.5,
-  longitude: -0.1,
-  symbol: '-',
-  symbol_table: '/',
-  comment: 'Test',
-  last_heard: Date.now(),
-  packet_count: 3,
-  last_path: 'WIDE1-1,WIDE2-1',
-  created_at: Date.now() - 60000,
-  updated_at: Date.now(),
-  ...overrides,
-})
+const makeStation = (overrides: Partial<import('./database').DbStation> = {}) =>
+  makeDbStation({ packet_count: 3, last_path: 'WIDE1-1,WIDE2-1', ...overrides })
 
 const makeReq = (method: string, url: string, body?: string): IncomingMessage => {
   const req = new EventEmitter() as IncomingMessage
