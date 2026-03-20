@@ -54,7 +54,6 @@ export class AprsIsClient extends EventEmitter {
     try {
       this.socket = this.socketFactory()
 
-      // Set up connection timeout
       this.connectionTimeoutId = setTimeout(() => {
         if (this.socket && !this.socket.destroyed) {
           console.error(
@@ -65,7 +64,6 @@ export class AprsIsClient extends EventEmitter {
       }, this.connectionTimeoutMs)
 
       this.socket.on('connect', () => {
-        // Clear connection timeout on successful connect
         if (this.connectionTimeoutId) {
           clearTimeout(this.connectionTimeoutId)
           this.connectionTimeoutId = null
@@ -79,7 +77,6 @@ export class AprsIsClient extends EventEmitter {
       })
 
       this.socket.on('close', () => {
-        // Clear timeout on close
         if (this.connectionTimeoutId) {
           clearTimeout(this.connectionTimeoutId)
           this.connectionTimeoutId = null
@@ -92,7 +89,6 @@ export class AprsIsClient extends EventEmitter {
       })
 
       this.socket.on('error', (error: Error) => {
-        // Clear timeout on error
         if (this.connectionTimeoutId) {
           clearTimeout(this.connectionTimeoutId)
           this.connectionTimeoutId = null
@@ -103,7 +99,6 @@ export class AprsIsClient extends EventEmitter {
 
       this.socket.connect(this.port, this.host)
     } catch (error) {
-      // Clear timeout if error occurs during setup
       if (this.connectionTimeoutId) {
         clearTimeout(this.connectionTimeoutId)
         this.connectionTimeoutId = null
@@ -127,15 +122,13 @@ export class AprsIsClient extends EventEmitter {
   private handleData(data: string): void {
     this.lineBuffer += data
     const lines = this.lineBuffer.split('\n')
-    // Keep the last incomplete line in the buffer
     this.lineBuffer = lines.pop() ?? ''
 
     for (const rawLine of lines) {
-      const line = rawLine.replace(/\r$/, '') // strip CR
+      const line = rawLine.replace(/\r$/, '')
       if (line.length === 0) continue
 
       if (line.startsWith('#')) {
-        // Server comment or login response — check for auth confirmation
         console.log(`[APRS-IS] Server: ${line}`)
         if (line.includes('verified') || line.includes('logresp')) {
           this.emit('connected')

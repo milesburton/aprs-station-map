@@ -2,7 +2,6 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
 export type TabId = 'stats' | 'packets' | 'spectrum' | 'status' | 'about'
 
-// Height constraints per tab: { default, min, max }
 export const TAB_HEIGHT_CONSTRAINTS: Record<TabId, { default: number; min: number; max: number }> =
   {
     stats: { default: 90, min: 60, max: 120 },
@@ -12,7 +11,6 @@ export const TAB_HEIGHT_CONSTRAINTS: Record<TabId, { default: number; min: numbe
     about: { default: 60, min: 60, max: 80 },
   }
 
-// Default heights for each tab (for backwards compatibility)
 export const TAB_HEIGHTS: Record<TabId, number> = {
   stats: TAB_HEIGHT_CONSTRAINTS.stats.default,
   packets: TAB_HEIGHT_CONSTRAINTS.packets.default,
@@ -25,8 +23,8 @@ export interface UIState {
   diagnosticsOpen: boolean
   diagnosticsHeight: number
   activeTab: TabId
-  userResizedHeight: boolean // Track if user manually resized
-  spectrumPoppedOut: boolean // Track if spectrum is in a popout window
+  userResizedHeight: boolean
+  spectrumPoppedOut: boolean
 }
 
 const initialState: UIState = {
@@ -55,8 +53,6 @@ const uiSlice = createSlice({
       const newTab = action.payload
       state.activeTab = newTab
       const constraints = TAB_HEIGHT_CONSTRAINTS[newTab]
-      // If user hasn't manually resized, use default height
-      // Otherwise, clamp current height to new tab's constraints
       if (!state.userResizedHeight) {
         state.diagnosticsHeight = constraints.default
       } else {

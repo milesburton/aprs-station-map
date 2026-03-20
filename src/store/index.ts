@@ -25,15 +25,10 @@ const rootReducer = combineReducers({
   connection: connectionReducer,
 })
 
-// Persist config - only persist filters and map.
-// UI should always start from a known default state on load.
-// Data and connection are ephemeral (WebSocket-driven)
 const persistConfig = {
   key: 'aprs-station-map',
   storage,
   whitelist: ['filters', 'map'],
-  // Blacklist search from filters (transient)
-  // This is handled at the slice level via transforms if needed
 }
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)

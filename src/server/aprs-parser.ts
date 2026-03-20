@@ -34,7 +34,6 @@ const decodeCallsign = (
     if (byte === undefined) continue
     const char = byte >> 1
     if (char !== 0x20) {
-      // Not space
       callsign += String.fromCharCode(char)
     }
   }
@@ -55,7 +54,7 @@ const decodeCallsign = (
 const parseAx25Header = (
   packet: Uint8Array
 ): { source: string; destination: string; path: string[]; infoStart: number } | null => {
-  if (packet.length < 16) return null // Minimum: dest(7) + src(7) + control(1) + pid(1)
+  if (packet.length < 16) return null
 
   const destination = decodeCallsign(packet, 0)
   const source = decodeCallsign(packet, AX25_ADDR_LEN)
@@ -64,9 +63,8 @@ const parseAx25Header = (
   let offset = AX25_ADDR_LEN * 2
   let lastAddress = source.isLast
 
-  // Parse digipeater path
   // Append '*' to callsigns where the H-bit is set (has-been-repeated),
-  // matching the conventional APRS text representation and allowing RF/direct filters to work.
+  // matching the conventional APRS text representation so RF/direct filters work.
   while (!lastAddress && offset + AX25_ADDR_LEN <= packet.length) {
     const digi = decodeCallsign(packet, offset)
     path.push(digi.hasBeenRepeated ? `${digi.callsign}*` : digi.callsign)
@@ -74,13 +72,11 @@ const parseAx25Header = (
     offset += AX25_ADDR_LEN
   }
 
-  // Check for UI frame
   if (offset >= packet.length) return null
   const control = packet[offset]
   if (control !== AX25_UI_FRAME) return null
   offset++
 
-  // Check PID
   if (offset >= packet.length) return null
   const pid = packet[offset]
   if (pid !== AX25_PID_NO_LAYER3) return null
@@ -94,9 +90,7 @@ const parseAx25Header = (
   }
 }
 
-// Parse uncompressed position: !DDMM.hhN/DDDMM.hhW
 const parseUncompressedPosition = (info: string): AprsPosition | null => {
-  // Match patterns like: !5144.50N/00009.00E or /5144.50N/00009.00E
   const match = info.match(
     /([0-9]{2})([0-9]{2}\.[0-9]+)([NS])[/\\]([0-9]{3})([0-9]{2}\.[0-9]+)([EW])/
   )
@@ -118,9 +112,7 @@ const parseUncompressedPosition = (info: string): AprsPosition | null => {
   return { latitude, longitude }
 }
 
-// Parse compressed position (base91 encoding)
 const parseCompressedPosition = (info: string): AprsPosition | null => {
-  // Compressed format: /YYYYXXXX$cs (symbol table, 4 lat chars, 4 lon chars, symbol, course/speed)
   const match = info.match(/[/\\]([!-{]{4})([!-{]{4})(.)/)
   if (!match) return null
 
@@ -141,7 +133,6 @@ const parseCompressedPosition = (info: string): AprsPosition | null => {
   return { latitude, longitude }
 }
 
-// Helper for Mic-E latitude/longitude parsing
 function parseMicELatLon(destination: string, _info: string) {
   const latDigits: number[] = []
   const latNS: number[] = []
@@ -214,10 +205,10 @@ const getDataType = (char: string | undefined): AprsPacket['type'] => {
       return 'position'
     case '`':
     case "'":
-      return 'position' // Mic-E
+      return 'position'
     case ';':
     case ')':
-      return 'position' // Object / Item reports
+      return 'position'
     case '>':
       return 'status'
     case ':':
@@ -252,8 +243,6 @@ function extractSymbolAndComment(info: string): {
   return { symbol, symbolTable, comment }
 }
 
-// Parse the APRS info field (the payload after the AX.25 header or after the ':' in APRS-IS).
-// Returns a partial AprsPacket without source/destination/path/raw — caller fills those in.
 export const parseAprsInfo = (
   info: string,
   destination: string
@@ -303,7 +292,6 @@ export const parseAprsPacket = (ax25Packet: Uint8Array): AprsPacket | null => {
   }
 }
 
-// Convert raw bytes to hex string for debugging
 export const bytesToHex = (bytes: Uint8Array): string => {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))

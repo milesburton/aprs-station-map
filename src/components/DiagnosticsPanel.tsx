@@ -18,7 +18,6 @@ const COLLAPSED_HEIGHT = 24
 
 declare const __BUILD_TIME__: string
 
-// Reusable Tab component with proper accessibility
 const Tab: FC<{ label: string; active: boolean; onClick: () => void }> = ({
   label,
   active,
@@ -35,7 +34,6 @@ const Tab: FC<{ label: string; active: boolean; onClick: () => void }> = ({
   </button>
 )
 
-// Reusable action button
 const ActionButton: FC<{
   onClick: () => void
   disabled?: boolean
@@ -52,7 +50,6 @@ const ActionButton: FC<{
   </button>
 )
 
-// Compact stat card
 const StatCard: FC<{
   value: string | number
   label: string
@@ -105,7 +102,6 @@ const exportPacketsToCsv = (packets: AprsPacket[]) => {
   URL.revokeObjectURL(url)
 }
 
-// Tab Content: Packets
 const PacketsTab: FC<{ packets: AprsPacket[] }> = ({ packets }) => {
   if (packets.length === 0) {
     return (
@@ -167,14 +163,12 @@ const PacketsTab: FC<{ packets: AprsPacket[] }> = ({ packets }) => {
   )
 }
 
-// Status indicator for inline display
 const StatusIndicator: FC<{ success: boolean; label: string }> = ({ success, label }) => (
   <span className={`diag-status-badge ${success ? 'success' : 'error'}`}>
     {success ? '●' : '○'} {label}
   </span>
 )
 
-// Tab Content: Status
 interface StatusTabProps {
   connected: boolean
   kissConnected: boolean
@@ -232,7 +226,6 @@ const StatusTab: FC<StatusTabProps> = ({
   </div>
 )
 
-// About info item component
 const AboutItem: FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="diag-about-item">
     <span className="diag-about-label">{label}</span>
@@ -240,7 +233,6 @@ const AboutItem: FC<{ label: string; value: string }> = ({ label, value }) => (
   </div>
 )
 
-// Tab Content: About
 const AboutTab: FC = () => {
   const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? new Date(__BUILD_TIME__) : null
 
@@ -253,7 +245,6 @@ const AboutTab: FC = () => {
   )
 }
 
-// Tab Content: Stats
 interface StatsTabProps {
   stations: Station[]
   loading: boolean
@@ -296,7 +287,6 @@ const StatsTab: FC<StatsTabProps> = ({ stations, loading, error, lastUpdated, on
   )
 }
 
-// Main Panel Component
 interface DiagnosticsPanelProps {
   packets: AprsPacket[]
   stats: Stats | null
@@ -424,13 +414,11 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
       style={{ height: currentHeight }}
       className={`shrink-0 flex flex-col bg-slate-900 border-t border-slate-700 overflow-hidden ${isResizing ? 'select-none' : ''}`}
     >
-      {/* Resize handle */}
       {isOpen && (
         // biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only
         <div className="diagnostics-resize-handle" onMouseDown={handleMouseDown} />
       )}
 
-      {/* Combined header + tab bar */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: header bar is intentionally clickable */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard toggle is available via explicit button */}
       <div className="diag-header-bar" onClick={handleHeaderToggle} style={{ cursor: 'pointer' }}>
@@ -479,7 +467,6 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
 
       {isOpen && (
         <>
-          {/* Tab content */}
           <div role="tabpanel" className="diag-content">
             {activeTab === 'stats' && (
               <StatsTab

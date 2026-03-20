@@ -9,25 +9,21 @@ export interface VersionInfo {
   buildTime: string
 }
 
-// Store the initial build time when the app loads
 let initialBuildTime: string | null = null
 
 export const checkVersion = async (): Promise<boolean> => {
   try {
-    // Add cache-busting query param to avoid browser caching
     const response = await fetch(`/api/version?t=${Date.now()}`)
-    if (!response.ok) return true // Assume match if fetch fails
+    if (!response.ok) return true
 
     const serverVersion: VersionInfo = await response.json()
 
-    // On first check, store the build time
     if (initialBuildTime === null) {
       initialBuildTime = serverVersion.buildTime
       console.log(`[Version] Initial build time: ${initialBuildTime}`)
       return true
     }
 
-    // Compare build times - if server has newer build, reload
     const hasNewVersion = serverVersion.buildTime !== initialBuildTime
 
     if (hasNewVersion) {
@@ -39,7 +35,7 @@ export const checkVersion = async (): Promise<boolean> => {
     return !hasNewVersion
   } catch (error) {
     console.error('[Version] Failed to check version:', error)
-    return true // Assume versions match if check fails
+    return true
   }
 }
 
@@ -52,12 +48,7 @@ export const setupVersionCheck = (intervalMs = 30000): (() => void) => {
     }
   }
 
-  // Check immediately to capture the initial build time
   checkVersion()
-
-  // Then check periodically
   const intervalId = setInterval(checkAndReload, intervalMs)
-
-  // Return cleanup function
   return () => clearInterval(intervalId)
 }

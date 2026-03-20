@@ -60,7 +60,6 @@ export class AisClient extends EventEmitter {
     this.socket = new Socket()
     let buffer = ''
 
-    // Set connection timeout to prevent indefinite hangs
     this.connectionTimeoutId = setTimeout(() => {
       if (this.socket && !this.socket.destroyed) {
         console.error(`[AIS] KISS connection timeout after ${this.connectionTimeoutMs}ms`)
@@ -202,12 +201,8 @@ export class AisClient extends EventEmitter {
   }
 }
 
-// Singleton instance
 let aisClient: AisClient | null = null
 
-/**
- * Get or create AIS client instance
- */
 export const getAisClient = (config: AisClientConfig): AisClient => {
   if (!aisClient) {
     aisClient = new AisClient(config)
@@ -215,9 +210,6 @@ export const getAisClient = (config: AisClientConfig): AisClient => {
   return aisClient
 }
 
-/**
- * Close AIS client
- */
 export const closeAisClient = (): void => {
   if (aisClient) {
     aisClient.disconnect()

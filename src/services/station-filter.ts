@@ -16,7 +16,7 @@ const matchesDistance = (station: Station, maxDistance: number): boolean =>
   station.distance == null || station.distance <= maxDistance
 
 const matchesStationAge = (station: Station, maxAgeHours: number): boolean => {
-  if (maxAgeHours === 0) return true // 0 means "all time"
+  if (maxAgeHours === 0) return true
   const lastHeard =
     typeof station.lastHeard === 'string' ? new Date(station.lastHeard) : station.lastHeard
   const ageMs = Date.now() - lastHeard.getTime()
@@ -24,12 +24,10 @@ const matchesStationAge = (station: Station, maxAgeHours: number): boolean => {
   return ageMs <= maxAgeMs
 }
 
-// Internet gateway markers in APRS paths
 const INTERNET_MARKERS = ['TCPIP', 'TCPIP*', 'qAC', 'qAO', 'qAR', 'qAS', 'qAX', 'qAI', 'qAZ']
 
 const isRfOnly = (station: Station): boolean => {
-  if (!station.via || station.via.length === 0) return true // Direct
-  // Check if any path element contains internet markers
+  if (!station.via || station.via.length === 0) return true
   return !station.via.some((hop) =>
     INTERNET_MARKERS.some((marker) => hop.toUpperCase().includes(marker.toUpperCase()))
   )

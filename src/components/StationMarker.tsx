@@ -17,7 +17,6 @@ interface StationMarkerProps {
   trailMaxAgeHours: number
 }
 
-// Cache for memoized icons - keyed by symbol+selected+followed
 const iconCache = new Map<string, L.DivIcon>()
 
 const getOrCreateIcon = (symbol: string, isSelected: boolean, isFollowed: boolean): L.DivIcon => {
@@ -56,12 +55,10 @@ const formatUtcTime = (date: Date | string) => {
   return `${d.toISOString().slice(11, 19)} UTC`
 }
 
-// Sanitize comment by removing non-printable characters and replacement chars
 const sanitizeComment = (comment: string): string => {
-  // Remove replacement characters (U+FFFD) and non-printable chars except common whitespace
   return comment
-    .replace(/\uFFFD/g, '') // Remove replacement character
-    .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '') // Keep only printable ASCII and Latin-1
+    .replace(/\uFFFD/g, '')
+    .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '')
     .trim()
 }
 

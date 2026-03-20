@@ -8,7 +8,6 @@ interface StationTrailProps {
   maxAgeHours?: number
 }
 
-// Trail color: green (recent) to red (old)
 const TRAIL_COLOR = '#22c55e'
 
 const StationTrailInner: FC<StationTrailProps> = ({ history, maxAgeHours = 24 }) => {
@@ -37,7 +36,6 @@ const StationTrailInner: FC<StationTrailProps> = ({ history, maxAgeHours = 24 })
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     )
 
-    // Build single array of positions for one polyline
     const positions: [number, number][] = []
     for (const packet of sorted) {
       if (packet.position) {

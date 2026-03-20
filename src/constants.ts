@@ -42,8 +42,6 @@ export interface AprsSymbolInfo {
     | 'other'
 }
 
-// APRS Symbol Table (Primary table '/' and Alternate table '\')
-// Reference: http://www.aprs.org/symbols.html
 export const APRS_SYMBOLS: Record<string, AprsSymbolInfo> = {
   // Vehicles (Mobile)
   '>': { name: 'Car', emoji: '🚗', color: '#4CAF50', category: 'vehicle' },
@@ -92,7 +90,7 @@ export const APRS_SYMBOLS: Record<string, AprsSymbolInfo> = {
   '[': { name: 'Human', emoji: '🚶', color: '#8D6E63', category: 'other' },
   ';': { name: 'Person', emoji: '👤', color: '#A1887F', category: 'other' },
 
-  // Numbered overlay symbols (0-9) - typically portable/mobile stations
+  // Numbered overlay symbols (0-9)
   '0': { name: 'Circle 0', emoji: '⓪', color: '#607D8B', category: 'other' },
   '1': { name: 'Circle 1', emoji: '①', color: '#607D8B', category: 'other' },
   '2': { name: 'Circle 2', emoji: '②', color: '#607D8B', category: 'other' },

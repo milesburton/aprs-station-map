@@ -103,13 +103,12 @@ const SCHEMA = `
 export const initializeDatabase = (path: string = config.database.path): Database.Database => {
   if (db) return db
 
-  // Ensure directory exists
   const dir = dirname(path)
   if (dir && dir !== '.') {
     try {
       mkdirSync(dir, { recursive: true })
     } catch {
-      // Directory might already exist
+      // already exists
     }
   }
 
@@ -118,12 +117,11 @@ export const initializeDatabase = (path: string = config.database.path): Databas
   db.pragma('foreign_keys = ON')
   db.exec(SCHEMA)
 
-  // Migration: add last_path column if it doesn't exist
   try {
     db.exec('ALTER TABLE stations ADD COLUMN last_path TEXT DEFAULT ""')
     console.log('[DB] Added last_path column')
   } catch {
-    // Column already exists
+    // column already exists — no-op
   }
 
   console.log(`[DB] Database initialized at ${path}`)
@@ -145,7 +143,6 @@ export const closeDatabase = (): void => {
   }
 }
 
-// Upsert station and add to history
 export const upsertStation = (packet: AprsPacket): DbStation => {
   const database = getDatabase()
   const now = Date.now()
@@ -185,7 +182,6 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
       packet.source
     )
 
-    // Add to history
     addPacketHistory(existing.id, packet, now)
 
     return {
@@ -201,7 +197,6 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
       updated_at: now,
     }
   }
-  // Insert new station
   const insertStmt = database.prepare(`
       INSERT INTO stations (callsign, latitude, longitude, symbol, symbol_table, comment, last_heard, packet_count, last_path, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
@@ -226,7 +221,6 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
     return newStation
   }
 
-  // Should never reach here since we just inserted
   throw new Error(`Failed to retrieve newly inserted station: ${packet.source}`)
 }
 
@@ -270,7 +264,6 @@ export const getStationHistory = (stationId: number, limit = 100): DbPacketHisto
   return stmt.all(stationId, limit) as DbPacketHistory[]
 }
 
-// Get all station histories with positions (for vehicle tracking trails)
 export const getAllStationHistories = (
   maxAgeHours = 24,
   limit = 50,
@@ -279,7 +272,6 @@ export const getAllStationHistories = (
   const database = getDatabase()
   const cutoff = Date.now() - maxAgeHours * 60 * 60 * 1000
 
-  // Get stations that have at least one packet with position data
   const stmt = database.prepare(`
     SELECT s.id, s.callsign, ph.id as packet_id, ph.raw_packet, ph.latitude, ph.longitude, ph.path, ph.received_at
     FROM stations s
@@ -301,7 +293,6 @@ export const getAllStationHistories = (
     received_at: number
   }>
 
-  // Group by callsign and limit per station
   const result: Record<string, DbPacketHistory[]> = {}
   let stationCount = 0
   for (const row of rows) {
@@ -370,7 +361,6 @@ export const getStats = (): {
   return { totalStations, stationsWithPosition, totalPackets, totalVessels, vesselsWithPosition }
 }
 
-// Cleanup old history (keep last N days)
 export const cleanupOldHistory = (daysToKeep = 7): number => {
   const database = getDatabase()
   const cutoff = Date.now() - daysToKeep * 24 * 60 * 60 * 1000
@@ -379,7 +369,6 @@ export const cleanupOldHistory = (daysToKeep = 7): number => {
   return result.changes
 }
 
-// Vessel management functions
 export const upsertVessel = (aisMsg: ParsedAisMessage): DbVessel => {
   const database = getDatabase()
   const now = Date.now()
@@ -434,7 +423,6 @@ export const upsertVessel = (aisMsg: ParsedAisMessage): DbVessel => {
     }
   }
 
-  // Insert new vessel
   if (aisMsg.latitude !== 0 && aisMsg.longitude !== 0) {
     const insertStmt = database.prepare(`
       INSERT INTO vessels (mmsi, callsign, ship_name, latitude, longitude, course, speed, heading, ship_type, last_heard, created_at, updated_at)
@@ -462,7 +450,6 @@ export const upsertVessel = (aisMsg: ParsedAisMessage): DbVessel => {
     }
   }
 
-  // Return existing if we couldn't insert (e.g., ship name only update)
   if (existing) {
     return existing
   }

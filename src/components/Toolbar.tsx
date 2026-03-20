@@ -81,7 +81,6 @@ export const Toolbar: FC<ToolbarProps> = ({
 
   return (
     <div className="toolbar">
-      {/* Search */}
       <div className="toolbar-group">
         <span className="toolbar-label">Health</span>
         <span className={`toolbar-health ${healthClass}`}>{healthLabel}</span>
@@ -101,7 +100,6 @@ export const Toolbar: FC<ToolbarProps> = ({
 
       <div className="toolbar-divider" />
 
-      {/* Distance */}
       <div className="toolbar-group">
         <span className="toolbar-label">Distance</span>
         <input
@@ -118,7 +116,6 @@ export const Toolbar: FC<ToolbarProps> = ({
 
       <div className="toolbar-divider" />
 
-      {/* Station age */}
       <div className="toolbar-group">
         <span className="toolbar-label">Age</span>
         <select
@@ -134,7 +131,6 @@ export const Toolbar: FC<ToolbarProps> = ({
         </select>
       </div>
 
-      {/* Trail age */}
       <div className="toolbar-group">
         <span className="toolbar-label">Trail</span>
         <select
@@ -152,7 +148,6 @@ export const Toolbar: FC<ToolbarProps> = ({
 
       <div className="toolbar-divider" />
 
-      {/* Symbol filter */}
       <select
         value={filter.symbolFilter ?? ''}
         onChange={(e) => onSymbolChange(e.target.value || null)}
@@ -168,7 +163,6 @@ export const Toolbar: FC<ToolbarProps> = ({
 
       <div className="toolbar-divider" />
 
-      {/* Checkboxes - only show RF-related filters when radio is connected */}
       {kissConnected && (
         <>
           <label className="toolbar-checkbox">
@@ -193,7 +187,6 @@ export const Toolbar: FC<ToolbarProps> = ({
         </>
       )}
 
-      {/* Sort buttons */}
       <div className="toolbar-sort-group">
         {(['callsign', 'distance', 'lastHeard'] as SortField[]).map((field) => (
           <button
@@ -208,7 +201,6 @@ export const Toolbar: FC<ToolbarProps> = ({
         ))}
       </div>
 
-      {/* Reset */}
       {hasActiveFilters && (
         <button type="button" onClick={onReset} className="toolbar-reset-btn">
           Reset

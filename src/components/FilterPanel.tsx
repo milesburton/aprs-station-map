@@ -2,7 +2,7 @@ import type { FC } from 'react'
 import { APRS_SYMBOLS, DEFAULT_CONFIG } from '../constants'
 import type { FilterState, SortDirection, SortField } from '../types'
 
-const STATION_AGE_VALUES = [1, 24, 168, 720, 0] // 1h, 24h, 7d, 30d, all
+const STATION_AGE_VALUES = [1, 24, 168, 720, 0]
 
 interface FilterPanelProps {
   filter: FilterState

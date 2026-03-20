@@ -32,12 +32,10 @@ interface WebSocketWithId extends WebSocket {
   id: string
 }
 
-// Track connected WebSocket clients
 const clients = new Set<WebSocketWithId>()
 let aprsIsConnected = false
 
-// Read version from package.json
-let APP_VERSION = '1.0.0' // fallback
+let APP_VERSION = '1.0.0'
 for (const candidate of [
   '/app/package.json',
   new URL('../../package.json', import.meta.url).pathname,
@@ -48,11 +46,10 @@ for (const candidate of [
     console.log(`[Version] Loaded version ${APP_VERSION}`)
     break
   } catch {
-    // try next candidate
+    // try next path candidate
   }
 }
 
-// Convert DB station to API station format
 const toApiStation = (dbStation: DbStation) => {
   const stationLocation = {
     latitude: config.station.latitude,
@@ -78,7 +75,6 @@ const toApiStation = (dbStation: DbStation) => {
   }
 }
 
-// Convert DB vessel to API vessel format
 const toApiVessel = (dbVessel: Awaited<ReturnType<typeof getAllVessels>>[number]) => {
   const stationLocation = {
     latitude: config.station.latitude,
@@ -106,7 +102,6 @@ const toApiVessel = (dbVessel: Awaited<ReturnType<typeof getAllVessels>>[number]
   }
 }
 
-// Broadcast to all connected clients
 const broadcast = (event: StateEvent): void => {
   const message = JSON.stringify(event)
   for (const client of clients) {
@@ -121,7 +116,6 @@ const broadcast = (event: StateEvent): void => {
   }
 }
 
-// Subscribe to state events and broadcast
 stateManager.on('state', (event: StateEvent) => {
   if (event.type === 'station_update') {
     broadcast({
@@ -179,7 +173,6 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
 
   try {
     if (path === '/stations' && req.method === 'GET') {
-      // Limit to 5000 most recent stations to prevent timeout on large datasets
       sendJson(res, { stations: getAllStations(5000).map(toApiStation) })
       return
     }
@@ -243,12 +236,9 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
   }
 }
 
-// Start the server
 export const startServer = async (): Promise<void> => {
-  // Initialize database
   initializeDatabase()
 
-  // Helper: process a parsed APRS packet from any source
   const handleAprsPacket = (parsed: ReturnType<typeof parseAprsPacket>) => {
     if (!parsed) return
     console.log(
@@ -269,7 +259,6 @@ export const startServer = async (): Promise<void> => {
   }
 
   if (config.dataSource === 'aprs-is') {
-    // APRS-IS mode: receive packets directly from the internet network
     console.log(`[Server] Data source: APRS-IS (${config.aprsIs.server}:${config.aprsIs.port})`)
     const aprsIsClient = getAprsIsClient()
 
@@ -296,7 +285,6 @@ export const startServer = async (): Promise<void> => {
 
     aprsIsClient.connect()
   } else {
-    // KISS mode: receive packets from a local Direwolf/TNC via KISS TCP
     console.log(`[Server] Data source: KISS TNC (${config.kiss.host}:${config.kiss.port})`)
     const kissClient = getKissClient()
 
@@ -321,13 +309,11 @@ export const startServer = async (): Promise<void> => {
       console.error('[KISS] Error:', error.message)
     })
 
-    // Connect to KISS TNC (don't await - allow server to start independently)
     kissClient.connect().catch((error: Error) => {
       console.error('[KISS] Initial connection failed:', error.message)
     })
   }
 
-  // Initialize AIS client
   if (config.ais.source !== 'none') {
     console.log(`[Server] AIS source: ${config.ais.source}`)
     const aisClient = getAisClient({
@@ -359,7 +345,6 @@ export const startServer = async (): Promise<void> => {
     aisClient.connect()
   }
 
-  // Schedule periodic cleanup
   setInterval(
     () => {
       const deleted = cleanupOldHistory(7)
@@ -368,24 +353,20 @@ export const startServer = async (): Promise<void> => {
       }
     },
     24 * 60 * 60 * 1000
-  ) // Daily
+  )
 
-  // Periodically broadcast stats
   setInterval(() => {
     stateManager.emitStatsUpdate(getStats())
   }, 30000)
 
-  // Create HTTP server
   const server = createServer((req, res) => {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
 
-    // API routes
     if (url.pathname.startsWith('/api')) {
       handleApiRequest(req, res, url.pathname)
       return
     }
 
-    // GraphQL endpoint
     if (url.pathname === '/graphql') {
       handleGraphQL(req, res).catch((err) => {
         console.error('[GraphQL] Unhandled error:', err)
@@ -415,7 +396,6 @@ export const startServer = async (): Promise<void> => {
     perMessageDeflate: false,
   })
 
-  // Handle WebSocket upgrades manually to route to correct server
   server.on('upgrade', (request, socket, head) => {
     const pathname = new URL(request.url || '/', `http://${request.headers.host}`).pathname
 
@@ -438,14 +418,10 @@ export const startServer = async (): Promise<void> => {
     clients.add(wsWithId)
     console.log(`[WS] Client connected (${clients.size} total)`)
 
-    // Send initial state immediately as a single text frame
-    // Limit to 5000 most recent stations to avoid oversized WebSocket init payloads
     try {
       const stations = getAllStations(2000).map(toApiStation)
       const vessels = getAllVessels().map(toApiVessel)
       const stats = getStats()
-
-      // Get a capped amount of history to keep init payload fast and reliable
       const rawHistories = getAllStationHistories(6, 10, 200)
       const stationHistory: Record<
         string,
@@ -490,7 +466,7 @@ export const startServer = async (): Promise<void> => {
         const data = JSON.parse(message.toString())
         console.log('[WS] Received:', data)
       } catch {
-        // Ignore invalid messages
+        // malformed message — discard
       }
     })
 
@@ -507,7 +483,6 @@ export const startServer = async (): Promise<void> => {
     })
   })
 
-  // Spectrum analyzer state
   let spectrumAnalyzer: SpectrumAnalyzer | null = null
   const spectrumClients = new Set<WebSocket>()
 
@@ -536,7 +511,6 @@ export const startServer = async (): Promise<void> => {
       spectrumClients.delete(ws)
       console.log(`[Spectrum WS] Client disconnected (${spectrumClients.size} remaining)`)
 
-      // Stop analyzer if no clients
       if (spectrumClients.size === 0 && spectrumAnalyzer) {
         spectrumAnalyzer.stop()
         spectrumAnalyzer = null
@@ -553,7 +527,6 @@ export const startServer = async (): Promise<void> => {
     console.log(`[Server] Listening on ${config.web.host}:${config.web.port}`)
   })
 
-  // Graceful shutdown
   const shutdown = () => {
     console.log('\n[Server] Shutting down...')
     closeKissClient()
@@ -568,7 +541,6 @@ export const startServer = async (): Promise<void> => {
   process.on('SIGTERM', shutdown)
 }
 
-// Run if executed directly
 const isMain = process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js')
 if (isMain) {
   startServer().catch((error) => {

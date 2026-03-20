@@ -1,4 +1,3 @@
-// Earth radius in kilometers
 const EARTH_RADIUS_KM = 6371
 
 interface Coordinates {

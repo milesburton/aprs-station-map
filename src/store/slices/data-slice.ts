@@ -11,7 +11,7 @@ export interface DataState {
   stats: Stats | null
   loading: boolean
   error: string | null
-  lastUpdated: string | null // ISO string for serialization
+  lastUpdated: string | null
 }
 
 const initialState: DataState = {
@@ -24,7 +24,6 @@ const initialState: DataState = {
   lastUpdated: null,
 }
 
-// Deduplicate stations by callsign, keeping the most recent
 const deduplicateStations = (stations: Station[]): Station[] => {
   const map = new Map<string, Station>()
   for (const station of stations) {
@@ -73,7 +72,6 @@ const dataSlice = createSlice({
       if (state.packets.length > MAX_PACKETS) {
         state.packets = state.packets.slice(-MAX_PACKETS)
       }
-      // Update station history
       const callsign = packet.source
       const existing = state.stationHistory[callsign] ?? []
       const updated = [...existing, packet].slice(-MAX_STATION_HISTORY)

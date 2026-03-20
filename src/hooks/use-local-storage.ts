@@ -28,7 +28,7 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
         try {
           setStoredValue(JSON.parse(e.newValue) as T)
         } catch {
-          // Ignore parse errors
+          // malformed localStorage value — leave state unchanged
         }
       }
     }

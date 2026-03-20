@@ -20,7 +20,6 @@ interface UseStationsResult {
 const MAX_PACKETS = 100
 const MAX_STATION_HISTORY = 50
 
-// Deduplicate stations by callsign, keeping the most recent
 const deduplicateStations = (stations: Station[]): Station[] => {
   const map = new Map<string, Station>()
   for (const station of stations) {
@@ -28,7 +27,6 @@ const deduplicateStations = (stations: Station[]): Station[] => {
     if (!existing) {
       map.set(station.callsign, station)
     } else {
-      // Keep the one with more recent lastHeard
       const existingTime =
         typeof existing.lastHeard === 'string'
           ? new Date(existing.lastHeard).getTime()
@@ -74,7 +72,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
           setHealth(data)
         }
       } catch {
-        // Health endpoint is best-effort only
+        // best-effort only — don't surface health errors to the user
       }
     }
 
@@ -95,7 +93,6 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
     }
   }, [])
 
-  // Single effect that manages the entire WebSocket lifecycle
   useEffect(() => {
     mountedRef.current = true
 
@@ -155,7 +152,6 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
                 setStats(message.stats)
                 setKissConnected(message.stats.kissConnected)
               }
-              // Load historical station data for vehicle tracking trails
               if (message.stationHistory) {
                 const historyMap = new Map<string, AprsPacket[]>()
                 for (const [callsign, packets] of Object.entries(
@@ -188,8 +184,6 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
             case 'stats_update':
               if (message.stats) {
                 setStats(message.stats)
-                // Note: kissConnected is NOT updated here - it's only set from
-                // init, kiss_connected, and kiss_disconnected events
               }
               break
             case 'kiss_connected':
@@ -225,7 +219,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
               break
           }
         } catch {
-          // Ignore parse errors
+          // malformed WebSocket message — discard
         }
       }
     }
@@ -241,7 +235,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
         wsRef.current.close(1000, 'unmounting')
       }
     }
-  }, [wsUrl]) // Only depends on wsUrl - stable dependency
+  }, [wsUrl])
 
   const refresh = async () => {
     try {

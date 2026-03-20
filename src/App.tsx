@@ -80,7 +80,6 @@ export const App: FC = () => {
     [followStation, stations, flyTo]
   )
 
-  // Auto-fly to followed station when its position updates
   useEffect(() => {
     if (!mapState.followedStation) return
     const station = stations.find((s) => s.callsign === mapState.followedStation)

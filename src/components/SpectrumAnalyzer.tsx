@@ -17,8 +17,6 @@ interface CanvasSize {
   height: number
 }
 
-// Store waterfall history globally so it persists across tab switches
-// This provides a smoother UX when navigating between diagnostic tabs
 const waterfallHistory: {
   data: Uint8ClampedArray | null
   width: number
@@ -143,9 +141,7 @@ const addWaterfallLine = (imageData: ImageData, width: number, magnitudes: numbe
   for (let x = 0; x < width; x++) {
     const idx = Math.floor((x / width) * magnitudes.length)
     const magnitude = magnitudes[idx] ?? -100
-    // Map -50dB → 0 (black/blue) and 0dB → 1 (red/yellow).
-    // Input is 8-bit unsigned PCM → (byte-128)/128 → FFT normalised by numBins.
-    // Full-scale tone ≈ 0 dB; RTL-SDR noise floor typically -50 to -30 dB.
+    // RTL-SDR noise floor is typically -50 to -30 dB; map -50dB→0, 0dB→1.
     const normalized = Math.max(0, Math.min(1, (magnitude + 50) / 50))
     const color = magnitudeToColor(normalized)
 
@@ -157,7 +153,6 @@ const addWaterfallLine = (imageData: ImageData, width: number, magnitudes: numbe
   }
 }
 
-// Inner content component that can be rendered in main window or popout
 interface SpectrumContentProps {
   isPoppedOut: boolean
   onPopout?: () => void
@@ -172,7 +167,6 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
   const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 800, height: 200 })
   const waterfallDataRef = useRef<ImageData | null>(null)
 
-  // Track previous size to detect significant changes
   const prevSizeRef = useRef<CanvasSize>({ width: 800, height: 200 })
 
   useEffect(() => {
@@ -245,7 +239,6 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
     if (!waterfallDataRef.current) {
       waterfallDataRef.current = ctx.createImageData(width, height)
 
-      // Try to restore from global history if dimensions match
       if (
         waterfallHistory.data &&
         waterfallHistory.width === width &&
@@ -253,7 +246,6 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
       ) {
         waterfallDataRef.current.data.set(waterfallHistory.data)
       } else {
-        // Initialize with black background
         for (let i = 0; i < waterfallDataRef.current.data.length; i += 4) {
           waterfallDataRef.current.data[i] = 0
           waterfallDataRef.current.data[i + 1] = 0
@@ -270,13 +262,11 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
 
     ctx.putImageData(imageData, 0, 0)
 
-    // Save to global history for persistence across tab switches
     waterfallHistory.data = new Uint8ClampedArray(imageData.data)
     waterfallHistory.width = width
     waterfallHistory.height = height
   }, [])
 
-  // Restore waterfall display on mount (when switching back to spectrum tab)
   useEffect(() => {
     const canvas = waterfallCanvasRef.current
     if (!canvas) return
@@ -286,7 +276,6 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
 
     const { width, height } = canvasSize
 
-    // Restore from global history if available and dimensions match
     if (
       waterfallHistory.data &&
       waterfallHistory.width === width &&
@@ -404,7 +393,6 @@ const SpectrumContent: FC<SpectrumContentProps> = ({ isPoppedOut, onPopout, onPo
   )
 }
 
-// Main exported component that handles the popout state
 export const SpectrumAnalyzer: FC = () => {
   const dispatch = useAppDispatch()
   const isPoppedOut = useAppSelector((state) => state.ui.spectrumPoppedOut)
@@ -417,7 +405,6 @@ export const SpectrumAnalyzer: FC = () => {
     dispatch(setSpectrumPoppedOut(false))
   }, [dispatch])
 
-  // When popped out, show a placeholder in the main panel
   if (isPoppedOut) {
     return (
       <>

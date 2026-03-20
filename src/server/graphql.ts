@@ -175,7 +175,7 @@ const resolvers = {
   health: () => ({
     status: 'ok',
     kissConnected: stateManager.isKissConnected(),
-    connectedClients: null, // caller fills in if needed
+    connectedClients: null,
   }),
 }
 
@@ -227,11 +227,6 @@ const parsePostRequest = async (req: IncomingMessage): Promise<ParseResult> => {
   return { ok: true, value: { source: parsed.query, variableValues: parsed.variables } }
 }
 
-/**
- * Handle a GraphQL request over plain Node HTTP.
- * Supports both GET (query param) and POST (JSON body) requests.
- * Mount at /graphql in the HTTP request handler.
- */
 export const handleGraphQL = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, corsHeaders)

@@ -54,7 +54,7 @@ export const WindowPortal: FC<WindowPortalProps> = ({
           newWindow.document.head.appendChild(style)
         }
       } catch (e) {
-        // Cross-origin stylesheets are inaccessible by design; skip them
+        // cross-origin stylesheets are intentionally inaccessible
         console.warn('[WindowPortal] Could not copy stylesheet:', e)
       }
     }
