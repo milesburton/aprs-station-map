@@ -24,7 +24,7 @@ const makeStore = () =>
 const makeWrapper =
   (store: ReturnType<typeof makeStore>) =>
   ({ children }: { children: ReactNode }) =>
-    createElement(Provider, { store }, children)
+    createElement(Provider, { store, children })
 
 describe('useMapState', () => {
   it('returns initial map state', () => {

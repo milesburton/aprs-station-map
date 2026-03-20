@@ -466,35 +466,33 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
       </div>
 
       {isOpen && (
-        <>
-          <div role="tabpanel" className="diag-content">
-            {activeTab === 'stats' && (
-              <StatsTab
-                stations={stations}
-                loading={loading}
-                error={error}
-                lastUpdated={lastUpdated}
-                onRefresh={onRefresh}
-              />
-            )}
-            {activeTab === 'packets' && <PacketsTab packets={packets} />}
-            {activeTab === 'spectrum' && (
-              <div className="flex-1 overflow-y-auto p-3">
-                <SpectrumAnalyzer />
-              </div>
-            )}
-            {activeTab === 'status' && (
-              <StatusTab
-                connected={connected}
-                kissConnected={kissConnected}
-                stats={stats}
-                lastPacketTime={lastPacketTime}
-                statusText={getStatusText()}
-              />
-            )}
-            {activeTab === 'about' && <AboutTab />}
-          </div>
-        </>
+        <div role="tabpanel" className="diag-content">
+          {activeTab === 'stats' && (
+            <StatsTab
+              stations={stations}
+              loading={loading}
+              error={error}
+              lastUpdated={lastUpdated}
+              onRefresh={onRefresh}
+            />
+          )}
+          {activeTab === 'packets' && <PacketsTab packets={packets} />}
+          {activeTab === 'spectrum' && (
+            <div className="flex-1 overflow-y-auto p-3">
+              <SpectrumAnalyzer />
+            </div>
+          )}
+          {activeTab === 'status' && (
+            <StatusTab
+              connected={connected}
+              kissConnected={kissConnected}
+              stats={stats}
+              lastPacketTime={lastPacketTime}
+              statusText={getStatusText()}
+            />
+          )}
+          {activeTab === 'about' && <AboutTab />}
+        </div>
       )}
     </div>
   )

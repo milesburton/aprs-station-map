@@ -25,7 +25,7 @@ const makeStore = () =>
 const makeWrapper =
   (store: ReturnType<typeof makeStore>) =>
   ({ children }: { children: ReactNode }) =>
-    createElement(Provider, { store }, children)
+    createElement(Provider, { store, children })
 
 const makeStation = (overrides: Partial<Station> = {}): Station => ({
   callsign: 'G4ABC',
