@@ -136,7 +136,14 @@ export const setupWsMock = async (
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ status: 'ok', kissConnected: stats.kissConnected }),
+      body: JSON.stringify({
+        status: 'ok',
+        healthy: true,
+        sourceConnected: true,
+        receivingPackets: true,
+        kissConnected: stats.kissConnected,
+        totalStations: 3,
+      }),
     })
   )
 }
