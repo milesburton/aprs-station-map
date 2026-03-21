@@ -66,7 +66,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
     const fetchHealth = async () => {
       try {
         const response = await fetch(`${DEFAULT_CONFIG.apiUrl}/health`)
-        if (!response.ok) return
+        if (!response.ok && response.status !== 503) return
         const data = (await response.json()) as HealthStatus
         if (mountedRef.current) {
           setHealth(data)

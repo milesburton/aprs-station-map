@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import { useCallback, useEffect, useMemo } from 'react'
-import { DiagnosticsPanel, StationMap, Toolbar } from './components'
+import { DiagnosticsPanel, ServiceStatus, StationMap, Toolbar } from './components'
 import { useFilters, useMapState, useStations } from './hooks'
 import { getUniqueSymbols, updateUrlState } from './services'
 import { useAppDispatch, useAppSelector } from './store/hooks'
@@ -90,6 +90,7 @@ export const App: FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-900 overflow-hidden">
+      <ServiceStatus loading={loading} connected={connected} health={health} />
       <Toolbar
         filter={filter}
         availableSymbols={availableSymbols}

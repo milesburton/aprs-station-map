@@ -1,5 +1,6 @@
 export { DiagnosticsPanel } from './DiagnosticsPanel'
 export { FilterPanel } from './FilterPanel'
+export { ServiceStatus } from './ServiceStatus'
 export { StationList } from './StationList'
 export { StationMap } from './StationMap'
 export { StationMarker } from './StationMarker'

@@ -203,20 +203,24 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
       const receivingPackets = secondsSinceLastPacket !== null && secondsSinceLastPacket <= 180
       const healthy = sourceConnected && receivingPackets && stats.totalStations > 0
 
-      sendJson(res, {
-        status: healthy ? 'ok' : 'degraded',
-        healthy,
-        dataSource: config.dataSource,
-        sourceConnected,
-        kissConnected: stateManager.isKissConnected(),
-        aprsIsConnected,
-        receivingPackets,
-        lastPacketAt: lastPacketAt === null ? null : new Date(lastPacketAt).toISOString(),
-        secondsSinceLastPacket,
-        totalStations: stats.totalStations,
-        totalPackets: stats.totalPackets,
-        connectedClients: clients.size,
-      })
+      sendJson(
+        res,
+        {
+          status: healthy ? 'ok' : 'degraded',
+          healthy,
+          dataSource: config.dataSource,
+          sourceConnected,
+          kissConnected: stateManager.isKissConnected(),
+          aprsIsConnected,
+          receivingPackets,
+          lastPacketAt: lastPacketAt === null ? null : new Date(lastPacketAt).toISOString(),
+          secondsSinceLastPacket,
+          totalStations: stats.totalStations,
+          totalPackets: stats.totalPackets,
+          connectedClients: clients.size,
+        },
+        healthy ? 200 : 503
+      )
       return
     }
 
