@@ -26,6 +26,18 @@ services:
       - default
       - nginx-proxy
 
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+    networks:
+      - default
+
 volumes:
   aprs-data:
   fly-data:
