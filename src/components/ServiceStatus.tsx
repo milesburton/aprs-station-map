@@ -8,7 +8,9 @@ interface ServiceStatusProps {
 }
 
 export const ServiceStatus: FC<ServiceStatusProps> = ({ loading, connected, health }) => {
-  const isStartingUp = loading && !connected
+  // If health confirms the server is healthy, don't block on WS connection state
+  const serverHealthy = health?.healthy === true
+  const isStartingUp = loading && !connected && !serverHealthy
   const isDown = !loading && !connected && health !== null && !health.healthy
 
   if (!isStartingUp && !isDown) return null
