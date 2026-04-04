@@ -90,6 +90,13 @@ const parseAx25Header = (
   }
 }
 
+const isValidPosition = (latitude: number, longitude: number): boolean => {
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return false
+  // Reject null island (0,0) — stations with no GPS fix often report this
+  if (latitude === 0 && longitude === 0) return false
+  return true
+}
+
 const parseUncompressedPosition = (info: string): AprsPosition | null => {
   const match = info.match(
     /([0-9]{2})([0-9]{2}\.[0-9]+)([NS])[/\\]([0-9]{3})([0-9]{2}\.[0-9]+)([EW])/
@@ -109,6 +116,7 @@ const parseUncompressedPosition = (info: string): AprsPosition | null => {
   if (latHemi === 'S') latitude = -latitude
   if (lonHemi === 'W') longitude = -longitude
 
+  if (!isValidPosition(latitude, longitude)) return null
   return { latitude, longitude }
 }
 
@@ -130,6 +138,7 @@ const parseCompressedPosition = (info: string): AprsPosition | null => {
   const latitude = 90 - latVal / 380926
   const longitude = -180 + lonVal / 190463
 
+  if (!isValidPosition(latitude, longitude)) return null
   return { latitude, longitude }
 }
 
@@ -187,12 +196,13 @@ const parseMicEPosition = (destination: string, info: string): AprsPosition | nu
   const h = info.charCodeAt(3) - 28
   let lonDeg = d
   if ((lonEW[4] ?? 0) === 1) lonDeg += 100
-  if (lonDeg >= 180 && lonDeg <= 189) lonDeg -= 80
   if (lonDeg >= 190 && lonDeg <= 199) lonDeg -= 190
+  else if (lonDeg >= 180 && lonDeg <= 189) lonDeg -= 80
   let lonMin = m
   if (lonMin >= 60) lonMin -= 60
   let longitude = lonDeg + (lonMin + h / 100) / 60
   if ((lonEW[5] ?? 0) === 0) longitude = -longitude
+  if (!isValidPosition(latitude, longitude)) return null
   return { latitude, longitude }
 }
 

@@ -8,6 +8,8 @@
 
 **Live:** https://aprs-station-map.fly.dev
 
+![Map overview showing APRS stations around London with distance rings, toolbar filters, and diagnostics panel](docs/screenshots/map-overview.png)
+
 Real-time APRS station map. Operates in two modes:
 
 | Mode | Requires | Use case |
@@ -26,6 +28,8 @@ docker compose -f .appcontainer/compose.yaml up -d
 Open http://localhost
 
 ## Modes
+
+![Station popup showing callsign, symbol, position, distance, via path and follow button](docs/screenshots/station-popup.png)
 
 ### Read-only mode (no hardware required)
 
@@ -121,6 +125,8 @@ flyctl secrets set \
 Add `FLY_API_TOKEN` as a repository secret (generate with `flyctl tokens create deploy`). Pushes to `main` will deploy automatically after tests pass.
 
 ## Development
+
+![Diagnostics panel showing station stats, packet feed, and connection status](docs/screenshots/diagnostics-panel.png)
 
 Open in VS Code with the Dev Containers extension — fish shell, flyctl, and all tooling are pre-installed.
 

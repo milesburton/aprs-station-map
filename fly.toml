@@ -18,8 +18,8 @@ primary_region = "lhr"
   internal_port = 80
   force_https = true
   auto_start_machines = true
-  auto_stop_machines = true
-  min_machines_running = 0
+  auto_stop_machines = false
+  min_machines_running = 1
 
   [[http_service.checks]]
     grace_period = "30s"
@@ -35,5 +35,5 @@ primary_region = "lhr"
   initial_size = "1gb"
 
 [[vm]]
-  memory = "1gb"
+  memory = "256mb"
   cpus = 1
