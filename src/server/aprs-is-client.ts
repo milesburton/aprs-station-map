@@ -39,7 +39,9 @@ export class AprsIsClient extends EventEmitter {
     this.callsign = options?.callsign ?? config.station.callsign
     this.passcode = options?.passcode ?? config.aprsIs.passcode
     this.filter = options?.filter ?? config.aprsIs.filter
-    this.appVersion = options?.appVersion ?? 'aprs-station-map'
+    // APRS-IS expects `<software-name> <version>` separated by a space; some
+    // servers (e.g. T2PANAMA) reject logins missing this separator.
+    this.appVersion = options?.appVersion ?? 'aprs-station-map 1.0'
     this.reconnectIntervalMs = options?.reconnectIntervalMs ?? config.aprsIs.reconnectIntervalMs
     this.connectionTimeoutMs = options?.connectionTimeoutMs ?? 30_000
     this.socketFactory = options?.socketFactory ?? (() => new Socket())
