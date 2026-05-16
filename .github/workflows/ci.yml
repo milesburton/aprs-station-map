@@ -77,8 +77,13 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Needed so the auto-commit step below can push back.
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -105,6 +110,19 @@ jobs:
 
       - name: Run Playwright tests
         run: npm run test:e2e
+
+      - name: Commit refreshed README screenshots
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if [ -n "$(git status --porcelain docs/screenshots)" ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add docs/screenshots
+            git commit -m "chore: refresh README screenshots [skip ci]"
+            git push
+          else
+            echo "No screenshot changes to commit."
+          fi
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
