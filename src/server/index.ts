@@ -194,14 +194,13 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
     }
 
     if (path === '/health' && req.method === 'GET') {
-      const stats = getStats()
       const lastPacketAt = stateManager.getLastAprsPacketAt()
       const secondsSinceLastPacket =
         lastPacketAt === null ? null : Math.floor((Date.now() - lastPacketAt) / 1000)
       const sourceConnected =
         config.dataSource === 'aprs-is' ? aprsIsConnected : stateManager.isKissConnected()
       const receivingPackets = secondsSinceLastPacket !== null && secondsSinceLastPacket <= 180
-      const healthy = sourceConnected && receivingPackets && stats.totalStations > 0
+      const healthy = sourceConnected && receivingPackets
 
       sendJson(
         res,
@@ -215,8 +214,6 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
           receivingPackets,
           lastPacketAt: lastPacketAt === null ? null : new Date(lastPacketAt).toISOString(),
           secondsSinceLastPacket,
-          totalStations: stats.totalStations,
-          totalPackets: stats.totalPackets,
           connectedClients: clients.size,
         },
         healthy ? 200 : 503

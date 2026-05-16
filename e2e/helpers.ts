@@ -142,7 +142,6 @@ export const setupWsMock = async (
         sourceConnected: true,
         receivingPackets: true,
         kissConnected: stats.kissConnected,
-        totalStations: 3,
       }),
     })
   )

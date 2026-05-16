@@ -52,7 +52,6 @@ export const ServiceStatus: FC<ServiceStatusProps> = ({ loading, connected, heal
                     {health.receivingPackets ? 'yes' : 'no'}
                   </span>
                 </div>
-                <div>Stations seen: {health.totalStations}</div>
               </div>
             )}
           </>

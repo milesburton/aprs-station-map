@@ -1,10 +1,12 @@
 #!/bin/bash
 set -e
 
-# When using APRS-IS as the data source, Direwolf is not needed
+# When using APRS-IS as the data source, Direwolf is not needed.
+# Block the script instead of exiting so supervisord does not interpret a
+# clean exit as a crash and respawn-loop into FATAL.
 if [ "${DATA_SOURCE:-kiss}" = "aprs-is" ]; then
-  echo "DATA_SOURCE=aprs-is: Direwolf not required, skipping"
-  exit 0
+  echo "DATA_SOURCE=aprs-is: Direwolf not required, idling"
+  exec sleep infinity
 fi
 
 export STATION_CALLSIGN="${STATION_CALLSIGN:-NOCALL}"

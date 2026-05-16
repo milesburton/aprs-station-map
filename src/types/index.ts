@@ -84,8 +84,6 @@ export interface HealthStatus {
   receivingPackets: boolean
   lastPacketAt: string | null
   secondsSinceLastPacket: number | null
-  totalStations: number
-  totalPackets: number
   connectedClients: number
 }
 

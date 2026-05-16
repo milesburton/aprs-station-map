@@ -49,6 +49,18 @@ export interface DbVessel {
 
 let db: Database.Database | null = null
 
+// In-process counters. Primed once from the DB at startup, then maintained
+// incrementally on every insert/update/delete. Avoids COUNT(*) on hot paths,
+// which on large packet_history tables blocks the Node event loop for seconds.
+const counters = {
+  primed: false,
+  totalStations: 0,
+  stationsWithPosition: 0,
+  totalPackets: 0,
+  totalVessels: 0,
+  vesselsWithPosition: 0,
+}
+
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS stations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,6 +153,12 @@ export const closeDatabase = (): void => {
     db = null
     console.log('[DB] Database closed')
   }
+  counters.primed = false
+  counters.totalStations = 0
+  counters.stationsWithPosition = 0
+  counters.totalPackets = 0
+  counters.totalVessels = 0
+  counters.vesselsWithPosition = 0
 }
 
 export const upsertStation = (packet: AprsPacket): DbStation => {
@@ -182,6 +200,7 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
       packet.source
     )
 
+    trackStationPositionGained(existing, packet)
     addPacketHistory(existing.id, packet, now)
 
     return {
@@ -215,6 +234,11 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
     now
   )
 
+  counters.totalStations += 1
+  if (packet.position?.latitude != null && packet.position?.longitude != null) {
+    counters.stationsWithPosition += 1
+  }
+
   const newStation = existingStmt.get(packet.source) as DbStation | undefined
   if (newStation) {
     addPacketHistory(newStation.id, packet, now)
@@ -222,6 +246,12 @@ export const upsertStation = (packet: AprsPacket): DbStation => {
   }
 
   throw new Error(`Failed to retrieve newly inserted station: ${packet.source}`)
+}
+
+const trackStationPositionGained = (existing: DbStation, packet: AprsPacket): void => {
+  if (existing.latitude !== null || existing.longitude !== null) return
+  if (packet.position?.latitude == null || packet.position?.longitude == null) return
+  counters.stationsWithPosition += 1
 }
 
 const addPacketHistory = (stationId: number, packet: AprsPacket, receivedAt: number): void => {
@@ -239,6 +269,8 @@ const addPacketHistory = (stationId: number, packet: AprsPacket, receivedAt: num
     packet.path.join(','),
     receivedAt
   )
+
+  counters.totalPackets += 1
 }
 
 export const getAllStations = (limit?: number): DbStation[] => {
@@ -319,20 +351,13 @@ export const getAllStationHistories = (
   return result
 }
 
-export const getStats = (): {
-  totalStations: number
-  stationsWithPosition: number
-  totalPackets: number
-  totalVessels: number
-  vesselsWithPosition: number
-} => {
+const primeCounters = (): void => {
+  if (counters.primed) return
   const database = getDatabase()
-
-  const totalStations =
+  counters.totalStations =
     (database.prepare('SELECT COUNT(*) as count FROM stations').get() as { count: number })
       ?.count ?? 0
-
-  const stationsWithPosition =
+  counters.stationsWithPosition =
     (
       database
         .prepare(
@@ -340,16 +365,13 @@ export const getStats = (): {
         )
         .get() as { count: number }
     )?.count ?? 0
-
-  const totalPackets =
+  counters.totalPackets =
     (database.prepare('SELECT COUNT(*) as count FROM packet_history').get() as { count: number })
       ?.count ?? 0
-
-  const totalVessels =
+  counters.totalVessels =
     (database.prepare('SELECT COUNT(*) as count FROM vessels').get() as { count: number })?.count ??
     0
-
-  const vesselsWithPosition =
+  counters.vesselsWithPosition =
     (
       database
         .prepare(
@@ -357,8 +379,24 @@ export const getStats = (): {
         )
         .get() as { count: number }
     )?.count ?? 0
+  counters.primed = true
+}
 
-  return { totalStations, stationsWithPosition, totalPackets, totalVessels, vesselsWithPosition }
+export const getStats = (): {
+  totalStations: number
+  stationsWithPosition: number
+  totalPackets: number
+  totalVessels: number
+  vesselsWithPosition: number
+} => {
+  if (!counters.primed) primeCounters()
+  return {
+    totalStations: counters.totalStations,
+    stationsWithPosition: counters.stationsWithPosition,
+    totalPackets: counters.totalPackets,
+    totalVessels: counters.totalVessels,
+    vesselsWithPosition: counters.vesselsWithPosition,
+  }
 }
 
 export const cleanupOldHistory = (daysToKeep = 7): number => {
@@ -366,6 +404,7 @@ export const cleanupOldHistory = (daysToKeep = 7): number => {
   const cutoff = Date.now() - daysToKeep * 24 * 60 * 60 * 1000
   const stmt = database.prepare('DELETE FROM packet_history WHERE received_at < ?')
   const result = stmt.run(cutoff)
+  counters.totalPackets = Math.max(0, counters.totalPackets - result.changes)
   return result.changes
 }
 
@@ -446,6 +485,8 @@ export const upsertVessel = (aisMsg: ParsedAisMessage): DbVessel => {
 
     const newVessel = existingStmt.get(aisMsg.mmsi) as DbVessel | undefined
     if (newVessel) {
+      counters.totalVessels += 1
+      counters.vesselsWithPosition += 1
       return newVessel
     }
   }
