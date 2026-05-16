@@ -346,15 +346,14 @@ export const startServer = async (): Promise<void> => {
     aisClient.connect()
   }
 
-  setInterval(
-    () => {
-      const deleted = cleanupOldHistory(7)
-      if (deleted > 0) {
-        console.log(`[DB] Cleaned up ${deleted} old history records`)
-      }
-    },
-    24 * 60 * 60 * 1000
-  )
+  const runHistoryCleanup = (): void => {
+    const deleted = cleanupOldHistory(1)
+    if (deleted > 0) {
+      console.log(`[DB] Cleaned up ${deleted} old history records`)
+    }
+  }
+  runHistoryCleanup()
+  setInterval(runHistoryCleanup, 60 * 60 * 1000)
 
   setInterval(() => {
     stateManager.emitStatsUpdate(getStats())
