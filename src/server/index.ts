@@ -116,21 +116,47 @@ const broadcast = (event: StateEvent): void => {
   }
 }
 
+// Coalesce high-frequency station_update / vessel_update events: keep only the
+// latest event per callsign/mmsi and flush once per STATE_FLUSH_INTERVAL_MS.
+// Under live APRS-IS load a station can emit dozens of updates per second;
+// without coalescing the WS broadcast and the client reconcile work scales
+// with packet rate rather than with how many distinct stations changed.
+const STATE_FLUSH_INTERVAL_MS = 1000
+const pendingStationUpdates = new Map<string, StateEvent>()
+const pendingVesselUpdates = new Map<string, StateEvent>()
+
 stateManager.on('state', (event: StateEvent) => {
   if (event.type === 'station_update') {
-    broadcast({
-      ...event,
-      station: toApiStation(event.station) as unknown as DbStation,
-    })
+    pendingStationUpdates.set(event.station.callsign, event)
   } else if (event.type === 'vessel_update') {
-    broadcast({
-      ...event,
-      vessel: toApiVessel(event.vessel) as unknown as DbVessel,
-    })
+    pendingVesselUpdates.set(event.vessel.mmsi, event)
   } else {
     broadcast(event)
   }
 })
+
+setInterval(() => {
+  if (pendingStationUpdates.size > 0) {
+    for (const event of pendingStationUpdates.values()) {
+      if (event.type !== 'station_update') continue
+      broadcast({
+        ...event,
+        station: toApiStation(event.station) as unknown as DbStation,
+      })
+    }
+    pendingStationUpdates.clear()
+  }
+  if (pendingVesselUpdates.size > 0) {
+    for (const event of pendingVesselUpdates.values()) {
+      if (event.type !== 'vessel_update') continue
+      broadcast({
+        ...event,
+        vessel: toApiVessel(event.vessel) as unknown as DbVessel,
+      })
+    }
+    pendingVesselUpdates.clear()
+  }
+}, STATE_FLUSH_INTERVAL_MS)
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',

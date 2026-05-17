@@ -60,6 +60,13 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
   const healthTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mountedRef = useRef(true)
 
+  // High-frequency WS events (station_update, aprs_packet) accumulate in these
+  // buffers and flush once per animation frame. Without this, each packet
+  // triggers a React reconcile, which jams the UI under live APRS-IS load.
+  const pendingStationsRef = useRef<Map<string, Station>>(new Map())
+  const pendingPacketsRef = useRef<AprsPacket[]>([])
+  const flushScheduledRef = useRef(false)
+
   useEffect(() => {
     mountedRef.current = true
 
@@ -136,6 +143,50 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
         }
       }
 
+      const flush = (): void => {
+        flushScheduledRef.current = false
+        if (!mountedRef.current) return
+
+        if (pendingStationsRef.current.size > 0) {
+          const updates = pendingStationsRef.current
+          pendingStationsRef.current = new Map()
+          setStations((prev) => {
+            const known = new Set(prev.map((s) => s.callsign))
+            const updated = prev.map((s) => updates.get(s.callsign) ?? s)
+            const newStations: Station[] = []
+            for (const [callsign, station] of updates) {
+              if (!known.has(callsign)) newStations.push(station)
+            }
+            return newStations.length > 0 ? [...newStations, ...updated] : updated
+          })
+          setLastUpdated(new Date())
+        }
+
+        if (pendingPacketsRef.current.length > 0) {
+          const incoming = pendingPacketsRef.current
+          pendingPacketsRef.current = []
+          setPackets((prev) => prev.concat(incoming).slice(-MAX_PACKETS))
+          setStationHistory((prev) => {
+            const next = new Map(prev)
+            for (const packet of incoming) {
+              const callsign = packet.source
+              const existing = next.get(callsign) ?? []
+              const last = existing[existing.length - 1]
+              if (!last || last.timestamp !== packet.timestamp) {
+                next.set(callsign, [...existing, packet].slice(-MAX_STATION_HISTORY))
+              }
+            }
+            return next
+          })
+        }
+      }
+
+      const scheduleFlush = (): void => {
+        if (flushScheduledRef.current) return
+        flushScheduledRef.current = true
+        requestAnimationFrame(flush)
+      }
+
       ws.onmessage = (event) => {
         if (!mountedRef.current) return
         try {
@@ -168,17 +219,8 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
               break
             case 'station_update':
               if (message.station) {
-                const updatedStation = message.station
-                setStations((prev) => {
-                  const index = prev.findIndex((s) => s.callsign === updatedStation.callsign)
-                  if (index >= 0) {
-                    const updated = [...prev]
-                    updated[index] = updatedStation
-                    return updated
-                  }
-                  return [updatedStation, ...prev]
-                })
-                setLastUpdated(new Date())
+                pendingStationsRef.current.set(message.station.callsign, message.station)
+                scheduleFlush()
               }
               break
             case 'stats_update':
@@ -196,25 +238,8 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
               break
             case 'aprs_packet':
               if (message.packet) {
-                const packet = message.packet as AprsPacket
-                setPackets((prev) => {
-                  const updated = [...prev, packet]
-                  return updated.slice(-MAX_PACKETS)
-                })
-                setStationHistory((prev) => {
-                  const callsign = packet.source
-                  const existing = prev.get(callsign) ?? []
-                  const updated = [...existing, packet].slice(-MAX_STATION_HISTORY)
-                  if (
-                    existing.length === 0 ||
-                    existing[existing.length - 1]?.timestamp !== packet.timestamp
-                  ) {
-                    const newMap = new Map(prev)
-                    newMap.set(callsign, updated)
-                    return newMap
-                  }
-                  return prev
-                })
+                pendingPacketsRef.current.push(message.packet as AprsPacket)
+                scheduleFlush()
               }
               break
           }
