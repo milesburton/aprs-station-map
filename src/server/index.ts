@@ -121,41 +121,52 @@ const broadcast = (event: StateEvent): void => {
 // Under live APRS-IS load a station can emit dozens of updates per second;
 // without coalescing the WS broadcast and the client reconcile work scales
 // with packet rate rather than with how many distinct stations changed.
+// If the pending map exceeds STATE_FLUSH_MAX_PENDING we flush immediately to
+// keep memory bounded on small heaps.
 const STATE_FLUSH_INTERVAL_MS = 1000
+const STATE_FLUSH_MAX_PENDING = 1000
 const pendingStationUpdates = new Map<string, StateEvent>()
 const pendingVesselUpdates = new Map<string, StateEvent>()
+
+const flushPendingStations = (): void => {
+  if (pendingStationUpdates.size === 0) return
+  for (const event of pendingStationUpdates.values()) {
+    if (event.type !== 'station_update') continue
+    broadcast({
+      ...event,
+      station: toApiStation(event.station) as unknown as DbStation,
+    })
+  }
+  pendingStationUpdates.clear()
+}
+
+const flushPendingVessels = (): void => {
+  if (pendingVesselUpdates.size === 0) return
+  for (const event of pendingVesselUpdates.values()) {
+    if (event.type !== 'vessel_update') continue
+    broadcast({
+      ...event,
+      vessel: toApiVessel(event.vessel) as unknown as DbVessel,
+    })
+  }
+  pendingVesselUpdates.clear()
+}
 
 stateManager.on('state', (event: StateEvent) => {
   if (event.type === 'station_update') {
     pendingStationUpdates.set(event.station.callsign, event)
+    if (pendingStationUpdates.size >= STATE_FLUSH_MAX_PENDING) flushPendingStations()
   } else if (event.type === 'vessel_update') {
     pendingVesselUpdates.set(event.vessel.mmsi, event)
+    if (pendingVesselUpdates.size >= STATE_FLUSH_MAX_PENDING) flushPendingVessels()
   } else {
     broadcast(event)
   }
 })
 
 setInterval(() => {
-  if (pendingStationUpdates.size > 0) {
-    for (const event of pendingStationUpdates.values()) {
-      if (event.type !== 'station_update') continue
-      broadcast({
-        ...event,
-        station: toApiStation(event.station) as unknown as DbStation,
-      })
-    }
-    pendingStationUpdates.clear()
-  }
-  if (pendingVesselUpdates.size > 0) {
-    for (const event of pendingVesselUpdates.values()) {
-      if (event.type !== 'vessel_update') continue
-      broadcast({
-        ...event,
-        vessel: toApiVessel(event.vessel) as unknown as DbVessel,
-      })
-    }
-    pendingVesselUpdates.clear()
-  }
+  flushPendingStations()
+  flushPendingVessels()
 }, STATE_FLUSH_INTERVAL_MS)
 
 const corsHeaders: Record<string, string> = {
