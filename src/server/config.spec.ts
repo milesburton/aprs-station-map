@@ -38,6 +38,46 @@ describe('loadConfig', () => {
     expect(loadConfig().dataSource).toBe('kiss')
   })
 
+  it('defaults kissEnabled true / aprsIsEnabled false when DATA_SOURCE=kiss', () => {
+    process.env.DATA_SOURCE = 'kiss'
+    const cfg = loadConfig()
+    expect(cfg.kissEnabled).toBe(true)
+    expect(cfg.aprsIsEnabled).toBe(false)
+  })
+
+  it('defaults kissEnabled false / aprsIsEnabled true when DATA_SOURCE=aprs-is', () => {
+    process.env.DATA_SOURCE = 'aprs-is'
+    const cfg = loadConfig()
+    expect(cfg.kissEnabled).toBe(false)
+    expect(cfg.aprsIsEnabled).toBe(true)
+  })
+
+  it('allows running both sources when both enable flags are set', () => {
+    process.env.DATA_SOURCE = 'aprs-is'
+    process.env.KISS_ENABLED = 'true'
+    process.env.APRS_IS_ENABLED = 'true'
+    const cfg = loadConfig()
+    expect(cfg.kissEnabled).toBe(true)
+    expect(cfg.aprsIsEnabled).toBe(true)
+  })
+
+  it('lets KISS_ENABLED override the DATA_SOURCE default', () => {
+    process.env.DATA_SOURCE = 'aprs-is'
+    process.env.KISS_ENABLED = 'false'
+    process.env.APRS_IS_ENABLED = 'false'
+    const cfg = loadConfig()
+    expect(cfg.kissEnabled).toBe(false)
+    expect(cfg.aprsIsEnabled).toBe(false)
+  })
+
+  it('accepts 1/0 and yes/no for the enable flags', () => {
+    process.env.KISS_ENABLED = '1'
+    process.env.APRS_IS_ENABLED = 'no'
+    const cfg = loadConfig()
+    expect(cfg.kissEnabled).toBe(true)
+    expect(cfg.aprsIsEnabled).toBe(false)
+  })
+
   it('applies default KISS settings', () => {
     const { kiss } = loadConfig()
     expect(kiss.host).toBe('localhost')

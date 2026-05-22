@@ -3,6 +3,8 @@ export type AisSource = 'kiss' | 'http' | 'none'
 
 export interface ServerConfig {
   dataSource: DataSource
+  kissEnabled: boolean
+  aprsIsEnabled: boolean
   kiss: {
     host: string
     port: number
@@ -54,6 +56,15 @@ const parseNumber = (value: string | undefined, defaultValue: number): number =>
 const DEFAULT_STATION_LAT = 51.4416
 const DEFAULT_STATION_LON = 0.15
 
+const parseBool = (value: string | undefined, defaultValue: boolean): boolean => {
+  if (value == null) return defaultValue
+  const v = value.trim().toLowerCase()
+  if (v === '') return defaultValue
+  if (v === 'true' || v === '1' || v === 'yes' || v === 'on') return true
+  if (v === 'false' || v === '0' || v === 'no' || v === 'off') return false
+  return defaultValue
+}
+
 export const loadConfig = (): ServerConfig => {
   const stationLatitude = parseNumber(process.env.STATION_LATITUDE, DEFAULT_STATION_LAT)
   const stationLongitude = parseNumber(process.env.STATION_LONGITUDE, DEFAULT_STATION_LON)
@@ -63,8 +74,19 @@ export const loadConfig = (): ServerConfig => {
       ? configuredAprsFilter
       : `r/${stationLatitude.toFixed(4)}/${stationLongitude.toFixed(4)}/600`
 
+  const dataSource: DataSource =
+    (process.env.DATA_SOURCE as DataSource) === 'aprs-is' ? 'aprs-is' : 'kiss'
+
+  // KISS_ENABLED / APRS_IS_ENABLED let you run both sources at once. When
+  // unset they fall back to whichever DATA_SOURCE is selected, preserving the
+  // single-source behaviour of older deployments.
+  const kissEnabled = parseBool(process.env.KISS_ENABLED, dataSource === 'kiss')
+  const aprsIsEnabled = parseBool(process.env.APRS_IS_ENABLED, dataSource === 'aprs-is')
+
   return {
-    dataSource: (process.env.DATA_SOURCE as DataSource) === 'aprs-is' ? 'aprs-is' : 'kiss',
+    dataSource,
+    kissEnabled,
+    aprsIsEnabled,
     kiss: {
       host: process.env.KISS_HOST ?? 'localhost',
       port: parseNumber(process.env.KISS_PORT, 8001),
