@@ -1,8 +1,8 @@
 import type { FC } from 'react'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { DiagnosticsPanel, ServiceStatus, StationMap, Toolbar } from './components'
 import { useFilters, useMapState, useStations } from './hooks'
-import { getUniqueSymbols, updateUrlState } from './services'
+import { updateUrlState } from './services'
 import { useAppDispatch, useAppSelector } from './store/hooks'
 import { toggleDiagnostics } from './store/slices/ui-slice'
 import type { Coordinates } from './types'
@@ -41,7 +41,20 @@ export const App: FC = () => {
   } = useFilters(stations, kissConnected)
   const { mapState, setCentre, setZoom, selectStation, followStation, flyTo } = useMapState()
 
-  const availableSymbols = useMemo(() => getUniqueSymbols(stations), [stations])
+  // Symbols rarely change once a station is established. Recompute the sorted
+  // unique-symbol list only when the *set* of symbols changes, not whenever
+  // useStations hands us a fresh array reference. Keeps the Toolbar from
+  // re-rendering on every WS flush.
+  const cachedSymbolsRef = useRef<{ sig: string; list: string[] }>({ sig: '', list: [] })
+  const availableSymbols = useMemo(() => {
+    const set = new Set<string>()
+    for (const s of stations) set.add(s.symbol)
+    const sig = [...set].sort().join('|')
+    if (sig !== cachedSymbolsRef.current.sig) {
+      cachedSymbolsRef.current = { sig, list: [...set].sort() }
+    }
+    return cachedSymbolsRef.current.list
+  }, [stations])
 
   const handleToggleDiagnostics = useCallback(() => {
     dispatch(toggleDiagnostics())

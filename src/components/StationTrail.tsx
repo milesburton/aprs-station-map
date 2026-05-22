@@ -10,39 +10,23 @@ interface StationTrailProps {
 
 const TRAIL_COLOR = '#22c55e'
 
+const collectTrailPositions = (history: AprsPacket[], cutoff: number): [number, number][] => {
+  const positions: [number, number][] = []
+  for (const packet of history) {
+    const pos = packet.position
+    if (!pos) continue
+    if (cutoff > 0 && new Date(packet.timestamp).getTime() < cutoff) continue
+    positions.push([pos.latitude, pos.longitude])
+  }
+  return positions
+}
+
 const StationTrailInner: FC<StationTrailProps> = ({ history, maxAgeHours = 24 }) => {
   const trailData = useMemo(() => {
-    const positionPackets = history.filter((p) => p.position)
-
-    if (positionPackets.length < 2) {
-      return null
-    }
-
-    let recentPackets = positionPackets
-    if (maxAgeHours > 0) {
-      const now = Date.now()
-      const maxAgeMs = maxAgeHours * 60 * 60 * 1000
-      recentPackets = positionPackets.filter((p) => {
-        const packetTime = new Date(p.timestamp).getTime()
-        return now - packetTime <= maxAgeMs
-      })
-    }
-
-    if (recentPackets.length < 2) {
-      return null
-    }
-
-    const sorted = [...recentPackets].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    )
-
-    const positions: [number, number][] = []
-    for (const packet of sorted) {
-      if (packet.position) {
-        positions.push([packet.position.latitude, packet.position.longitude])
-      }
-    }
-
+    // useStations appends packets in arrival order, so history is already
+    // chronological. Walk it once instead of filter+sort+map per call.
+    const cutoff = maxAgeHours > 0 ? Date.now() - maxAgeHours * 60 * 60 * 1000 : 0
+    const positions = collectTrailPositions(history, cutoff)
     return positions.length >= 2 ? positions : null
   }, [history, maxAgeHours])
 

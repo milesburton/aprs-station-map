@@ -66,6 +66,9 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
   const pendingStationsRef = useRef<Map<string, Station>>(new Map())
   const pendingPacketsRef = useRef<AprsPacket[]>([])
   const flushScheduledRef = useRef(false)
+  // setLastUpdated is observed by the diagnostics panel only; updating it on
+  // every frame triggers a top-level App re-render. Throttle to ~1Hz.
+  const lastUpdatedSetAtRef = useRef(0)
 
   useEffect(() => {
     mountedRef.current = true
@@ -159,7 +162,11 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
             }
             return newStations.length > 0 ? [...newStations, ...updated] : updated
           })
-          setLastUpdated(new Date())
+          const now = Date.now()
+          if (now - lastUpdatedSetAtRef.current >= 1000) {
+            lastUpdatedSetAtRef.current = now
+            setLastUpdated(new Date(now))
+          }
         }
 
         if (pendingPacketsRef.current.length > 0) {
