@@ -35,6 +35,25 @@ interface WebSocketWithId extends WebSocket {
 const clients = new Set<WebSocketWithId>()
 let aprsIsConnected = false
 
+// Observability for dual-source mode: when both KISS and APRS-IS are running,
+// the same packet often arrives twice (RF heard locally + same packet relayed
+// by APRS-IS). We don't drop duplicates — upsertStation is idempotent by
+// callsign so duplicates only inflate packet_count — but we count them so it's
+// obvious from logs whether overlap is significant.
+const DUPLICATE_WINDOW_MS = 15_000
+const recentPacketSources = new Map<string, { source: 'kiss' | 'aprs-is'; at: number }>()
+let duplicatePacketCount = 0
+const markPacketSeen = (raw: string, source: 'kiss' | 'aprs-is'): boolean => {
+  const now = Date.now()
+  const prior = recentPacketSources.get(raw)
+  if (prior && now - prior.at < DUPLICATE_WINDOW_MS && prior.source !== source) {
+    duplicatePacketCount++
+    return true
+  }
+  recentPacketSources.set(raw, { source, at: now })
+  return false
+}
+
 let APP_VERSION = '1.0.0'
 for (const candidate of [
   '/app/package.json',
@@ -234,8 +253,12 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
       const lastPacketAt = stateManager.getLastAprsPacketAt()
       const secondsSinceLastPacket =
         lastPacketAt === null ? null : Math.floor((Date.now() - lastPacketAt) / 1000)
+      const kissConnected = stateManager.isKissConnected()
+      // sourceConnected is true if any enabled source is up. When both KISS
+      // and APRS-IS are enabled, losing one is degraded-but-functional rather
+      // than fully down.
       const sourceConnected =
-        config.dataSource === 'aprs-is' ? aprsIsConnected : stateManager.isKissConnected()
+        (config.kissEnabled && kissConnected) || (config.aprsIsEnabled && aprsIsConnected)
       const receivingPackets = secondsSinceLastPacket !== null && secondsSinceLastPacket <= 180
       const healthy = sourceConnected && receivingPackets
 
@@ -245,13 +268,16 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
           status: healthy ? 'ok' : 'degraded',
           healthy,
           dataSource: config.dataSource,
+          kissEnabled: config.kissEnabled,
+          aprsIsEnabled: config.aprsIsEnabled,
           sourceConnected,
-          kissConnected: stateManager.isKissConnected(),
+          kissConnected,
           aprsIsConnected,
           receivingPackets,
           lastPacketAt: lastPacketAt === null ? null : new Date(lastPacketAt).toISOString(),
           secondsSinceLastPacket,
           connectedClients: clients.size,
+          duplicatePacketsInLastWindow: duplicatePacketCount,
         },
         healthy ? 200 : 503
       )
@@ -277,10 +303,15 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
 export const startServer = async (): Promise<void> => {
   initializeDatabase()
 
-  const handleAprsPacket = (parsed: ReturnType<typeof parseAprsPacket>) => {
+  const handleAprsPacket = (
+    parsed: ReturnType<typeof parseAprsPacket>,
+    source: 'kiss' | 'aprs-is'
+  ) => {
     if (!parsed) return
+    const isDuplicate = markPacketSeen(parsed.raw, source)
+    const dupTag = isDuplicate ? ' [dup]' : ''
     console.log(
-      `[APRS] ${parsed.source} > ${parsed.destination}: ${parsed.comment || parsed.raw.slice(0, 50)}`
+      `[APRS:${source}]${dupTag} ${parsed.source} > ${parsed.destination}: ${parsed.comment || parsed.raw.slice(0, 50)}`
     )
     stateManager.emitAprsPacket({
       raw: parsed.raw,
@@ -296,8 +327,12 @@ export const startServer = async (): Promise<void> => {
     stateManager.emitStationUpdate(station, isNew)
   }
 
-  if (config.dataSource === 'aprs-is') {
-    console.log(`[Server] Data source: APRS-IS (${config.aprsIs.server}:${config.aprsIs.port})`)
+  if (!config.kissEnabled && !config.aprsIsEnabled) {
+    console.warn('[Server] No data source enabled — set KISS_ENABLED or APRS_IS_ENABLED')
+  }
+
+  if (config.aprsIsEnabled) {
+    console.log(`[Server] APRS-IS enabled (${config.aprsIs.server}:${config.aprsIs.port})`)
     const aprsIsClient = getAprsIsClient()
 
     aprsIsClient.on('connected', () => {
@@ -311,7 +346,7 @@ export const startServer = async (): Promise<void> => {
     aprsIsClient.on('packet', (line: string) => {
       try {
         const parsed = parseAprsIsPacket(line)
-        handleAprsPacket(parsed)
+        handleAprsPacket(parsed, 'aprs-is')
       } catch (error) {
         console.error('[APRS-IS] Parse error:', error, line)
       }
@@ -322,8 +357,10 @@ export const startServer = async (): Promise<void> => {
     })
 
     aprsIsClient.connect()
-  } else {
-    console.log(`[Server] Data source: KISS TNC (${config.kiss.host}:${config.kiss.port})`)
+  }
+
+  if (config.kissEnabled) {
+    console.log(`[Server] KISS enabled (${config.kiss.host}:${config.kiss.port})`)
     const kissClient = getKissClient()
 
     kissClient.on('connected', () => {
@@ -337,7 +374,7 @@ export const startServer = async (): Promise<void> => {
     kissClient.on('packet', (packet: Uint8Array) => {
       try {
         const parsed = parseAprsPacket(packet)
-        handleAprsPacket(parsed)
+        handleAprsPacket(parsed, 'kiss')
       } catch (error) {
         console.error('[APRS] Parse error:', error, bytesToHex(packet))
       }
@@ -351,6 +388,20 @@ export const startServer = async (): Promise<void> => {
       console.error('[KISS] Initial connection failed:', error.message)
     })
   }
+
+  // Periodically prune the dedupe window and log overlap when both sources run.
+  setInterval(() => {
+    const cutoff = Date.now() - DUPLICATE_WINDOW_MS
+    for (const [raw, entry] of recentPacketSources) {
+      if (entry.at < cutoff) recentPacketSources.delete(raw)
+    }
+    if (config.kissEnabled && config.aprsIsEnabled && duplicatePacketCount > 0) {
+      console.log(
+        `[Dual-source] ${duplicatePacketCount} duplicate packets observed in last interval (window=${DUPLICATE_WINDOW_MS}ms)`
+      )
+      duplicatePacketCount = 0
+    }
+  }, 60_000)
 
   if (config.ais.source !== 'none') {
     console.log(`[Server] AIS source: ${config.ais.source}`)

@@ -43,6 +43,10 @@ export const App: FC = () => {
 
   const availableSymbols = useMemo(() => getUniqueSymbols(stations), [stations])
 
+  const handleToggleDiagnostics = useCallback(() => {
+    dispatch(toggleDiagnostics())
+  }, [dispatch])
+
   useEffect(() => {
     updateUrlState(filter, mapState)
   }, [filter, mapState])
@@ -130,7 +134,7 @@ export const App: FC = () => {
             connected={connected}
             kissConnected={kissConnected}
             isOpen={diagnosticsOpen}
-            onToggle={() => dispatch(toggleDiagnostics())}
+            onToggle={handleToggleDiagnostics}
             stations={filteredStations}
             totalStations={stations.length}
             loading={loading}

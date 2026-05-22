@@ -63,10 +63,16 @@ Copy `.env.example` to `.env` and set your values. **Never commit `.env`** — i
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DATA_SOURCE` | `kiss` or `aprs-is` | `kiss` |
+| `DATA_SOURCE` | `kiss` or `aprs-is` — sets the default for the enable flags below | `kiss` |
+| `KISS_ENABLED` | `true` to connect to a local KISS TNC | derived from `DATA_SOURCE` |
+| `APRS_IS_ENABLED` | `true` to also connect to APRS-IS (you can set both) | derived from `DATA_SOURCE` |
 | `STATION_CALLSIGN` | Your callsign e.g. `M0LHA-10` | required |
 | `STATION_LATITUDE` | Station latitude (decimal degrees) | required |
 | `STATION_LONGITUDE` | Station longitude (decimal degrees) | required |
+
+### Running both sources at once
+
+Set `KISS_ENABLED=true` **and** `APRS_IS_ENABLED=true` to ingest from a local TNC and APRS-IS simultaneously — useful if you want your own RF reception *plus* internet coverage of stations outside your range. Duplicate packets (the same packet heard locally and relayed by APRS-IS) are counted and logged but not dropped; `upsertStation` keys by callsign so they don't double-create stations.
 
 ### KISS / Direwolf mode (`DATA_SOURCE=kiss`)
 
