@@ -6,6 +6,19 @@ import { DEFAULT_CONFIG, DEFAULT_LOCATION, MAP_ATTRIBUTION, MAP_TILE_URL } from 
 import type { AprsPacket, Coordinates, Station } from '../types'
 import { StationMarker } from './StationMarker'
 
+// Cheap content signature for the station list. We re-render the map when a
+// station's identity, position, or last-heard timestamp changes, but not when
+// useStations hands us a freshly-allocated array containing the same data.
+const stationsSignature = (stations: Station[]): string => {
+  let sig = ''
+  for (const s of stations) {
+    const lh = typeof s.lastHeard === 'string' ? s.lastHeard : s.lastHeard.toISOString()
+    const c = s.coordinates
+    sig += `${s.callsign}|${lh}|${c ? `${c.latitude},${c.longitude}` : '_'};`
+  }
+  return sig
+}
+
 interface Viewport {
   south: number
   west: number
@@ -184,4 +197,17 @@ const StationMapInner: FC<StationMapProps> = ({
   )
 }
 
-export const StationMap: FC<StationMapProps> = memo(StationMapInner)
+export const StationMap: FC<StationMapProps> = memo(StationMapInner, (prev, next) => {
+  if (prev.selectedStation !== next.selectedStation) return false
+  if (prev.followedStation !== next.followedStation) return false
+  if (prev.trailMaxAgeHours !== next.trailMaxAgeHours) return false
+  if (prev.centre !== next.centre) return false
+  if (prev.zoom !== next.zoom) return false
+  if (prev.onSelectStation !== next.onSelectStation) return false
+  if (prev.onFollowStation !== next.onFollowStation) return false
+  if (prev.onMapMove !== next.onMapMove) return false
+  if (prev.stationHistory !== next.stationHistory) return false
+  if (prev.stations === next.stations) return true
+  if (prev.stations.length !== next.stations.length) return false
+  return stationsSignature(prev.stations) === stationsSignature(next.stations)
+})
