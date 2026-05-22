@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Escape hatch: pushes from GITHUB_TOKEN (e.g. trusted-automerge) don't
+  # trigger downstream workflows, so the on:push trigger can silently no-op
+  # on auto-merged PRs. workflow_dispatch lets us rebuild :latest from main
+  # manually when that happens.
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
