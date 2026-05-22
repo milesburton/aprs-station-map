@@ -1,13 +1,24 @@
 #!/bin/bash
 set -e
 
-# When using APRS-IS as the data source, Direwolf is not needed.
-# Exit cleanly; supervisord is configured (autorestart=unexpected, exitcodes=0)
-# to treat exit 0 as expected and not respawn-loop it.
-if [ "${DATA_SOURCE:-kiss}" = "aprs-is" ]; then
-  echo "DATA_SOURCE=aprs-is: Direwolf not required, exiting cleanly"
-  exit 0
+# Skip Direwolf when KISS is disabled. KISS_ENABLED takes precedence; if it's
+# unset we fall back to DATA_SOURCE so single-source deployments that only set
+# DATA_SOURCE keep working unchanged. Supervisord is configured
+# (autorestart=unexpected, exitcodes=0) to treat exit 0 as expected.
+if [ -n "${KISS_ENABLED:-}" ]; then
+  kiss_enabled="${KISS_ENABLED}"
+elif [ "${DATA_SOURCE:-kiss}" = "aprs-is" ]; then
+  kiss_enabled="false"
+else
+  kiss_enabled="true"
 fi
+
+case "${kiss_enabled,,}" in
+  false|0|no|off)
+    echo "KISS disabled: Direwolf not required, exiting cleanly"
+    exit 0
+    ;;
+esac
 
 export STATION_CALLSIGN="${STATION_CALLSIGN:-NOCALL}"
 export STATION_LATITUDE="${STATION_LATITUDE:-0.0000}"
