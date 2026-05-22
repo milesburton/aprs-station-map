@@ -1,6 +1,10 @@
 import type { FC } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { APRS_SYMBOLS, DEFAULT_CONFIG } from '../constants'
 import type { FilterState, HealthStatus, SortDirection, SortField } from '../types'
+
+const SEARCH_DEBOUNCE_MS = 300
+const DISTANCE_DEBOUNCE_MS = 150
 
 interface ToolbarProps {
   filter: FilterState
@@ -34,7 +38,7 @@ const TRAIL_AGE_OPTIONS = [
   { value: 0, label: 'All' },
 ]
 
-export const Toolbar: FC<ToolbarProps> = ({
+const ToolbarInner: FC<ToolbarProps> = ({
   filter,
   availableSymbols,
   kissConnected,
@@ -49,6 +53,47 @@ export const Toolbar: FC<ToolbarProps> = ({
   onDirectOnlyChange,
   onReset,
 }) => {
+  // Local-state mirrors for the search box and distance slider so typing /
+  // dragging stays at native speed; the upstream Redux dispatch (which fans
+  // out to filterStations across hundreds of stations) only fires after the
+  // user pauses. We sync back from props so external resets still work.
+  const [searchInput, setSearchInput] = useState(filter.search)
+  const [distanceInput, setDistanceInput] = useState(filter.maxDistance)
+  const lastDispatchedSearch = useRef(filter.search)
+  const lastDispatchedDistance = useRef(filter.maxDistance)
+
+  useEffect(() => {
+    if (filter.search !== lastDispatchedSearch.current) {
+      setSearchInput(filter.search)
+      lastDispatchedSearch.current = filter.search
+    }
+  }, [filter.search])
+
+  useEffect(() => {
+    if (filter.maxDistance !== lastDispatchedDistance.current) {
+      setDistanceInput(filter.maxDistance)
+      lastDispatchedDistance.current = filter.maxDistance
+    }
+  }, [filter.maxDistance])
+
+  useEffect(() => {
+    if (searchInput === lastDispatchedSearch.current) return
+    const id = window.setTimeout(() => {
+      lastDispatchedSearch.current = searchInput
+      onSearchChange(searchInput)
+    }, SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(id)
+  }, [searchInput, onSearchChange])
+
+  useEffect(() => {
+    if (distanceInput === lastDispatchedDistance.current) return
+    const id = window.setTimeout(() => {
+      lastDispatchedDistance.current = distanceInput
+      onDistanceChange(distanceInput)
+    }, DISTANCE_DEBOUNCE_MS)
+    return () => window.clearTimeout(id)
+  }, [distanceInput, onDistanceChange])
+
   const handleSortClick = (field: SortField) => {
     const newDirection: SortDirection =
       filter.sortBy === field && filter.sortDirection === 'asc' ? 'desc' : 'asc'
@@ -92,8 +137,8 @@ export const Toolbar: FC<ToolbarProps> = ({
         <input
           type="text"
           placeholder="Search callsign..."
-          value={filter.search}
-          onChange={(e) => onSearchChange(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="toolbar-input toolbar-search"
         />
       </div>
@@ -107,11 +152,11 @@ export const Toolbar: FC<ToolbarProps> = ({
           min={10}
           max={DEFAULT_CONFIG.maxDistanceKm}
           step={10}
-          value={filter.maxDistance}
-          onChange={(e) => onDistanceChange(Number(e.target.value))}
+          value={distanceInput}
+          onChange={(e) => setDistanceInput(Number(e.target.value))}
           className="toolbar-slider"
         />
-        <span className="toolbar-value">{filter.maxDistance}km</span>
+        <span className="toolbar-value">{distanceInput}km</span>
       </div>
 
       <div className="toolbar-divider" />
@@ -209,3 +254,5 @@ export const Toolbar: FC<ToolbarProps> = ({
     </div>
   )
 }
+
+export const Toolbar: FC<ToolbarProps> = memo(ToolbarInner)

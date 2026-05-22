@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getStationStats } from '../services'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import {
@@ -254,7 +254,7 @@ interface StatsTabProps {
 }
 
 const StatsTab: FC<StatsTabProps> = ({ stations, loading, error, lastUpdated, onRefresh }) => {
-  const { total, avgDistance, furthest } = getStationStats(stations)
+  const { total, avgDistance, furthest } = useMemo(() => getStationStats(stations), [stations])
 
   return (
     <div className="diag-stats-content">
@@ -302,7 +302,7 @@ interface DiagnosticsPanelProps {
   onRefresh: () => void
 }
 
-export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
+const DiagnosticsPanelInner: FC<DiagnosticsPanelProps> = ({
   packets,
   stats,
   connected,
@@ -497,3 +497,5 @@ export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = ({
     </div>
   )
 }
+
+export const DiagnosticsPanel: FC<DiagnosticsPanelProps> = memo(DiagnosticsPanelInner)

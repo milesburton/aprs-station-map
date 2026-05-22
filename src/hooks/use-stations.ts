@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_CONFIG } from '../constants'
 import type { AprsPacket, HealthStatus, Station, Stats, WebSocketMessage } from '../types'
 import { logger } from '../utils'
@@ -262,7 +262,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
     }
   }, [wsUrl])
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     try {
       const response = await fetch(`${DEFAULT_CONFIG.apiUrl}/stations`)
       if (!response.ok) throw new Error('Failed to fetch stations')
@@ -274,7 +274,7 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
     } catch {
       setError('Failed to refresh data')
     }
-  }
+  }, [])
 
   return {
     stations,
