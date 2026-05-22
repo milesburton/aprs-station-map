@@ -5,6 +5,10 @@ const baseURL = isCI ? 'http://localhost:4173' : 'http://localhost:3000'
 
 export default defineConfig({
   testDir: './e2e',
+  // Default run only picks up *.spec.ts. Perf benchmarks live in *.bench.ts
+  // and are invoked explicitly via the test:e2e:load script + perf CI job, so
+  // the main e2e job stays focused on correctness.
+  testMatch: /\.spec\.ts$/,
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
