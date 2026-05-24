@@ -144,6 +144,69 @@ describe('useStations', () => {
     await waitFor(() => expect(result.current.stations).toHaveLength(1))
   })
 
+  it('fetches and merges a pinned station that is not in the bulk list', async () => {
+    const pinned = {
+      ...makeStation('M0LHA-7'),
+      lastHeard: '2024-01-01T00:00:00Z',
+    }
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+      if (url.endsWith('/stations/M0LHA-7')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ station: pinned }),
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ status: 'ok' }) })
+    })
+
+    const hook = renderHook(() => useStations('ws://localhost/ws', 'M0LHA-7'))
+    await waitFor(() => expect(instances.length).toBeGreaterThan(0))
+    act(() => getWs().simulateOpen())
+    act(() =>
+      getWs().simulateMessage({
+        type: 'init',
+        stations: [makeStation('G4ABC')],
+        stats: { totalStations: 1, stationsWithPosition: 1, totalPackets: 0, kissConnected: true },
+      })
+    )
+
+    await waitFor(() =>
+      expect(hook.result.current.stations.map((s) => s.callsign).sort()).toEqual([
+        'G4ABC',
+        'M0LHA-7',
+      ])
+    )
+  })
+
+  it('only fetches a pinned station once even after subsequent renders', async () => {
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>
+    const hook = renderHook(() => useStations('ws://localhost/ws', 'M0LHA-7'))
+    await waitFor(() => expect(instances.length).toBeGreaterThan(0))
+    act(() => getWs().simulateOpen())
+    act(() =>
+      getWs().simulateMessage({
+        type: 'init',
+        stations: [makeStation('G4ABC')],
+        stats: { totalStations: 1, stationsWithPosition: 1, totalPackets: 0, kissConnected: true },
+      })
+    )
+    await waitFor(() => expect(hook.result.current.stations.length).toBeGreaterThan(0))
+    // Trigger more renders by pushing station_updates; pin must not refetch.
+    act(() =>
+      getWs().simulateMessage({
+        type: 'station_update',
+        station: makeStation('K9XYZ'),
+        isNew: true,
+      })
+    )
+    await waitFor(() => expect(hook.result.current.stations.length).toBeGreaterThan(1))
+
+    const pinnedDetailCalls = fetchMock.mock.calls.filter((c) =>
+      String(c[0]).endsWith('/stations/M0LHA-7')
+    )
+    expect(pinnedDetailCalls).toHaveLength(1)
+  })
+
   it('processes init: sets kissConnected from stats', async () => {
     const { result } = await renderAndOpen()
     act(() =>

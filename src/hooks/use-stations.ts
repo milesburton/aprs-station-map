@@ -43,7 +43,10 @@ const deduplicateStations = (stations: Station[]): Station[] => {
   return Array.from(map.values())
 }
 
-export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsResult => {
+export const useStations = (
+  wsUrl: string = DEFAULT_CONFIG.wsUrl,
+  pinnedCallsign?: string | null
+): UseStationsResult => {
   const [stations, setStations] = useState<Station[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [health, setHealth] = useState<HealthStatus | null>(null)
@@ -268,6 +271,39 @@ export const useStations = (wsUrl: string = DEFAULT_CONFIG.wsUrl): UseStationsRe
       }
     }
   }, [wsUrl])
+
+  // The bulk /api/stations endpoint caps at N most-recent-heard stations.
+  // A station pinned via URL (?station=X) may be older than that window, in
+  // which case the map would render empty even though the station exists.
+  // Fetch it directly and merge it in so the pin survives the cap. Also
+  // re-merge if a later WS init wipes our merged entry (init is authoritative
+  // and replaces the array).
+  const pinInFlightRef = useRef<string | null>(null)
+  const stationsHasPin = pinnedCallsign ? stations.some((s) => s.callsign === pinnedCallsign) : true
+  useEffect(() => {
+    if (!pinnedCallsign || stationsHasPin) return
+    if (pinInFlightRef.current === pinnedCallsign) return
+    pinInFlightRef.current = pinnedCallsign
+    let cancelled = false
+    fetch(`${DEFAULT_CONFIG.apiUrl}/stations/${encodeURIComponent(pinnedCallsign)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { station?: Station } | null) => {
+        if (cancelled || !data?.station) return
+        const pin = data.station
+        setStations((prev) =>
+          prev.some((s) => s.callsign === pin.callsign) ? prev : [...prev, pin]
+        )
+      })
+      .catch(() => {
+        // Network error or 404 — caller's pin just won't render. Not fatal.
+      })
+      .finally(() => {
+        pinInFlightRef.current = null
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [pinnedCallsign, stationsHasPin])
 
   const refresh = useCallback(async () => {
     try {

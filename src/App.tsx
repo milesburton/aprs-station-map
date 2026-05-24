@@ -11,6 +11,7 @@ import { setupVersionCheck } from './utils/version'
 export const App: FC = () => {
   const dispatch = useAppDispatch()
   const diagnosticsOpen = useAppSelector((state) => state.ui.diagnosticsOpen)
+  const pinnedCallsign = useAppSelector((state) => state.map.selectedStation)
 
   const {
     stations,
@@ -24,7 +25,7 @@ export const App: FC = () => {
     packets,
     stationHistory,
     refresh,
-  } = useStations()
+  } = useStations(undefined, pinnedCallsign)
 
   const {
     filter,
