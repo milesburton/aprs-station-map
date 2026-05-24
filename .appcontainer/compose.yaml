@@ -12,14 +12,13 @@ services:
       - /dev/snd:/dev/snd
       - /dev/bus/usb:/dev/bus/usb
     environment:
-      # DATA_SOURCE is the legacy single-source selector ('kiss' or 'aprs-is').
-      # KISS_ENABLED / APRS_IS_ENABLED let you run both at once and override
-      # DATA_SOURCE when set. Defaults below preserve historical kiss-only
-      # behaviour; set both to true in .env for dual-source.
+      # DATA_SOURCE sets the single-source default ('kiss' or 'aprs-is').
+      # KISS_ENABLED / APRS_IS_ENABLED / APRS_IS_FILTER come in via env_file
+      # below — do NOT declare them here, because Compose substitution does
+      # not see env_file values, so `KEY=${KEY:-}` would resolve to an empty
+      # string at parse time and override whatever env_file loaded. Set them
+      # in .env for the host operator's chosen ingestion mode.
       - DATA_SOURCE=${DATA_SOURCE:-kiss}
-      - KISS_ENABLED=${KISS_ENABLED:-}
-      - APRS_IS_ENABLED=${APRS_IS_ENABLED:-}
-      - APRS_IS_FILTER=${APRS_IS_FILTER:-}
       - KISS_HOST=${KISS_HOST:-127.0.0.1}
       - KISS_PORT=${KISS_PORT:-8001}
       - LOG_LEVEL=${LOG_LEVEL:-info}
