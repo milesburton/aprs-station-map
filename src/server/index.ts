@@ -261,7 +261,7 @@ const handleVersion = (res: ServerResponse): void => {
 
 const routeApiGet = (res: ServerResponse, path: string): boolean => {
   if (path === '/stations') {
-    sendJson(res, { stations: getAllStations(5000).map(toApiStation) })
+    sendJson(res, { stations: getAllStations(15000).map(toApiStation) })
     return true
   }
   const stationMatch = path.match(/^\/stations\/([^/]+)$/)

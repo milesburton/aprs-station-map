@@ -189,3 +189,4 @@ deploy/
 # Public directory (favicon and generated files)
 public/*
 !public/robots.txt
+!public/favicon.svg
