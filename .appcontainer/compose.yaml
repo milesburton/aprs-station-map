@@ -32,5 +32,23 @@ services:
       start_period: 30s
       retries: 3
 
+  # Polls the registry every 5 min and pulls newer :latest images. Watches
+  # every container on this host, but in practice that's just aprs-map.
+  # CLEANUP=true reaps superseded image layers so the SD card doesn't fill.
+  #
+  # Using nickfedor/watchtower (active maintained fork) because the original
+  # containrrr/watchtower repo was archived Dec 2025 and its image bitrotted —
+  # ships a Docker SDK too old to talk to modern Docker Engine (≥25.0). Tag is
+  # pinned so the auto-updater itself doesn't surprise-update.
+  watchtower:
+    image: nickfedor/watchtower:1.17.1
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+
 volumes:
   aprs-data:
