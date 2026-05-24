@@ -27,6 +27,8 @@
         "anthropic.claude-code",
         "GitHub.copilot",
         "GitHub.copilot-chat",
+        "Google.geminicodeassist",
+        "RooVeterinaryInc.roo-cline",
         "ms-azuretools.vscode-docker",
         "ms-playwright.playwright",
         "redhat.vscode-yaml",
@@ -46,7 +48,9 @@
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,consistency=cached",
     "source=aprs-station-map-fly-config,target=/home/node/.fly,type=volume",
     "source=aprs-station-map-fish-config,target=/home/node/.config/fish,type=volume",
-    "source=aprs-station-map-claude-mem,target=/home/node/.claude-mem,type=volume"
+    "source=aprs-station-map-claude-mem,target=/home/node/.claude-mem,type=volume",
+    "source=aprs-station-map-gemini-code-assist,target=/home/node/.vscode-server/data/User/globalStorage/google.geminicodeassist,type=volume",
+    "source=aprs-station-map-roo-code,target=/home/node/.vscode-server/data/User/globalStorage/rooveterinaryinc.roo-cline,type=volume"
   ],
   "postCreateCommand": "npm install && npx playwright install --with-deps chromium",
   "postStartCommand": "sudo chown -R node:node /workspace && npm install",
