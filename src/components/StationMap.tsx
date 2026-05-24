@@ -1,5 +1,5 @@
 import type { FC, ReactNode } from 'react'
-import { memo, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMapEvents } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { DEFAULT_CONFIG, DEFAULT_LOCATION, MAP_ATTRIBUTION, MAP_TILE_URL } from '../constants'
@@ -43,15 +43,18 @@ const MapEventHandler: FC<{
   onMove: (centre: Coordinates, zoom: number) => void
   onViewportChange: (viewport: Viewport) => void
 }> = ({ onMove, onViewportChange }) => {
-  const reportViewport = (map: L.Map): void => {
-    const bounds = map.getBounds()
-    onViewportChange({
-      south: bounds.getSouth(),
-      west: bounds.getWest(),
-      north: bounds.getNorth(),
-      east: bounds.getEast(),
-    })
-  }
+  const reportViewport = useCallback(
+    (map: L.Map): void => {
+      const bounds = map.getBounds()
+      onViewportChange({
+        south: bounds.getSouth(),
+        west: bounds.getWest(),
+        north: bounds.getNorth(),
+        east: bounds.getEast(),
+      })
+    },
+    [onViewportChange]
+  )
   const map = useMapEvents({
     moveend: (e) => {
       const m = e.target
@@ -64,8 +67,7 @@ const MapEventHandler: FC<{
   // Report initial viewport once so the first paint is already filtered.
   useEffect(() => {
     if (map) reportViewport(map)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map])
+  }, [map, reportViewport])
   return null
 }
 

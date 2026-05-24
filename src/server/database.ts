@@ -408,92 +408,115 @@ export const cleanupOldHistory = (daysToKeep = 7): number => {
   return result.changes
 }
 
+const hasValidPosition = (aisMsg: ParsedAisMessage): boolean =>
+  aisMsg.latitude !== 0 && aisMsg.longitude !== 0
+
+const updateExistingVessel = (
+  database: Database.Database,
+  aisMsg: ParsedAisMessage,
+  existing: DbVessel,
+  now: number
+): DbVessel => {
+  const updateStmt = database.prepare(`
+    UPDATE vessels SET
+      callsign = COALESCE(?, callsign),
+      ship_name = COALESCE(?, ship_name),
+      latitude = COALESCE(?, latitude),
+      longitude = COALESCE(?, longitude),
+      course = COALESCE(?, course),
+      speed = COALESCE(?, speed),
+      heading = COALESCE(?, heading),
+      ship_type = COALESCE(?, ship_type),
+      last_heard = ?,
+      packet_count = packet_count + 1,
+      updated_at = ?
+    WHERE mmsi = ?
+  `)
+
+  updateStmt.run(
+    aisMsg.callsign ?? null,
+    aisMsg.shipName ?? null,
+    aisMsg.latitude,
+    aisMsg.longitude,
+    aisMsg.course ?? null,
+    aisMsg.speed ?? null,
+    aisMsg.heading ?? null,
+    aisMsg.shipType ?? null,
+    now,
+    now,
+    aisMsg.mmsi
+  )
+
+  return {
+    ...existing,
+    callsign: aisMsg.callsign ?? existing.callsign,
+    ship_name: aisMsg.shipName ?? existing.ship_name,
+    latitude: aisMsg.latitude,
+    longitude: aisMsg.longitude,
+    course: aisMsg.course ?? existing.course,
+    speed: aisMsg.speed ?? existing.speed,
+    heading: aisMsg.heading ?? existing.heading,
+    ship_type: aisMsg.shipType ?? existing.ship_type,
+    last_heard: now,
+    packet_count: existing.packet_count + 1,
+    updated_at: now,
+  }
+}
+
+const insertNewVessel = (
+  database: Database.Database,
+  aisMsg: ParsedAisMessage,
+  now: number
+): DbVessel | null => {
+  const insertStmt = database.prepare(`
+    INSERT INTO vessels (mmsi, callsign, ship_name, latitude, longitude, course, speed, heading, ship_type, last_heard, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  insertStmt.run(
+    aisMsg.mmsi,
+    aisMsg.callsign ?? null,
+    aisMsg.shipName ?? null,
+    aisMsg.latitude,
+    aisMsg.longitude,
+    aisMsg.course ?? null,
+    aisMsg.speed ?? null,
+    aisMsg.heading ?? null,
+    aisMsg.shipType ?? null,
+    now,
+    now,
+    now
+  )
+
+  const newVessel = database.prepare('SELECT * FROM vessels WHERE mmsi = ?').get(aisMsg.mmsi) as
+    | DbVessel
+    | undefined
+
+  if (!newVessel) return null
+  counters.totalVessels += 1
+  counters.vesselsWithPosition += 1
+  return newVessel
+}
+
 export const upsertVessel = (aisMsg: ParsedAisMessage): DbVessel => {
   const database = getDatabase()
   const now = Date.now()
+  const existing = database.prepare('SELECT * FROM vessels WHERE mmsi = ?').get(aisMsg.mmsi) as
+    | DbVessel
+    | undefined
 
-  const existingStmt = database.prepare('SELECT * FROM vessels WHERE mmsi = ?')
-  const existing = existingStmt.get(aisMsg.mmsi) as DbVessel | undefined
+  const hasPosition = hasValidPosition(aisMsg)
 
-  if (existing && aisMsg.latitude !== 0 && aisMsg.longitude !== 0) {
-    const updateStmt = database.prepare(`
-      UPDATE vessels SET
-        callsign = COALESCE(?, callsign),
-        ship_name = COALESCE(?, ship_name),
-        latitude = COALESCE(?, latitude),
-        longitude = COALESCE(?, longitude),
-        course = COALESCE(?, course),
-        speed = COALESCE(?, speed),
-        heading = COALESCE(?, heading),
-        ship_type = COALESCE(?, ship_type),
-        last_heard = ?,
-        packet_count = packet_count + 1,
-        updated_at = ?
-      WHERE mmsi = ?
-    `)
-
-    updateStmt.run(
-      aisMsg.callsign ?? null,
-      aisMsg.shipName ?? null,
-      aisMsg.latitude,
-      aisMsg.longitude,
-      aisMsg.course ?? null,
-      aisMsg.speed ?? null,
-      aisMsg.heading ?? null,
-      aisMsg.shipType ?? null,
-      now,
-      now,
-      aisMsg.mmsi
-    )
-
-    return {
-      ...existing,
-      callsign: aisMsg.callsign ?? existing.callsign,
-      ship_name: aisMsg.shipName ?? existing.ship_name,
-      latitude: aisMsg.latitude !== 0 ? aisMsg.latitude : existing.latitude,
-      longitude: aisMsg.longitude !== 0 ? aisMsg.longitude : existing.longitude,
-      course: aisMsg.course ?? existing.course,
-      speed: aisMsg.speed ?? existing.speed,
-      heading: aisMsg.heading ?? existing.heading,
-      ship_type: aisMsg.shipType ?? existing.ship_type,
-      last_heard: now,
-      packet_count: existing.packet_count + 1,
-      updated_at: now,
-    }
+  if (existing && hasPosition) {
+    return updateExistingVessel(database, aisMsg, existing, now)
   }
 
-  if (aisMsg.latitude !== 0 && aisMsg.longitude !== 0) {
-    const insertStmt = database.prepare(`
-      INSERT INTO vessels (mmsi, callsign, ship_name, latitude, longitude, course, speed, heading, ship_type, last_heard, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-
-    insertStmt.run(
-      aisMsg.mmsi,
-      aisMsg.callsign ?? null,
-      aisMsg.shipName ?? null,
-      aisMsg.latitude,
-      aisMsg.longitude,
-      aisMsg.course ?? null,
-      aisMsg.speed ?? null,
-      aisMsg.heading ?? null,
-      aisMsg.shipType ?? null,
-      now,
-      now,
-      now
-    )
-
-    const newVessel = existingStmt.get(aisMsg.mmsi) as DbVessel | undefined
-    if (newVessel) {
-      counters.totalVessels += 1
-      counters.vesselsWithPosition += 1
-      return newVessel
-    }
+  if (hasPosition) {
+    const inserted = insertNewVessel(database, aisMsg, now)
+    if (inserted) return inserted
   }
 
-  if (existing) {
-    return existing
-  }
+  if (existing) return existing
 
   throw new Error(`Failed to insert or retrieve vessel: ${aisMsg.mmsi}`)
 }

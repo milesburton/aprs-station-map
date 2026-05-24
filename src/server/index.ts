@@ -218,6 +218,76 @@ const handleStationDetail = (res: ServerResponse, callsign: string): void => {
   })
 }
 
+const handleHealth = (res: ServerResponse): void => {
+  const lastPacketAt = stateManager.getLastAprsPacketAt()
+  const secondsSinceLastPacket =
+    lastPacketAt === null ? null : Math.floor((Date.now() - lastPacketAt) / 1000)
+  const kissConnected = stateManager.isKissConnected()
+  // sourceConnected is true if any enabled source is up. When both KISS
+  // and APRS-IS are enabled, losing one is degraded-but-functional rather
+  // than fully down.
+  const sourceConnected =
+    (config.kissEnabled && kissConnected) || (config.aprsIsEnabled && aprsIsConnected)
+  const receivingPackets = secondsSinceLastPacket !== null && secondsSinceLastPacket <= 180
+  const healthy = sourceConnected && receivingPackets
+
+  sendJson(
+    res,
+    {
+      status: healthy ? 'ok' : 'degraded',
+      healthy,
+      dataSource: config.dataSource,
+      kissEnabled: config.kissEnabled,
+      aprsIsEnabled: config.aprsIsEnabled,
+      sourceConnected,
+      kissConnected,
+      aprsIsConnected,
+      receivingPackets,
+      lastPacketAt: lastPacketAt === null ? null : new Date(lastPacketAt).toISOString(),
+      secondsSinceLastPacket,
+      connectedClients: clients.size,
+      duplicatePacketsInLastWindow: duplicatePacketCount,
+    },
+    healthy ? 200 : 503
+  )
+}
+
+const handleVersion = (res: ServerResponse): void => {
+  sendJson(res, {
+    version: APP_VERSION,
+    buildTime: typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : new Date().toISOString(),
+  })
+}
+
+const routeApiGet = (res: ServerResponse, path: string): boolean => {
+  if (path === '/stations') {
+    sendJson(res, { stations: getAllStations(5000).map(toApiStation) })
+    return true
+  }
+  const stationMatch = path.match(/^\/stations\/([^/]+)$/)
+  if (stationMatch) {
+    handleStationDetail(res, decodeURIComponent(stationMatch[1] ?? ''))
+    return true
+  }
+  if (path === '/vessels') {
+    sendJson(res, { vessels: getAllVessels().map(toApiVessel) })
+    return true
+  }
+  if (path === '/stats') {
+    sendJson(res, { ...getStats(), kissConnected: stateManager.isKissConnected() })
+    return true
+  }
+  if (path === '/health') {
+    handleHealth(res)
+    return true
+  }
+  if (path === '/version') {
+    handleVersion(res)
+    return true
+  }
+  return false
+}
+
 const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: string): void => {
   const path = pathname.replace('/api', '')
 
@@ -228,71 +298,7 @@ const handleApiRequest = (req: IncomingMessage, res: ServerResponse, pathname: s
   }
 
   try {
-    if (path === '/stations' && req.method === 'GET') {
-      sendJson(res, { stations: getAllStations(5000).map(toApiStation) })
-      return
-    }
-
-    const stationMatch = path.match(/^\/stations\/([^/]+)$/)
-    if (stationMatch && req.method === 'GET') {
-      handleStationDetail(res, decodeURIComponent(stationMatch[1] ?? ''))
-      return
-    }
-
-    if (path === '/vessels' && req.method === 'GET') {
-      sendJson(res, { vessels: getAllVessels().map(toApiVessel) })
-      return
-    }
-
-    if (path === '/stats' && req.method === 'GET') {
-      sendJson(res, { ...getStats(), kissConnected: stateManager.isKissConnected() })
-      return
-    }
-
-    if (path === '/health' && req.method === 'GET') {
-      const lastPacketAt = stateManager.getLastAprsPacketAt()
-      const secondsSinceLastPacket =
-        lastPacketAt === null ? null : Math.floor((Date.now() - lastPacketAt) / 1000)
-      const kissConnected = stateManager.isKissConnected()
-      // sourceConnected is true if any enabled source is up. When both KISS
-      // and APRS-IS are enabled, losing one is degraded-but-functional rather
-      // than fully down.
-      const sourceConnected =
-        (config.kissEnabled && kissConnected) || (config.aprsIsEnabled && aprsIsConnected)
-      const receivingPackets = secondsSinceLastPacket !== null && secondsSinceLastPacket <= 180
-      const healthy = sourceConnected && receivingPackets
-
-      sendJson(
-        res,
-        {
-          status: healthy ? 'ok' : 'degraded',
-          healthy,
-          dataSource: config.dataSource,
-          kissEnabled: config.kissEnabled,
-          aprsIsEnabled: config.aprsIsEnabled,
-          sourceConnected,
-          kissConnected,
-          aprsIsConnected,
-          receivingPackets,
-          lastPacketAt: lastPacketAt === null ? null : new Date(lastPacketAt).toISOString(),
-          secondsSinceLastPacket,
-          connectedClients: clients.size,
-          duplicatePacketsInLastWindow: duplicatePacketCount,
-        },
-        healthy ? 200 : 503
-      )
-      return
-    }
-
-    if (path === '/version' && req.method === 'GET') {
-      sendJson(res, {
-        version: APP_VERSION,
-        buildTime:
-          typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : new Date().toISOString(),
-      })
-      return
-    }
-
+    if (req.method === 'GET' && routeApiGet(res, path)) return
     sendJson(res, { error: 'Not found' }, 404)
   } catch (error) {
     console.error('[API] Error:', error)

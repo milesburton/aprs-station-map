@@ -287,6 +287,86 @@ const StatsTab: FC<StatsTabProps> = ({ stations, loading, error, lastUpdated, on
   )
 }
 
+const getStatusIndicator = (connected: boolean, kissConnected: boolean): string => {
+  if (!connected) return '🔴'
+  if (!kissConnected) return '🟡'
+  return '🟢'
+}
+
+const getStatusText = (
+  connected: boolean,
+  kissConnected: boolean,
+  stats: Stats | null,
+  packetCount: number
+): string => {
+  if (!connected) return 'Disconnected'
+  if (!kissConnected) return 'TNC Disconnected'
+  if (stats === null) return 'Connecting...'
+  if (packetCount === 0) return 'Awaiting Packets'
+  return `Receiving (${packetCount})`
+}
+
+const TabContent: FC<{
+  activeTab: TabId
+  packets: AprsPacket[]
+  stations: Station[]
+  connected: boolean
+  kissConnected: boolean
+  stats: Stats | null
+  lastPacketTime: Date | null
+  statusText: string
+  loading: boolean
+  error: string | null
+  lastUpdated: Date | null
+  onRefresh: () => void
+}> = ({
+  activeTab,
+  packets,
+  stations,
+  connected,
+  kissConnected,
+  stats,
+  lastPacketTime,
+  statusText,
+  loading,
+  error,
+  lastUpdated,
+  onRefresh,
+}) => {
+  if (activeTab === 'stats') {
+    return (
+      <StatsTab
+        stations={stations}
+        loading={loading}
+        error={error}
+        lastUpdated={lastUpdated}
+        onRefresh={onRefresh}
+      />
+    )
+  }
+  if (activeTab === 'packets') return <PacketsTab packets={packets} />
+  if (activeTab === 'spectrum') {
+    return (
+      <div className="flex-1 overflow-y-auto p-3">
+        <SpectrumAnalyzer />
+      </div>
+    )
+  }
+  if (activeTab === 'status') {
+    return (
+      <StatusTab
+        connected={connected}
+        kissConnected={kissConnected}
+        stats={stats}
+        lastPacketTime={lastPacketTime}
+        statusText={statusText}
+      />
+    )
+  }
+  if (activeTab === 'about') return <AboutTab />
+  return null
+}
+
 interface DiagnosticsPanelProps {
   packets: AprsPacket[]
   stats: Stats | null
@@ -385,19 +465,8 @@ const DiagnosticsPanelInner: FC<DiagnosticsPanelProps> = ({
     }
   }, [isResizing, dispatch, activeTab])
 
-  const getStatusIndicator = () => {
-    if (!connected) return '🔴'
-    if (!kissConnected) return '🟡'
-    return '🟢'
-  }
-
-  const getStatusText = () => {
-    if (!connected) return 'Disconnected'
-    if (!kissConnected) return 'TNC Disconnected'
-    if (stats === null) return 'Connecting...'
-    if (packets.length === 0) return 'Awaiting Packets'
-    return `Receiving (${packets.length})`
-  }
+  const statusIndicator = getStatusIndicator(connected, kissConnected)
+  const statusText = getStatusText(connected, kissConnected, stats, packets.length)
 
   const currentHeight = isOpen ? panelHeight : COLLAPSED_HEIGHT
   const tabs: { id: TabId; label: string }[] = [
@@ -422,7 +491,7 @@ const DiagnosticsPanelInner: FC<DiagnosticsPanelProps> = ({
       {/* biome-ignore lint/a11y/noStaticElementInteractions: header bar is intentionally clickable */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard toggle is available via explicit button */}
       <div className="diag-header-bar" onClick={handleHeaderToggle} style={{ cursor: 'pointer' }}>
-        <span className="diag-status-indicator">{getStatusIndicator()}</span>
+        <span className="diag-status-indicator">{statusIndicator}</span>
         {isOpen ? (
           <>
             <div role="tablist" className="diag-tabs">
@@ -447,7 +516,7 @@ const DiagnosticsPanelInner: FC<DiagnosticsPanelProps> = ({
         ) : (
           <>
             <span className="diag-collapsed-title">Diagnostics</span>
-            <span className="diag-collapsed-status">{getStatusText()}</span>
+            <span className="diag-collapsed-status">{statusText}</span>
             <span className="diag-station-count">
               {stations.length}/{totalStations} {stations.length === 1 ? 'Station' : 'Stations'}
             </span>
@@ -467,31 +536,20 @@ const DiagnosticsPanelInner: FC<DiagnosticsPanelProps> = ({
 
       {isOpen && (
         <div role="tabpanel" className="diag-content">
-          {activeTab === 'stats' && (
-            <StatsTab
-              stations={stations}
-              loading={loading}
-              error={error}
-              lastUpdated={lastUpdated}
-              onRefresh={onRefresh}
-            />
-          )}
-          {activeTab === 'packets' && <PacketsTab packets={packets} />}
-          {activeTab === 'spectrum' && (
-            <div className="flex-1 overflow-y-auto p-3">
-              <SpectrumAnalyzer />
-            </div>
-          )}
-          {activeTab === 'status' && (
-            <StatusTab
-              connected={connected}
-              kissConnected={kissConnected}
-              stats={stats}
-              lastPacketTime={lastPacketTime}
-              statusText={getStatusText()}
-            />
-          )}
-          {activeTab === 'about' && <AboutTab />}
+          <TabContent
+            activeTab={activeTab}
+            packets={packets}
+            stations={stations}
+            connected={connected}
+            kissConnected={kissConnected}
+            stats={stats}
+            lastPacketTime={lastPacketTime}
+            statusText={statusText}
+            loading={loading}
+            error={error}
+            lastUpdated={lastUpdated}
+            onRefresh={onRefresh}
+          />
         </div>
       )}
     </div>
