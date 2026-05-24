@@ -5,10 +5,16 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  # Escape hatch: pushes from GITHUB_TOKEN (e.g. trusted-automerge) don't
-  # trigger downstream workflows, so the on:push trigger can silently no-op
-  # on auto-merged PRs. workflow_dispatch lets us rebuild :latest from main
-  # manually when that happens.
+  # Pushes performed by GITHUB_TOKEN (e.g. trusted-automerge merging a PR)
+  # do not trigger downstream workflows, so the on:push trigger silently
+  # no-ops for auto-merged PRs. Chain off the automerge workflow's
+  # completion to cover that case. We still gate on success below so a
+  # failed automerge run doesn't produce a build.
+  workflow_run:
+    workflows: ["Trusted PR Auto-Approve and Merge"]
+    types: [completed]
+    branches: [main]
+  # Manual escape hatch for any other case where :latest needs rebuilding.
   workflow_dispatch:
 
 env:
@@ -17,6 +23,11 @@ env:
 
 jobs:
   build-and-push:
+    # Skip workflow_run firings where the upstream automerge failed (e.g.
+    # PR not by a trusted author — automerge no-ops or errors). Other event
+    # types are always allowed; the per-step push gate decides what gets
+    # uploaded.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -32,9 +43,12 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
-        # Push for: direct main pushes AND manual workflow_dispatch runs.
-        # PRs build but don't push.
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+        # Push for: direct main pushes, manual dispatch, and automerge-chained
+        # runs. PRs build but don't push.
+        if: >-
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'workflow_run'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -56,7 +70,10 @@ jobs:
           context: .
           file: .appcontainer/Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
+          push: >-
+            ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+                github.event_name == 'workflow_dispatch' ||
+                github.event_name == 'workflow_run' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
