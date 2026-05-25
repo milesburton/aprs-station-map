@@ -63,4 +63,22 @@ RUN mkdir -p /home/node/.config/fish \
     && chown -R node:node /home/node/.config \
     && chmod 700 /home/node/.config/fish
 
+# VS Code bootstraps its server before postStartCommand runs. Pre-create the
+# directories it writes to so nested volume mount targets do not leave root-owned
+# parents under /home/node.
+RUN mkdir -p \
+    /home/node/.vscode-server/bin \
+    /home/node/.vscode-server/data/Machine \
+    /home/node/.vscode-server/data/User/globalStorage/google.geminicodeassist \
+    /home/node/.vscode-server/data/User/globalStorage/rooveterinaryinc.roo-cline \
+    /home/node/.vscode-server/data/User/globalStorage/continue.continue \
+    /home/node/.fly \
+    /home/node/.claude-mem \
+    /home/node/.continue \
+    && chown -R node:node \
+    /home/node/.vscode-server \
+    /home/node/.fly \
+    /home/node/.claude-mem \
+    /home/node/.continue
+
 USER node
