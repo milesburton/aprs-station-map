@@ -4,10 +4,10 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "forwardPorts": [3000, 3001, 37777],
+  "forwardPorts": [5173, 5174, 37777],
   "portsAttributes": {
-    "3000": { "label": "Vite Dev Server", "onAutoForward": "notify", "protocol": "http" },
-    "3001": { "label": "Backend API", "onAutoForward": "notify", "protocol": "http" },
+    "5173": { "label": "Vite Dev Server", "onAutoForward": "notify", "protocol": "http" },
+    "5174": { "label": "Backend API", "onAutoForward": "notify", "protocol": "http" },
     "37777": { "label": "Claude-Mem Viewer", "onAutoForward": "silent", "protocol": "http" }
   },
   "customizations": {
