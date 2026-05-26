@@ -1,7 +1,11 @@
+import { BookOpen, Github, TriangleAlert } from 'lucide-react'
 import type { FC } from 'react'
 import { memo, useEffect, useRef, useState } from 'react'
 import { APRS_SYMBOLS, DEFAULT_CONFIG } from '../constants'
 import type { FilterState, HealthStatus, SortDirection, SortField } from '../types'
+
+const REPO_URL = 'https://github.com/milesburton/aprs-station-map'
+const DOCS_URL = 'https://github.com/milesburton/aprs-station-map#readme'
 
 const SEARCH_DEBOUNCE_MS = 300
 const DISTANCE_DEBOUNCE_MS = 150
@@ -246,11 +250,42 @@ const ToolbarInner: FC<ToolbarProps> = ({
         ))}
       </div>
 
+      <div className="toolbar-spacer" />
+
       {hasActiveFilters && (
-        <button type="button" onClick={onReset} className="toolbar-reset-btn">
-          Reset
+        <button
+          type="button"
+          onClick={onReset}
+          className="toolbar-filter-warning"
+          title="One or more filters are hiding stations. Click to clear all filters."
+        >
+          <TriangleAlert size={12} aria-hidden="true" />
+          <span>Filters active — Reset</span>
         </button>
       )}
+
+      <div className="toolbar-links">
+        <a
+          href={DOCS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="toolbar-icon-link"
+          title="Documentation (README)"
+          aria-label="Documentation"
+        >
+          <BookOpen size={14} aria-hidden="true" />
+        </a>
+        <a
+          href={REPO_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="toolbar-icon-link"
+          title="GitHub repository"
+          aria-label="GitHub repository"
+        >
+          <Github size={14} aria-hidden="true" />
+        </a>
+      </div>
     </div>
   )
 }
