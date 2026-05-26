@@ -14,12 +14,13 @@ export default defineConfig({
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
   server: {
-    port: 3000,
+    port: 5173,
+    strictPort: true,
     host: true,
     proxy: {
-      '/api': 'http://localhost:3001',
-      '/ws': { target: 'ws://localhost:3001', ws: true },
-      '/ws/spectrum': { target: 'ws://localhost:3001', ws: true },
+      '/api': 'http://localhost:5174',
+      '/ws': { target: 'ws://localhost:5174', ws: true },
+      '/ws/spectrum': { target: 'ws://localhost:5174', ws: true },
     },
   },
   preview: {
