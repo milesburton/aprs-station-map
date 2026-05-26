@@ -126,13 +126,13 @@ test.describe('Toolbar filters', () => {
     }
   })
 
-  test('reset button clears active filter and restores markers', async ({ page }) => {
+  test('filter-warning pill clears active filter and restores markers', async ({ page }) => {
     await page.locator('.toolbar-search').fill('G4ABC')
-    const resetBtn = page.locator('.toolbar-reset-btn')
-    await expect(resetBtn).toBeVisible()
-    await resetBtn.click()
+    const warning = page.locator('.toolbar-filter-warning')
+    await expect(warning).toBeVisible()
+    await warning.click()
     await expect(page.locator('.toolbar-search')).toHaveValue('')
-    await expect(resetBtn).not.toBeVisible()
+    await expect(warning).not.toBeVisible()
     await expect(page.locator('.station-marker')).toHaveCount(2)
   })
 })
