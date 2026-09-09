@@ -82,7 +82,7 @@
     "tsx": "^4.22.4",
     "typescript": "^5.7.2",
     "vite": "^8.0.16",
-    "vitest": "^4.1.8",
+    "vitest": "^4.1.11",
     "wait-on": "^9.0.3"
   },
   "lint-staged": {
